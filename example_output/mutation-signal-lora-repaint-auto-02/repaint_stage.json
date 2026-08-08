@@ -1,0 +1,24 @@
+{
+  "stage_version": "0.1",
+  "execution_state_at_creation": "staged_not_rendered",
+  "source_project": "mutation-signal-lora-repaint-auto-01",
+  "source_song_spec_sha256": "bc83dfdb3e8a2ee6df61d4c4f9978c599ad528262951594e0609428edf420f93",
+  "source_audio": {
+    "name": "ace-step-01.wav",
+    "sha256": "3ba7342793c4a037d307d5160ce14457244b5eeb614078d14093b36667f89163",
+    "verified": true,
+    "copied_to_output": false
+  },
+  "repaint_plan": "repaint_plan.json",
+  "applied_repaint_plan": "applied_repaint_plan.json",
+  "staged_files": [
+    "song_spec.json",
+    "bass.mid",
+    "drums.mid",
+    "chords.mid",
+    "prompt.txt",
+    "repaint_plan.json",
+    "applied_repaint_plan.json",
+    "revision_prompt.txt"
+  ]
+}

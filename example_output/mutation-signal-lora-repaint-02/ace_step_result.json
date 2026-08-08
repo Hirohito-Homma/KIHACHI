@@ -1,0 +1,70 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "da556697-9664-4a6d-a07f-5f024a346b4b",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2Fc9a996f1-c3c3-d1b5-94a2-f08ec72d18f1.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 2.26s**\n- 2.26s per song\n- DiT phase (1 song): 2.26s",
+      "metas": {
+        "bpm": 110,
+        "duration": 69.818,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nRegenerate only the selected final 8-bar section as the highest-energy psychedelic drop. Continue the source groove seamlessly at the edit boundary. Keep 110 BPM and D# minor, with the repeating D#m | B | F# | C# progression stated clearly. Intensify the slap bass, dub echoes, syncopation, and vocoder texture. Maintain full dance-floor energy through bar 32; do not fade before the final beat, then end cleanly.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nGroove: syncopated 16th-note feel, swing 0.54, controlled human feel.\nBass: dominant slap electric bass, sharp transients, octave pops, ghost notes, mutation intensity 0.78.\nDrums: syncopated tech house, dry punchy kick, spacious dub gaps, crisp hats.\nHarmony: D#m - B - F# - C#; short offbeat dub chord stabs with tape-delay tails.\nVocal: dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (8 bars, energy 0.44); mutation build (8 bars, energy 0.66); psychedelic drop (8 bars, energy 0.88). The first half stays minimal; the second half becomes dark, psychedelic, and increasingly mutated without losing the dance groove.\nProduction: deep sub control, wide dub echoes, restrained distortion, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": ""
+      }
+    }
+  ],
+  "conditioning": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repainting_start": 52.364,
+    "repainting_end": 69.8,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.65,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.25,
+    "chunk_mask_mode": "explicit",
+    "source_audio": {
+      "name": "ace-step-01.wav",
+      "sha256": "0737dcd90388991a995a5524f85119ed4af8f7ba177e75d11fc361c1ec8a27f6",
+      "size_bytes": 13401678
+    },
+    "reference_audio": null
+  },
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "b0fd5d36acdb9ca2b87bd072461445c048b84f48f2368bd055bb7d2f662da9ec",
+    "request_file": "ace_step_repaint_revision_request.json"
+  }
+}

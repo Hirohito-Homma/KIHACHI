@@ -1,0 +1,63 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "4f8fa2f5-11bc-4be6-bf99-f097e92c6e96",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F13194c11-8c54-f805-9b2c-c09d4cd78a75.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 1.93s**\n- 1.93s per song\n- DiT phase (1 song): 1.93s",
+      "metas": {
+        "bpm": 110,
+        "duration": 69.818,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nPreserve the source arrangement timing, groove, and section transitions. Keep exactly 110 BPM and make D# minor the unmistakable tonal center. State the repeating progression D#m | B | F# | C# clearly, one chord per bar, while retaining the Mutation Funk, DUB, Tech House character and the rising psychedelic second half.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nGroove: syncopated 16th-note feel, swing 0.54, controlled human feel.\nBass: dominant slap electric bass, sharp transients, octave pops, ghost notes, mutation intensity 0.78.\nDrums: syncopated tech house, dry punchy kick, spacious dub gaps, crisp hats.\nHarmony: D#m - B - F# - C#; short offbeat dub chord stabs with tape-delay tails.\nVocal: dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (8 bars, energy 0.44); mutation build (8 bars, energy 0.66); psychedelic drop (8 bars, energy 0.88). The first half stays minimal; the second half becomes dark, psychedelic, and increasingly mutated without losing the dance groove.\nProduction: deep sub control, wide dub echoes, restrained distortion, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": ""
+      }
+    }
+  ],
+  "conditioning": {
+    "task_type": "cover",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.8,
+    "source_audio": {
+      "name": "ace-step-01.wav",
+      "sha256": "0737dcd90388991a995a5524f85119ed4af8f7ba177e75d11fc361c1ec8a27f6",
+      "size_bytes": 13401678
+    },
+    "reference_audio": null
+  },
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "84677c9cd1f45b77c5e1ae4fe3098030803c814fee0c453f8fb3daccc02063d6",
+    "request_file": "ace_step_cover_revision_request.json"
+  }
+}

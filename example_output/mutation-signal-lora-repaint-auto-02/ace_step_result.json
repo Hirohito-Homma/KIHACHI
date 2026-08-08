@@ -1,0 +1,106 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "402c695f-ddbf-47c0-bfaf-57c9a60491c3",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F7f096b5c-f1ce-f0b5-e9f0-bdf8bb4432de.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 2.34s**\n- 2.34s per song\n- DiT phase (1 song): 2.34s",
+      "metas": {
+        "bpm": 110,
+        "duration": 74.182,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nRepaint only bars 29-32 of psychedelic_drop. Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Make this section reach its planned energy 0.88 while preserving a clean splice at both boundaries. Maintain intentional musical energy through bar 32; avoid an accidental silent tail. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nGroove: syncopated 16th-note feel, swing 0.54, controlled human feel.\nBass: dominant slap electric bass, sharp transients, octave pops, ghost notes, mutation intensity 0.78.\nDrums: syncopated tech house, dry punchy kick, spacious dub gaps, crisp hats.\nHarmony: D#m - B - F# - C#; short offbeat dub chord stabs with tape-delay tails.\nVocal: dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (8 bars, energy 0.44); mutation build (8 bars, energy 0.66); psychedelic drop (8 bars, energy 0.88). The first half stays minimal; the second half becomes dark, psychedelic, and increasingly mutated without losing the dance groove.\nProduction: deep sub control, wide dub echoes, restrained distortion, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": ""
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 74.182,
+    "song_grid_duration_sec": 69.818,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 3559680,
+        "kept_frames": 3351264,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 69.818,
+        "kept_duration_sec": 69.818,
+        "fade_out_sec": 0.01,
+        "source_sha256": "deddf3d334af1a99f026e926e3efeca63f8727a8458fabed009f4dc85d2f2e86",
+        "trimmed_sha256": "35f51daf7ef905da37864f14af5cf67a3b3d9a303756f33427125dc499c21146"
+      }
+    ],
+    "delivered_music_end_sec": [
+      69.8151
+    ]
+  },
+  "conditioning": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repainting_start": 61.091,
+    "repainting_end": 74.182,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.65,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.25,
+    "chunk_mask_mode": "explicit",
+    "source_audio": {
+      "name": "ace-step-01.wav",
+      "sha256": "3ba7342793c4a037d307d5160ce14457244b5eeb614078d14093b36667f89163",
+      "size_bytes": 13401678
+    },
+    "reference_audio": null,
+    "repaint_selection": {
+      "selector": "bars",
+      "start_bar": 29,
+      "end_bar": 32,
+      "start_sec": 61.091,
+      "end_sec": 74.182,
+      "section_name": "psychedelic_drop",
+      "tail_guard_sec": 4.364
+    }
+  },
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "fa3c8ed9310f46f1377adcd2b08b62c0e946618be8881bf6beb2a53a567f0511",
+    "request_file": "ace_step_repaint_revision_request.json"
+  }
+}

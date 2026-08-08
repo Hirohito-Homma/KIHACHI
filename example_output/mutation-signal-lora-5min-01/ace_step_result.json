@@ -1,0 +1,74 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "4187e77d-2818-40f1-905d-08046ac82c21",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fworkspace%2FACE-Step-1.5%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2Ff3cc2b36-d6dc-f3f7-ad56-077dc11a6a2f.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 7.12s**\n- 7.12s per song\n- DiT phase (1 song): 7.12s",
+      "metas": {
+        "bpm": 110,
+        "duration": 301.091,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Title: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (16 bars, energy 0.25, minimal, no vocal); minimal groove (16 bars, energy 0.44, minimal); mutation groove (16 bars, energy 0.62, vocal-led); mutation build 1 (16 bars, energy 0.66, wide dub echoes); psychedelic drop (16 bars, energy 0.88, wide dub echoes, vocal-led, heavily psychedelic); dub breakdown (16 bars, energy 0.28, no drums, drenched in dub fx, heavily psychedelic); mutation build 2 (16 bars, energy 0.66, wide dub echoes); final drop (16 bars, energy 0.95, wide dub echoes, vocal-led, heavily psychedelic); outro (8 bars, energy 0.22, no drums). Overall: build hard from a quiet opening to a peak of 0.95 at final drop, then land on outro at 0.22, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": "[inst]\n[verse]\nBend Echo\nDrive the spiral\n[verse]\nSwitch again\nEcho the wire\nPulse Floor\nFunk Shadow\n[verse]\nDrive again\nRun low\nLock low\nBend the space\n[chorus]\nEcho the floor\nCode Floor\nNight Space\nEcho the signal\n[bridge]\nDub Bend\nGroove Wire\n[verse]\nDrive Switch\nPull low\nBend underground\nLock the groove\n[chorus]\nEcho the floor\nWarp downtown\nDrift the space\nLock Move\n[bridge]\nBend the signal\nDrift underground\n"
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 301.091,
+    "song_grid_duration_sec": 296.727,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 14451840,
+        "kept_frames": 14242896,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 296.727,
+        "kept_duration_sec": 296.727,
+        "fade_out_sec": 0.01,
+        "source_sha256": "4847e20c1d09cc639b390ab4b3b31aad625d647c073eba76f487550cc08c89ce",
+        "trimmed_sha256": "8364a677e0123678d9b30c49897d52b92fb98d33376d5cf50451ad9b182863a8"
+      }
+    ],
+    "delivered_music_end_sec": [
+      296.7262
+    ]
+  },
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "24fac1e5-7bc2-4e04-92c5-5aeecc22a107",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fworkspace%2FACE-Step-1.5%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F47a69927-710d-98a8-9cf8-59aacb35f3d2.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 8.79s**\n- 8.79s per song\n- DiT phase (1 song): 8.79s",
+      "metas": {
+        "bpm": 110,
+        "duration": 296.727,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nThis pass is only about the opening 32 bars: minimal intro, minimal groove. Establish 110 BPM, D# minor, 4/4 and the core groove there; the rest of the track is replaced later. Bars 1-16 are minimal intro at energy 0.25, kept minimal and sparse, clearly quieter than everything around it. Bars 17-32 are minimal groove at energy 0.44, kept minimal and sparse. State one clear chord per bar in the repeating progression D#m - B - F# - C#; make D# minor unambiguous.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (16 bars, energy 0.25, minimal, no vocal); minimal groove (16 bars, energy 0.44, minimal); mutation groove (16 bars, energy 0.62, vocal-led); mutation build 1 (16 bars, energy 0.66, wide dub echoes); psychedelic drop (16 bars, energy 0.88, wide dub echoes, vocal-led, heavily psychedelic); dub breakdown (16 bars, energy 0.28, no drums, drenched in dub fx, heavily psychedelic); mutation build 2 (16 bars, energy 0.66, wide dub echoes); final drop (16 bars, energy 0.95, wide dub echoes, vocal-led, heavily psychedelic); outro (8 bars, energy 0.22, no drums). Overall: build hard from a quiet opening to a peak of 0.95 at final drop, then land on outro at 0.22, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": ""
+      }
+    }
+  ],
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "e66740d0aa702707d8aa146c533c61dca1d550eaef704324274abedb5774f0d5",
+    "request_file": "ace_step_revision_request.json"
+  }
+}

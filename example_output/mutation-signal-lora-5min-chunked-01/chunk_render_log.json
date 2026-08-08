@@ -1,0 +1,92 @@
+{
+  "chunk_plan_version": "0.1",
+  "execution_state": "rendered",
+  "project": "mutation-signal-lora-5min-chunked-01",
+  "song_spec_sha256": "0a7162fde4f8858ab48308ae920e600ec56c0323a20ad42d41e409d0f0c5df06",
+  "chunks_rendered": 4,
+  "final_audio": "audio/ace-step-01.wav",
+  "final_audio_sha256": "5c20a9f43980ee33f0e0619587dadf81b9d4cf81b50c0d5fa8801e6152d3e72b",
+  "steps": [
+    {
+      "index": 1,
+      "sections": [
+        "minimal_intro",
+        "minimal_groove"
+      ],
+      "task_type": "text2music",
+      "bars": [
+        1,
+        32
+      ],
+      "seconds": [
+        0.0,
+        69.818
+      ],
+      "task_id": "24fac1e5-7bc2-4e04-92c5-5aeecc22a107",
+      "source_audio_sha256": null,
+      "rendered_audio_sha256": "131c8a44f68e10a27452b135c108b873a5f6713d0e41f19081481529d2f1327f",
+      "rendered_audio": "chunks/01-minimal_intro-minimal_groove/audio/ace-step-01.wav"
+    },
+    {
+      "index": 2,
+      "sections": [
+        "mutation_groove",
+        "mutation_build_1"
+      ],
+      "task_type": "repaint",
+      "bars": [
+        33,
+        64
+      ],
+      "seconds": [
+        69.818,
+        139.636
+      ],
+      "task_id": "7f45f8ea-9804-4889-bf72-b2375ce6d552",
+      "source_audio_sha256": "131c8a44f68e10a27452b135c108b873a5f6713d0e41f19081481529d2f1327f",
+      "rendered_audio_sha256": "a064bf49b13f6e0812e1e8dc289b9a8c6258860c5694477508c73298c136d9d0",
+      "rendered_audio": "chunks/02-mutation_groove-mutation_build_1/audio/ace-step-01.wav"
+    },
+    {
+      "index": 3,
+      "sections": [
+        "psychedelic_drop",
+        "dub_breakdown"
+      ],
+      "task_type": "repaint",
+      "bars": [
+        65,
+        96
+      ],
+      "seconds": [
+        139.636,
+        209.455
+      ],
+      "task_id": "22cb9d16-1997-473d-82f7-2cbea5a61d54",
+      "source_audio_sha256": "a064bf49b13f6e0812e1e8dc289b9a8c6258860c5694477508c73298c136d9d0",
+      "rendered_audio_sha256": "3b61cdc23a197714658a73d3d21a9d02832bc083a3c3e451689400f6e031716c",
+      "rendered_audio": "chunks/03-psychedelic_drop-dub_breakdown/audio/ace-step-01.wav"
+    },
+    {
+      "index": 4,
+      "sections": [
+        "mutation_build_2",
+        "final_drop",
+        "outro"
+      ],
+      "task_type": "repaint",
+      "bars": [
+        97,
+        136
+      ],
+      "seconds": [
+        209.455,
+        301.091
+      ],
+      "task_id": "d745c75f-1d2e-43e9-a7ce-71091d8c9718",
+      "source_audio_sha256": "3b61cdc23a197714658a73d3d21a9d02832bc083a3c3e451689400f6e031716c",
+      "rendered_audio_sha256": "5c20a9f43980ee33f0e0619587dadf81b9d4cf81b50c0d5fa8801e6152d3e72b",
+      "rendered_audio": "chunks/04-mutation_build_2-final_drop-outro/audio/ace-step-01.wav"
+    }
+  ]
+}

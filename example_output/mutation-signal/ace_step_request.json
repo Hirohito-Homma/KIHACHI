@@ -1,0 +1,20 @@
+{
+  "prompt": "Title: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nGroove: syncopated 16th-note feel, swing 0.54, controlled human feel.\nBass: dominant slap electric bass, sharp transients, octave pops, ghost notes, mutation intensity 0.78.\nDrums: syncopated tech house, dry punchy kick, spacious dub gaps, crisp hats.\nHarmony: D#m - B - F# - C#; short offbeat dub chord stabs with tape-delay tails.\nVocal: dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (8 bars, energy 0.44); mutation build (8 bars, energy 0.66); psychedelic drop (8 bars, energy 0.88). The first half stays minimal; the second half becomes dark, psychedelic, and increasingly mutated without losing the dance groove.\nProduction: deep sub control, wide dub echoes, restrained distortion, club-ready dynamics, clear separation between kick and bass.",
+  "lyrics": "",
+  "thinking": false,
+  "vocal_language": "en",
+  "audio_format": "wav",
+  "bpm": 110,
+  "key_scale": "D# minor",
+  "time_signature": "4",
+  "audio_duration": 69.818,
+  "inference_steps": 8,
+  "use_random_seed": false,
+  "seed": 8,
+  "batch_size": 1,
+  "sample_mode": false,
+  "use_format": false,
+  "use_cot_caption": false,
+  "use_cot_language": false,
+  "task_type": "text2music"
+}

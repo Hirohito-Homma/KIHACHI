@@ -1,0 +1,106 @@
+{
+  "spec_version": "0.1",
+  "source_prompt": "Mutation Funk、DUB、Tech House。110 BPM、D#m。ファンキーなスラップベース。前半ミニマル、後半サイケデリック。Vocoderを使用。",
+  "seed": 8,
+  "song": {
+    "title": "Mutation Signal",
+    "bpm": 110.0,
+    "key": "D# minor",
+    "tonic": "D#",
+    "tonic_pitch_class": 3,
+    "mode": "minor",
+    "time_signature": "4/4",
+    "total_bars": 32,
+    "target_duration_sec": 69.818
+  },
+  "style": {
+    "genres": [
+      {
+        "name": "mutation_funk",
+        "weight": 0.4
+      },
+      {
+        "name": "dub",
+        "weight": 0.3
+      },
+      {
+        "name": "tech_house",
+        "weight": 0.3
+      }
+    ],
+    "darkness": 0.72,
+    "psychedelic": 0.82
+  },
+  "groove": {
+    "swing": 0.54,
+    "syncopation": 0.82,
+    "humanize": 0.18
+  },
+  "arrangement": [
+    {
+      "name": "minimal_intro",
+      "start_bar": 0,
+      "length_bars": 8,
+      "energy": 0.25,
+      "minimal": true,
+      "psychedelic": 0.08
+    },
+    {
+      "name": "minimal_groove",
+      "start_bar": 8,
+      "length_bars": 8,
+      "energy": 0.44,
+      "minimal": true,
+      "psychedelic": 0.18
+    },
+    {
+      "name": "mutation_build",
+      "start_bar": 16,
+      "length_bars": 8,
+      "energy": 0.66,
+      "minimal": false,
+      "psychedelic": 0.58
+    },
+    {
+      "name": "psychedelic_drop",
+      "start_bar": 24,
+      "length_bars": 8,
+      "energy": 0.88,
+      "minimal": false,
+      "psychedelic": 0.96
+    }
+  ],
+  "harmony": {
+    "progression": [
+      "D#m",
+      "B",
+      "F#",
+      "C#"
+    ],
+    "harmonic_rhythm_bars": 1
+  },
+  "bass": {
+    "role": "dominant",
+    "technique": "slap",
+    "syncopation": 0.86,
+    "mutation": 0.78,
+    "octave_jump_probability": 0.45,
+    "ghost_note_probability": 0.34
+  },
+  "drums": {
+    "pattern": "syncopated_tech_house",
+    "kick_density": 0.72,
+    "hat_density": 0.78,
+    "dub_space": 0.62
+  },
+  "chords": {
+    "instrument": "dub_chord_stab",
+    "articulation": "short_offbeat_stabs",
+    "dub_delay": 0.74
+  },
+  "vocal": {
+    "enabled": true,
+    "vocoder": true,
+    "character": "dark robotic phrases"
+  }
+}

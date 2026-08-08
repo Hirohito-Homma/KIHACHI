@@ -1,0 +1,122 @@
+{
+  "chunk_plan_version": "0.1",
+  "execution_state": "planned_not_rendered",
+  "song_spec_sha256": "0a7162fde4f8858ab48308ae920e600ec56c0323a20ad42d41e409d0f0c5df06",
+  "total_bars": 136,
+  "target_chunk_bars": 32,
+  "tail_guard_bars": 2.0,
+  "rationale": "One prompt cannot hold a nine-section arrangement; each chunk is rendered under a prompt describing only its own sections.",
+  "chunks": [
+    {
+      "index": 1,
+      "sections": [
+        "minimal_intro",
+        "minimal_groove"
+      ],
+      "task_type": "text2music",
+      "selection": {
+        "selector": "bars",
+        "start_bar": 1,
+        "end_bar": 32,
+        "start_sec": 0.0,
+        "end_sec": 69.818
+      },
+      "revision_prompt": "This pass is only about the opening 32 bars: minimal intro, minimal groove. Establish 110 BPM, D# minor, 4/4 and the core groove there; the rest of the track is replaced later. Bars 1-16 are minimal intro at energy 0.25, kept minimal and sparse, clearly quieter than everything around it. Bars 17-32 are minimal groove at energy 0.44, kept minimal and sparse. State one clear chord per bar in the repeating progression D#m - B - F# - C#; make D# minor unambiguous.",
+      "ace_step_options": {
+        "task_type": "repaint",
+        "audio_cover_strength": 1.0,
+        "cover_noise_strength": 0.0,
+        "repaint_mode": "balanced",
+        "repaint_strength": 0.75,
+        "repaint_latent_crossfade_frames": 10,
+        "repaint_wav_crossfade_sec": 0.25,
+        "chunk_mask_mode": "explicit"
+      }
+    },
+    {
+      "index": 2,
+      "sections": [
+        "mutation_groove",
+        "mutation_build_1"
+      ],
+      "task_type": "repaint",
+      "selection": {
+        "selector": "bars",
+        "start_bar": 33,
+        "end_bar": 64,
+        "start_sec": 69.818,
+        "end_sec": 139.636
+      },
+      "revision_prompt": "Repaint only bars 33-64 (mutation groove, mutation build 1). Preserve all Audio outside this range exactly and keep 110 BPM, D# minor, 4/4. Bars 33-48 are mutation groove at energy 0.62. Bars 49-64 are mutation build 1 at energy 0.66. State one clear chord per bar in the repeating progression D#m - B - F# - C#; make D# minor unambiguous. Match the level and tone at both edges so the splice is inaudible.",
+      "ace_step_options": {
+        "task_type": "repaint",
+        "audio_cover_strength": 1.0,
+        "cover_noise_strength": 0.0,
+        "repaint_mode": "balanced",
+        "repaint_strength": 0.75,
+        "repaint_latent_crossfade_frames": 10,
+        "repaint_wav_crossfade_sec": 0.25,
+        "chunk_mask_mode": "explicit"
+      }
+    },
+    {
+      "index": 3,
+      "sections": [
+        "psychedelic_drop",
+        "dub_breakdown"
+      ],
+      "task_type": "repaint",
+      "selection": {
+        "selector": "bars",
+        "start_bar": 65,
+        "end_bar": 96,
+        "start_sec": 139.636,
+        "end_sec": 209.455
+      },
+      "revision_prompt": "Repaint only bars 65-96 (psychedelic drop, dub breakdown). Preserve all Audio outside this range exactly and keep 110 BPM, D# minor, 4/4. Bars 65-80 are psychedelic drop at energy 0.88. Bars 81-96 are dub breakdown at energy 0.28, with no drums, drenched in dub delay, clearly quieter than everything around it. State one clear chord per bar in the repeating progression D#m - B - F# - C#; make D# minor unambiguous. Match the level and tone at both edges so the splice is inaudible.",
+      "ace_step_options": {
+        "task_type": "repaint",
+        "audio_cover_strength": 1.0,
+        "cover_noise_strength": 0.0,
+        "repaint_mode": "balanced",
+        "repaint_strength": 0.75,
+        "repaint_latent_crossfade_frames": 10,
+        "repaint_wav_crossfade_sec": 0.25,
+        "chunk_mask_mode": "explicit"
+      }
+    },
+    {
+      "index": 4,
+      "sections": [
+        "mutation_build_2",
+        "final_drop",
+        "outro"
+      ],
+      "task_type": "repaint",
+      "selection": {
+        "selector": "bars",
+        "start_bar": 97,
+        "end_bar": 136,
+        "start_sec": 209.455,
+        "end_sec": 301.091,
+        "tail_guard_sec": 4.364
+      },
+      "revision_prompt": "Repaint only bars 97-136 (mutation build 2, final drop, outro). Preserve all Audio outside this range exactly and keep 110 BPM, D# minor, 4/4. Bars 97-112 are mutation build 2 at energy 0.66. Bars 113-128 are final drop at energy 0.95, the loudest point of the track. Bars 129-136 are outro at energy 0.22, with no drums, clearly quieter than everything around it. State one clear chord per bar in the repeating progression D#m - B - F# - C#; make D# minor unambiguous. Match the level and tone at both edges so the splice is inaudible. Maintain intentional musical energy through bar 136; avoid an accidental silent tail.",
+      "ace_step_options": {
+        "task_type": "repaint",
+        "audio_cover_strength": 1.0,
+        "cover_noise_strength": 0.0,
+        "repaint_mode": "balanced",
+        "repaint_strength": 0.75,
+        "repaint_latent_crossfade_frames": 10,
+        "repaint_wav_crossfade_sec": 0.25,
+        "chunk_mask_mode": "explicit"
+      }
+    }
+  ],
+  "safety": {
+    "source_audio_mutated": false,
+    "render_started": false,
+    "writes_only_the_output_project": true
+  }
+}

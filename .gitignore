@@ -1,0 +1,18 @@
+# Rendered audio. Every WAV here is reproducible from its project's song_spec.json
+# plus the recorded ACE-Step request, and one five-minute take is ~55 MB, so the
+# renders live on disk but stay out of history. The JSON/MIDI beside them -- the
+# spec, the plans, the analysis, the review -- are small and *are* tracked, so a
+# project's decisions and measurements survive even when its audio does not.
+*.wav
+*.aif
+*.aiff
+*.flac
+*.mp3
+
+# LoRA adapter backup pulled from the training host (~84 MB of weights).
+remote_backups/
+
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store

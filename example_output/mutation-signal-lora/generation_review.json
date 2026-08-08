@@ -1,0 +1,170 @@
+{
+  "review_version": "0.2",
+  "scope": "song_spec_alignment_not_audio_quality",
+  "project": "mutation-signal-lora",
+  "analysis_version": "0.3",
+  "analysis_audio_sha256": "0737dcd90388991a995a5524f85119ed4af8f7ba177e75d11fc361c1ec8a27f6",
+  "alignment": {
+    "score": 56.32,
+    "grade": "partial",
+    "score_meaning": "deterministic SongSpec alignment heuristic; not an audio-quality score",
+    "components": {
+      "duration": {
+        "score": 0.991,
+        "weight": 0.1,
+        "weighted_points": 9.91
+      },
+      "tempo": {
+        "score": 0.8927,
+        "weight": 0.15,
+        "weighted_points": 13.39
+      },
+      "key": {
+        "score": 0.35,
+        "weight": 0.2,
+        "weighted_points": 7.0
+      },
+      "chords": {
+        "score": 0.0,
+        "weight": 0.25,
+        "weighted_points": 0.0
+      },
+      "section_boundaries": {
+        "score": 1.0,
+        "weight": 0.15,
+        "weighted_points": 15.0
+      },
+      "section_energy": {
+        "score": 0.7348,
+        "weight": 0.15,
+        "weighted_points": 11.02
+      }
+    }
+  },
+  "findings": [
+    {
+      "severity": "warning",
+      "code": "key_alignment",
+      "evidence": "Observed key candidate is C# minor at confidence 0.1212; status is low_confidence.",
+      "recommendation": "Anchor section openings and bass pedals on D#; make D# minor unambiguous."
+    },
+    {
+      "severity": "action",
+      "code": "chord_progression_alignment",
+      "evidence": "Reliable-bar progression match is 0.0.",
+      "recommendation": "State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change."
+    },
+    {
+      "severity": "warning",
+      "code": "harmonic_readability",
+      "evidence": "Confident chord coverage is 0.375.",
+      "recommendation": "Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks."
+    },
+    {
+      "severity": "action",
+      "code": "section_energy_alignment",
+      "evidence": "Section-energy correlation is 0.4696.",
+      "recommendation": "Follow a clearly rising energy arc: minimal_intro 0.25 → minimal_groove 0.44 → mutation_build 0.66 → psychedelic_drop 0.88."
+    }
+  ],
+  "revision_prompt": "Revision pass: keep 110 BPM, D# minor, 4/4, 32 bars. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks. Follow a clearly rising energy arc: minimal_intro 0.25 → minimal_groove 0.44 → mutation_build 0.66 → psychedelic_drop 0.88.",
+  "repaint_candidate": {
+    "plan_version": "0.1",
+    "execution_state": "prepared_not_rendered",
+    "song_spec_sha256": "bc83dfdb3e8a2ee6df61d4c4f9978c599ad528262951594e0609428edf420f93",
+    "analysis_audio_sha256": "0737dcd90388991a995a5524f85119ed4af8f7ba177e75d11fc361c1ec8a27f6",
+    "source_audio": {
+      "sha256": "0737dcd90388991a995a5524f85119ed4af8f7ba177e75d11fc361c1ec8a27f6",
+      "relative_path": "audio/ace-step-01.wav"
+    },
+    "selection": {
+      "selector": "section",
+      "start_bar": 25,
+      "end_bar": 32,
+      "start_sec": 52.364,
+      "end_sec": 69.818,
+      "section_name": "psychedelic_drop"
+    },
+    "selection_confidence": "high",
+    "selection_reason": "mean energy is 0.1020 below target; terminal energy collapse is 0.8800; reliable chord coverage is 0.3750; chord match ratio is 0.0000",
+    "section_diagnostics": [
+      {
+        "section_name": "minimal_intro",
+        "start_bar": 1,
+        "end_bar": 8,
+        "target_energy": 0.25,
+        "observed_mean_energy": 0.4008,
+        "energy_error": 0.1508,
+        "terminal_energy_collapse": null,
+        "chord_coverage": 0.375,
+        "chord_match_ratio": 0.0,
+        "opening_boundary_match": null,
+        "priority_score": 55.15
+      },
+      {
+        "section_name": "minimal_groove",
+        "start_bar": 9,
+        "end_bar": 16,
+        "target_energy": 0.44,
+        "observed_mean_energy": 0.6447,
+        "energy_error": 0.2047,
+        "terminal_energy_collapse": null,
+        "chord_coverage": 0.5,
+        "chord_match_ratio": 0.0,
+        "opening_boundary_match": true,
+        "priority_score": 53.64
+      },
+      {
+        "section_name": "mutation_build",
+        "start_bar": 17,
+        "end_bar": 24,
+        "target_energy": 0.66,
+        "observed_mean_energy": 0.7986,
+        "energy_error": 0.1386,
+        "terminal_energy_collapse": null,
+        "chord_coverage": 0.25,
+        "chord_match_ratio": 0.0,
+        "opening_boundary_match": true,
+        "priority_score": 57.91
+      },
+      {
+        "section_name": "psychedelic_drop",
+        "start_bar": 25,
+        "end_bar": 32,
+        "target_energy": 0.88,
+        "observed_mean_energy": 0.778,
+        "energy_error": -0.102,
+        "terminal_energy_collapse": 0.88,
+        "chord_coverage": 0.375,
+        "chord_match_ratio": 0.0,
+        "opening_boundary_match": true,
+        "priority_score": 66.88
+      }
+    ],
+    "revision_prompt": "Repaint only psychedelic_drop (bars 25-32). Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Make this section reach its planned energy 0.88 while preserving a clean splice at both boundaries. Maintain intentional musical energy through bar 32; avoid an accidental silent tail. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks. Follow a clearly rising energy arc: minimal_intro 0.25 → minimal_groove 0.44 → mutation_build 0.66 → psychedelic_drop 0.88.",
+    "ace_step_options": {
+      "task_type": "repaint",
+      "audio_cover_strength": 1.0,
+      "cover_noise_strength": 0.0,
+      "repaint_mode": "balanced",
+      "repaint_strength": 0.65,
+      "repaint_latent_crossfade_frames": 10,
+      "repaint_wav_crossfade_sec": 0.25,
+      "chunk_mask_mode": "explicit"
+    },
+    "safety": {
+      "original_audio_mutated": false,
+      "render_started": false,
+      "requires_separate_output_project": true
+    }
+  },
+  "comparison": {
+    "baseline_project": "mutation-signal",
+    "target_project": "mutation-signal-lora",
+    "baseline_alignment_score": 35.95,
+    "target_alignment_score": 56.32,
+    "score_delta": 20.37,
+    "preferred_song_spec_alignment": "target",
+    "note": "This compares SongSpec alignment only, not musical or audio quality."
+  }
+}

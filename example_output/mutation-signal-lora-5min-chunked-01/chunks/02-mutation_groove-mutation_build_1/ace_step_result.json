@@ -1,0 +1,77 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "7f45f8ea-9804-4889-bf72-b2375ce6d552",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fworkspace%2FACE-Step-1.5%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F3d2a542c-cd4e-d3f5-592c-c626a00749bc.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 6.96s**\n- 6.96s per song\n- DiT phase (1 song): 6.96s",
+      "metas": {
+        "bpm": 110,
+        "duration": 296.727,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nRepaint only bars 33-64 (mutation groove, mutation build 1). Preserve all Audio outside this range exactly and keep 110 BPM, D# minor, 4/4. Bars 33-48 are mutation groove at energy 0.62. Bars 49-64 are mutation build 1 at energy 0.66. State one clear chord per bar in the repeating progression D#m - B - F# - C#; make D# minor unambiguous. Match the level and tone at both edges so the splice is inaudible.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (16 bars, energy 0.25, minimal, no vocal); minimal groove (16 bars, energy 0.44, minimal); mutation groove (16 bars, energy 0.62, vocal-led); mutation build 1 (16 bars, energy 0.66, wide dub echoes); psychedelic drop (16 bars, energy 0.88, wide dub echoes, vocal-led, heavily psychedelic); dub breakdown (16 bars, energy 0.28, no drums, drenched in dub fx, heavily psychedelic); mutation build 2 (16 bars, energy 0.66, wide dub echoes); final drop (16 bars, energy 0.95, wide dub echoes, vocal-led, heavily psychedelic); outro (8 bars, energy 0.22, no drums). Overall: build hard from a quiet opening to a peak of 0.95 at final drop, then land on outro at 0.22, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": ""
+      }
+    }
+  ],
+  "conditioning": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repainting_start": 69.818,
+    "repainting_end": 139.636,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.75,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.25,
+    "chunk_mask_mode": "explicit",
+    "source_audio": {
+      "name": "ace-step-01.wav",
+      "sha256": "131c8a44f68e10a27452b135c108b873a5f6713d0e41f19081481529d2f1327f",
+      "size_bytes": 56962638
+    },
+    "reference_audio": null,
+    "repaint_selection": {
+      "selector": "bars",
+      "start_bar": 33,
+      "end_bar": 64,
+      "start_sec": 69.818,
+      "end_sec": 139.636
+    }
+  },
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "726e9fb5e2f4d64eae360a5a8b0ae422762b3df2b3610a84aedfb10e5de5a3aa",
+    "request_file": "ace_step_repaint_revision_request.json"
+  }
+}

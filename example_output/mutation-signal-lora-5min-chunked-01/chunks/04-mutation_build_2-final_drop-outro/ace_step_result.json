@@ -1,0 +1,105 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "d745c75f-1d2e-43e9-a7ce-71091d8c9718",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fworkspace%2FACE-Step-1.5%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F87836abe-2035-6cfa-cfef-bca47de029bd.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 9.20s**\n- 9.20s per song\n- DiT phase (1 song): 9.20s",
+      "metas": {
+        "bpm": 110,
+        "duration": 301.091,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nRepaint only bars 97-136 (mutation build 2, final drop, outro). Preserve all Audio outside this range exactly and keep 110 BPM, D# minor, 4/4. Bars 97-112 are mutation build 2 at energy 0.66. Bars 113-128 are final drop at energy 0.95, the loudest point of the track. Bars 129-136 are outro at energy 0.22, with no drums, clearly quieter than everything around it. State one clear chord per bar in the repeating progression D#m - B - F# - C#; make D# minor unambiguous. Match the level and tone at both edges so the splice is inaudible. Maintain intentional musical energy through bar 136; avoid an accidental silent tail.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (16 bars, energy 0.25, minimal, no vocal); minimal groove (16 bars, energy 0.44, minimal); mutation groove (16 bars, energy 0.62, vocal-led); mutation build 1 (16 bars, energy 0.66, wide dub echoes); psychedelic drop (16 bars, energy 0.88, wide dub echoes, vocal-led, heavily psychedelic); dub breakdown (16 bars, energy 0.28, no drums, drenched in dub fx, heavily psychedelic); mutation build 2 (16 bars, energy 0.66, wide dub echoes); final drop (16 bars, energy 0.95, wide dub echoes, vocal-led, heavily psychedelic); outro (8 bars, energy 0.22, no drums). Overall: build hard from a quiet opening to a peak of 0.95 at final drop, then land on outro at 0.22, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": ""
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 301.091,
+    "song_grid_duration_sec": 296.727,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 14451840,
+        "kept_frames": 14242896,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 296.727,
+        "kept_duration_sec": 296.727,
+        "fade_out_sec": 0.01,
+        "source_sha256": "b5c77e1b31bc7b546c1614a582b7e5093cf3295301940334b01bcd0efe4c1378",
+        "trimmed_sha256": "5c20a9f43980ee33f0e0619587dadf81b9d4cf81b50c0d5fa8801e6152d3e72b"
+      }
+    ],
+    "delivered_music_end_sec": [
+      296.7262
+    ]
+  },
+  "conditioning": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repainting_start": 209.455,
+    "repainting_end": 301.091,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.75,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.25,
+    "chunk_mask_mode": "explicit",
+    "source_audio": {
+      "name": "ace-step-01.wav",
+      "sha256": "3b61cdc23a197714658a73d3d21a9d02832bc083a3c3e451689400f6e031716c",
+      "size_bytes": 56962638
+    },
+    "reference_audio": null,
+    "repaint_selection": {
+      "selector": "bars",
+      "start_bar": 97,
+      "end_bar": 136,
+      "start_sec": 209.455,
+      "end_sec": 301.091,
+      "tail_guard_sec": 4.364
+    }
+  },
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "be33ab86a2b536465093cb236a8447b069f1e2f24684b7f906d2c7b9a1f9f909",
+    "request_file": "ace_step_repaint_revision_request.json"
+  }
+}

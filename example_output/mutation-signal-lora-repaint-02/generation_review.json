@@ -1,0 +1,80 @@
+{
+  "review_version": "0.1",
+  "scope": "song_spec_alignment_not_audio_quality",
+  "project": "mutation-signal-lora-repaint-02",
+  "analysis_version": "0.2",
+  "analysis_audio_sha256": "a8508a0a87363f29ded4c6bed4c9f54a080371044fefcdccc61c23c5452e34ff",
+  "alignment": {
+    "score": 54.43,
+    "grade": "needs_revision",
+    "score_meaning": "deterministic SongSpec alignment heuristic; not an audio-quality score",
+    "components": {
+      "duration": {
+        "score": 0.991,
+        "weight": 0.1,
+        "weighted_points": 9.91
+      },
+      "tempo": {
+        "score": 0.979,
+        "weight": 0.15,
+        "weighted_points": 14.68
+      },
+      "key": {
+        "score": 0.35,
+        "weight": 0.2,
+        "weighted_points": 7.0
+      },
+      "chords": {
+        "score": 0.0,
+        "weight": 0.25,
+        "weighted_points": 0.0
+      },
+      "section_boundaries": {
+        "score": 0.6667,
+        "weight": 0.15,
+        "weighted_points": 10.0
+      },
+      "section_energy": {
+        "score": 0.8554,
+        "weight": 0.15,
+        "weighted_points": 12.83
+      }
+    }
+  },
+  "findings": [
+    {
+      "severity": "warning",
+      "code": "key_alignment",
+      "evidence": "Observed key candidate is C# minor at confidence 0.1353; status is low_confidence.",
+      "recommendation": "Anchor section openings and bass pedals on D#; make D# minor unambiguous."
+    },
+    {
+      "severity": "action",
+      "code": "chord_progression_alignment",
+      "evidence": "Reliable-bar progression match is 0.0.",
+      "recommendation": "State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change."
+    },
+    {
+      "severity": "warning",
+      "code": "harmonic_readability",
+      "evidence": "Confident chord coverage is 0.4375.",
+      "recommendation": "Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks."
+    },
+    {
+      "severity": "action",
+      "code": "section_boundary_alignment",
+      "evidence": "Planned-boundary recall is 0.6667; planned boundaries are after bars [8, 16, 24].",
+      "recommendation": "Mark each planned boundary with a clear dropout, fill, riser, or density change."
+    }
+  ],
+  "revision_prompt": "Revision pass: keep 110 BPM, D# minor, 4/4, 32 bars. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks. Mark each planned boundary with a clear dropout, fill, riser, or density change.",
+  "comparison": {
+    "baseline_project": "mutation-signal-lora",
+    "target_project": "mutation-signal-lora-repaint-02",
+    "baseline_alignment_score": 56.32,
+    "target_alignment_score": 54.43,
+    "score_delta": -1.89,
+    "preferred_song_spec_alignment": "baseline",
+    "note": "This compares SongSpec alignment only, not musical or audio quality."
+  }
+}

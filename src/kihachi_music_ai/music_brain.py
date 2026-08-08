@@ -1,0 +1,154 @@
+from __future__ import annotations
+
+import re
+
+from .arrangement import build_arrangement
+from .models import (
+    BassSpec,
+    ChordSpec,
+    DrumSpec,
+    GenreWeight,
+    GrooveSpec,
+    HarmonySpec,
+    SectionSpec,
+    SongIdentity,
+    SongSpec,
+    StyleSpec,
+    VocalSpec,
+)
+from .theory import parse_key, progression_for_key
+
+_BPM_RE = re.compile(r"(\d{2,3}(?:\.\d+)?)\s*BPM", re.IGNORECASE)
+_MINUTES_RE = re.compile(r"(\d+(?:\.\d+)?)\s*分")
+
+
+class MusicBrain:
+    """Deterministic v0.1 interpreter from a music brief to SongSpec."""
+
+    def __init__(self, *, seed: int = 8) -> None:
+        self.seed = seed
+
+    def analyze(self, prompt: str) -> SongSpec:
+        prompt = prompt.strip()
+        if not prompt:
+            raise ValueError("prompt must not be empty")
+
+        bpm = self._parse_bpm(prompt)
+        key, tonic, tonic_pc, mode = parse_key(prompt, default="C minor")
+        genres = self._parse_genres(prompt)
+        total_bars = self._total_bars(prompt, bpm)
+        duration = total_bars * 4 * 60 / bpm
+        lower = prompt.lower()
+        psychedelic_requested = "サイケ" in prompt or "psychedelic" in lower
+        minimal_requested = "ミニマル" in prompt or "minimal" in lower
+        slap_requested = "スラップ" in prompt or "slap" in lower
+        vocoder_requested = "vocoder" in lower or "ボコーダー" in prompt
+        mutation_requested = "mutation" in lower or "変態" in prompt
+        dub_requested = any(item.name == "dub" for item in genres)
+
+        sections = self._sections(
+            total_bars,
+            minimal_requested=minimal_requested,
+            psychedelic_requested=psychedelic_requested,
+        )
+        progression = progression_for_key(tonic_pc, mode, prefer_flats="b" in tonic)
+
+        return SongSpec(
+            spec_version="0.1",
+            source_prompt=prompt,
+            seed=self.seed,
+            song=SongIdentity(
+                title="Mutation Signal" if mutation_requested else "KIHACHI Sketch",
+                bpm=bpm,
+                key=key,
+                tonic=tonic,
+                tonic_pitch_class=tonic_pc,
+                mode=mode,
+                time_signature="4/4",
+                total_bars=total_bars,
+                target_duration_sec=round(duration, 3),
+            ),
+            style=StyleSpec(
+                genres=genres,
+                darkness=0.72 if dub_requested else 0.48,
+                psychedelic=0.82 if psychedelic_requested else 0.28,
+            ),
+            groove=GrooveSpec(
+                swing=0.54 if any(item.name == "mutation_funk" for item in genres) else 0.5,
+                syncopation=0.82 if slap_requested else 0.58,
+                humanize=0.18,
+            ),
+            arrangement=sections,
+            harmony=HarmonySpec(progression=progression, harmonic_rhythm_bars=1),
+            bass=BassSpec(
+                role="dominant",
+                technique="slap" if slap_requested else "fingered",
+                syncopation=0.86 if slap_requested else 0.58,
+                mutation=0.78 if mutation_requested else 0.35,
+                octave_jump_probability=0.45 if slap_requested else 0.18,
+                ghost_note_probability=0.34 if slap_requested else 0.12,
+            ),
+            drums=DrumSpec(
+                pattern="syncopated_tech_house" if "tech_house" in {item.name for item in genres} else "four_on_floor",
+                kick_density=0.72,
+                hat_density=0.78,
+                dub_space=0.62 if dub_requested else 0.2,
+            ),
+            chords=ChordSpec(
+                instrument="dub_chord_stab" if dub_requested else "synth_chord",
+                articulation="short_offbeat_stabs",
+                dub_delay=0.74 if dub_requested else 0.18,
+            ),
+            vocal=VocalSpec(
+                enabled=vocoder_requested,
+                vocoder=vocoder_requested,
+                character="dark robotic phrases" if vocoder_requested else "none",
+            ),
+        )
+
+    @staticmethod
+    def _parse_bpm(prompt: str) -> float:
+        match = _BPM_RE.search(prompt)
+        return float(match.group(1)) if match else 120.0
+
+    @staticmethod
+    def _parse_genres(prompt: str) -> tuple[GenreWeight, ...]:
+        lower = prompt.lower()
+        found: list[str] = []
+        if ("mutation" in lower and "funk" in lower) or "ミューテーションファンク" in prompt:
+            found.append("mutation_funk")
+        if re.search(r"(?<![a-z])dub(?![a-z])", lower) or "ダブ" in prompt:
+            found.append("dub")
+        if "tech house" in lower or "tech-house" in lower or "テックハウス" in prompt:
+            found.append("tech_house")
+        if not found:
+            found.append("electronic")
+        if found == ["mutation_funk", "dub", "tech_house"]:
+            weights = (0.4, 0.3, 0.3)
+        else:
+            weight = round(1.0 / len(found), 6)
+            weights = tuple(weight for _ in found)
+            weights = (*weights[:-1], round(1.0 - sum(weights[:-1]), 6))
+        return tuple(GenreWeight(name=name, weight=weight) for name, weight in zip(found, weights))
+
+    @staticmethod
+    def _total_bars(prompt: str, bpm: float) -> int:
+        match = _MINUTES_RE.search(prompt)
+        if match is None:
+            return 32
+        requested_seconds = float(match.group(1)) * 60
+        raw_bars = requested_seconds * bpm / 240
+        return max(8, int(round(raw_bars / 8)) * 8)
+
+    @staticmethod
+    def _sections(
+        total_bars: int,
+        *,
+        minimal_requested: bool,
+        psychedelic_requested: bool,
+    ) -> tuple[SectionSpec, ...]:
+        return build_arrangement(
+            total_bars,
+            minimal_requested=minimal_requested,
+            psychedelic_requested=psychedelic_requested,
+        )

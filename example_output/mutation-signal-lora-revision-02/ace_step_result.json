@@ -1,0 +1,52 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "bca105d0-01d2-4de3-ab26-8156509a7ef6",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F7d64ef2d-6f74-e96b-23b0-4598f154b688.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 2.13s**\n- 2.13s per song\n- DiT phase (1 song): 2.13s",
+      "metas": {
+        "bpm": 110,
+        "duration": 69.818,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nRevision pass: keep 110 BPM, D# minor, 4/4, 32 bars. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks. Follow a clearly rising energy arc: minimal_intro 0.25 → minimal_groove 0.44 → mutation_build 0.66 → psychedelic_drop 0.88.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nGroove: syncopated 16th-note feel, swing 0.54, controlled human feel.\nBass: dominant slap electric bass, sharp transients, octave pops, ghost notes, mutation intensity 0.78.\nDrums: syncopated tech house, dry punchy kick, spacious dub gaps, crisp hats.\nHarmony: D#m - B - F# - C#; short offbeat dub chord stabs with tape-delay tails.\nVocal: dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (8 bars, energy 0.44); mutation build (8 bars, energy 0.66); psychedelic drop (8 bars, energy 0.88). The first half stays minimal; the second half becomes dark, psychedelic, and increasingly mutated without losing the dance groove.\nProduction: deep sub control, wide dub echoes, restrained distortion, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": ""
+      }
+    }
+  ],
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "c1e045e9825e2cd514cca81464de5ce65dd01e6a7130a0aa096de69ee402b0d4",
+    "request_file": "ace_step_revision_request.json"
+  }
+}

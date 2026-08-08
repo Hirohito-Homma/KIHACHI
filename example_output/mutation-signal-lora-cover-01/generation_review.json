@@ -1,0 +1,80 @@
+{
+  "review_version": "0.1",
+  "scope": "song_spec_alignment_not_audio_quality",
+  "project": "mutation-signal-lora-cover-01",
+  "analysis_version": "0.2",
+  "analysis_audio_sha256": "bee35bcf9277854d1e58d867aa22b3047963771c572e9b12e12a0039a010bffe",
+  "alignment": {
+    "score": 56.42,
+    "grade": "partial",
+    "score_meaning": "deterministic SongSpec alignment heuristic; not an audio-quality score",
+    "components": {
+      "duration": {
+        "score": 0.991,
+        "weight": 0.1,
+        "weighted_points": 9.91
+      },
+      "tempo": {
+        "score": 0.9097,
+        "weight": 0.15,
+        "weighted_points": 13.64
+      },
+      "key": {
+        "score": 0.35,
+        "weight": 0.2,
+        "weighted_points": 7.0
+      },
+      "chords": {
+        "score": 0.0,
+        "weight": 0.25,
+        "weighted_points": 0.0
+      },
+      "section_boundaries": {
+        "score": 1.0,
+        "weight": 0.15,
+        "weighted_points": 15.0
+      },
+      "section_energy": {
+        "score": 0.7243,
+        "weight": 0.15,
+        "weighted_points": 10.86
+      }
+    }
+  },
+  "findings": [
+    {
+      "severity": "warning",
+      "code": "key_alignment",
+      "evidence": "Observed key candidate is C# minor at confidence 0.1105; status is low_confidence.",
+      "recommendation": "Anchor section openings and bass pedals on D#; make D# minor unambiguous."
+    },
+    {
+      "severity": "action",
+      "code": "chord_progression_alignment",
+      "evidence": "Reliable-bar progression match is 0.0.",
+      "recommendation": "State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change."
+    },
+    {
+      "severity": "warning",
+      "code": "harmonic_readability",
+      "evidence": "Confident chord coverage is 0.3438.",
+      "recommendation": "Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks."
+    },
+    {
+      "severity": "action",
+      "code": "section_energy_alignment",
+      "evidence": "Section-energy correlation is 0.4485.",
+      "recommendation": "Follow a clearly rising energy arc: minimal_intro 0.25 → minimal_groove 0.44 → mutation_build 0.66 → psychedelic_drop 0.88."
+    }
+  ],
+  "revision_prompt": "Revision pass: keep 110 BPM, D# minor, 4/4, 32 bars. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks. Follow a clearly rising energy arc: minimal_intro 0.25 → minimal_groove 0.44 → mutation_build 0.66 → psychedelic_drop 0.88.",
+  "comparison": {
+    "baseline_project": "mutation-signal-lora",
+    "target_project": "mutation-signal-lora-cover-01",
+    "baseline_alignment_score": 56.32,
+    "target_alignment_score": 56.42,
+    "score_delta": 0.1,
+    "preferred_song_spec_alignment": "target",
+    "note": "This compares SongSpec alignment only, not musical or audio quality."
+  }
+}
