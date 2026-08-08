@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import json
 import unittest
 
@@ -143,3 +144,103 @@ class ArrangementPlanTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+ECHO_DRY_WET = {
+    "part": "chords",
+    "field": "fx_amount",
+    "device_index": 1,
+    "parameter_index": 52,
+    "low": 0.18,
+    "high": 0.52,
+}
+
+
+class AutomationPlanTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.spec = build_spec()
+        self.tracks = compose_tracks(self.spec)
+        self.plan = build_arrangement_plan(
+            self.spec, self.tracks, automation=[ECHO_DRY_WET]
+        )
+
+    def _ops(self):
+        return [op["op"] for op in self.plan["operations"]]
+
+    def test_the_envelope_is_written_before_the_clip_leaves_the_session(self) -> None:
+        # Live only exposes clip envelopes on Session clips, so this ordering is
+        # the whole reason the automation reaches the Arrangement at all.
+        ops = self._ops()
+        envelope = ops.index("set_clip_parameter_envelope")
+
+        self.assertEqual(ops[envelope - 1], "create_midi_clip")
+        self.assertEqual(ops[envelope + 1], "copy_session_clip_to_arrangement")
+
+    def test_one_step_per_section_aligned_to_the_bar_grid(self) -> None:
+        steps = next(
+            op["params"]["steps"]
+            for op in self.plan["operations"]
+            if op["op"] == "set_clip_parameter_envelope"
+        )
+
+        self.assertEqual(len(steps), len(self.spec.arrangement))
+        cursor = 0.0
+        for step, section in zip(steps, self.spec.arrangement):
+            self.assertEqual(step["start"], cursor)
+            self.assertEqual(step["length"], section.length_bars * 4.0)
+            cursor += step["length"]
+        self.assertEqual(cursor, self.plan["song"]["total_beats"])
+
+    def test_values_are_mapped_into_the_requested_range(self) -> None:
+        steps = next(
+            op["params"]["steps"]
+            for op in self.plan["operations"]
+            if op["op"] == "set_clip_parameter_envelope"
+        )
+
+        for step, section in zip(steps, self.spec.arrangement):
+            expected = 0.18 + section.fx_amount * (0.52 - 0.18)
+            self.assertAlmostEqual(step["value"], expected, places=6)
+        # the drumless dub breakdown is the wettest point of the song
+        breakdown = next(
+            index
+            for index, section in enumerate(self.spec.arrangement)
+            if section.name == "dub_breakdown"
+        )
+        self.assertEqual(max(steps, key=lambda s: s["value"]), steps[breakdown])
+
+    def test_automation_targets_only_the_named_part(self) -> None:
+        envelopes = [
+            op for op in self.plan["operations"] if op["op"] == "set_clip_parameter_envelope"
+        ]
+
+        self.assertEqual(len(envelopes), 1)
+        chords_track = next(
+            item["live_track_index"] for item in self.plan["tracks"] if item["part"] == "chords"
+        )
+        self.assertEqual(envelopes[0]["params"]["track_index"], chords_track)
+
+    def test_no_automation_means_no_envelope_operations(self) -> None:
+        plan = build_arrangement_plan(self.spec, self.tracks)
+
+        self.assertNotIn(
+            "set_clip_parameter_envelope", [op["op"] for op in plan["operations"]]
+        )
+
+    def test_a_bad_range_is_refused(self) -> None:
+        for bad in ({"low": 0.6, "high": 0.4}, {"low": -0.1, "high": 0.5}, {"low": 0.2, "high": 1.4}):
+            with self.assertRaises(ValueError):
+                build_arrangement_plan(
+                    self.spec, self.tracks, automation=[{**ECHO_DRY_WET, **bad}]
+                )
+
+    def test_a_field_no_section_carries_is_refused_rather_than_guessed(self) -> None:
+        bare = dataclasses.replace(
+            self.spec,
+            arrangement=tuple(
+                dataclasses.replace(section, fx_amount=None)
+                for section in self.spec.arrangement
+            ),
+        )
+        with self.assertRaises(ValueError):
+            build_arrangement_plan(bare, compose_tracks(bare), automation=[ECHO_DRY_WET])

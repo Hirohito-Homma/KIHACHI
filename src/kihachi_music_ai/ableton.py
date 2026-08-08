@@ -46,6 +46,7 @@ def build_arrangement_plan(
     *,
     first_track_index: int = 0,
     session_slot: int = 0,
+    automation: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Operations that lay this song out in Live, plus the structure they encode.
 
@@ -55,6 +56,17 @@ def build_arrangement_plan(
     arrangement has nine sections -- so per-section clips do not fit through the
     current tool surface. The section structure is not lost: it lives in the
     notes, and a part that rests in a section simply has none there.
+
+    ``automation`` binds a per-section SongSpec field to a Live device parameter,
+    e.g. ``{"part": "chords", "field": "fx_amount", "device_index": 1,
+    "parameter_index": 52, "low": 0.18, "high": 0.52}``. The binding has to come
+    from outside because the field is musical intent while the device layout is a
+    fact about the Live set, and this module never talks to Live.
+
+    Ordering matters and is not cosmetic: Live only exposes clip envelopes on
+    *Session* clips (``automation_envelope`` returns None for Arrangement clips),
+    but an envelope written on a Session clip does travel with it into the
+    Arrangement. So each part is created, then automated, then copied.
     """
 
     bar_beats = beats_per_bar(spec)
@@ -107,6 +119,29 @@ def build_arrangement_plan(
                 "why": f"{len(notes)} notes covering all {spec.song.total_bars} bars",
             }
         )
+        # Envelopes go on while the clip is still in the Session slot; copying it
+        # to the Arrangement afterwards carries them along, and Live gives no way
+        # to write them once the clip is in the Arrangement.
+        for binding in automation:
+            if binding.get("part") != name:
+                continue
+            steps = _envelope_steps(spec, binding, bar_beats)
+            operations.append(
+                {
+                    "op": "set_clip_parameter_envelope",
+                    "params": {
+                        "track_index": track_index,
+                        "clip_index": session_slot,
+                        "device_index": int(binding["device_index"]),
+                        "parameter_index": int(binding["parameter_index"]),
+                        "steps": steps,
+                    },
+                    "why": (
+                        f"section {binding['field']} drives this parameter "
+                        f"({len(steps)} steps, one per section)"
+                    ),
+                }
+            )
         operations.append(
             {
                 "op": "copy_session_clip_to_arrangement",
@@ -155,6 +190,46 @@ def build_arrangement_plan(
             "sets_tempo": True,
         },
     }
+
+
+def _envelope_steps(
+    spec: SongSpec,
+    binding: Mapping[str, Any],
+    bar_beats: float,
+) -> list[dict[str, Any]]:
+    """One envelope step per section, mapping a 0..1 SongSpec field into a range.
+
+    ``low``/``high`` exist because a musical 0..1 rarely means the parameter's
+    own 0..1: a fully wet delay at ``fx_amount`` 1.0 would erase the dry part it
+    is supposed to decorate. Sections whose field is unset are skipped rather
+    than guessed, so an incomplete arrangement leaves those bars untouched.
+    """
+
+    field = str(binding["field"])
+    low = float(binding.get("low", 0.0))
+    high = float(binding.get("high", 1.0))
+    if not 0.0 <= low <= 1.0 or not 0.0 <= high <= 1.0:
+        raise ValueError("automation low/high must be between 0.0 and 1.0")
+    if high <= low:
+        raise ValueError("automation high must be greater than low")
+
+    steps: list[dict[str, Any]] = []
+    for section in spec.arrangement:
+        value = getattr(section, field, None)
+        if value is None:
+            continue
+        if not 0.0 <= float(value) <= 1.0:
+            raise ValueError(f"section {field} must be between 0.0 and 1.0")
+        steps.append(
+            {
+                "start": round(section.start_bar * bar_beats, 6),
+                "length": round(section.length_bars * bar_beats, 6),
+                "value": round(low + float(value) * (high - low), 6),
+            }
+        )
+    if not steps:
+        raise ValueError(f"no section carries {field!r}; nothing to automate")
+    return steps
 
 
 def _structure(spec: SongSpec, bar_beats: float) -> list[dict[str, Any]]:
