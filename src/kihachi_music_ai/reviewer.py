@@ -13,14 +13,18 @@ from .models import SongSpec
 from .repaint_planner import build_repaint_plan
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS
 
-REVIEW_VERSION = "0.3"
+REVIEW_VERSION = "0.4"
+# Audio-only weights. `key` and `chords` used to carry 0.45 between them and
+# measured almost nothing: `key` sat at a constant 0.350 in every render because
+# detection never cleared its confidence threshold, and `chords` stayed pinned to
+# the detector's floor (0.000-0.098). Harmony is not detected here any more -- it
+# is *compared* against the written MIDI in `midi_alignment`, exactly, so this
+# score keeps only what audio alone can establish.
 ALIGNMENT_WEIGHTS = {
-    "duration": 0.10,
-    "tempo": 0.15,
-    "key": 0.20,
-    "chords": 0.25,
-    "section_boundaries": 0.15,
-    "section_energy": 0.15,
+    "duration": 0.15,
+    "tempo": 0.30,
+    "section_boundaries": 0.25,
+    "section_energy": 0.30,
 }
 
 
@@ -56,8 +60,10 @@ def review_project(
 
     alignment = _alignment(analysis)
     midi_review = _midi_review(project_dir, spec)
+    defects = _material_defects(project_dir)
     findings = _findings(spec, analysis)
     findings.extend(_midi_findings(analysis, midi_review))
+    findings.extend(_defect_findings(defects))
     revision_prompt = _revision_prompt(spec, findings)
     repaint_plan = build_repaint_plan(
         spec,
@@ -74,15 +80,35 @@ def review_project(
         "analysis_audio_sha256": analysis.get("sha256"),
         "alignment": alignment,
         "audio_alignment_note": (
-            "Derived from the finished mix, so harmony scores are limited by what a "
-            "detector can hear through the mix. See midi_alignment for the exact check."
+            "Audio-only: duration, tempo, section boundaries and the energy curve. "
+            "Harmony moved to midi_alignment, where it is compared rather than "
+            "detected. Heard-harmony numbers are still reported under "
+            "detected_harmony for diagnosis, but no longer scored."
         ),
+        "detected_harmony": {
+            "note": (
+                "what a detector hears in the finished mix; a low value here means "
+                "the harmony is masked, not that it was composed wrongly"
+            ),
+            "key_status": analysis.get("song_spec_comparison", {}).get("key_status"),
+            "key_confidence": _number(
+                analysis.get("harmony", {}).get("key", {}).get("confidence")
+            ),
+            "progression_match_ratio": _number(
+                analysis.get("song_spec_comparison", {}).get("progression_match_ratio")
+            ),
+            "confident_bar_coverage": _number(
+                analysis.get("harmony", {}).get("chords", {}).get("confident_bar_coverage")
+            ),
+        },
         "findings": findings,
         "revision_prompt": revision_prompt,
         "repaint_candidate": repaint_plan,
     }
     if midi_review is not None:
         review["midi_alignment"] = midi_review
+    if defects is not None:
+        review["material_defects"] = defects
 
     if against is not None:
         baseline_dir = Path(against)
@@ -153,10 +179,6 @@ def _alignment(analysis: dict[str, Any]) -> dict[str, Any]:
     component_scores = {
         "duration": _clamp(1.0 - abs(duration_delta or 0.0) / 2.0) if duration_delta is not None else 0.0,
         "tempo": _clamp(1.0 - abs(tempo_delta or 0.0) / 3.0) if tempo_delta is not None else 0.0,
-        "key": {"match": 1.0, "low_confidence": 0.35, "not_detected": 0.20, "mismatch": 0.0}.get(
-            str(key_status), 0.0
-        ),
-        "chords": _clamp(chord_match or 0.0) * (0.5 + 0.5 * _clamp(chord_coverage or 0.0)),
         "section_boundaries": _clamp(boundary_recall or 0.0),
         "section_energy": _clamp(((energy_correlation or 0.0) + 1.0) / 2.0)
         if energy_correlation is not None
@@ -168,7 +190,13 @@ def _alignment(analysis: dict[str, Any]) -> dict[str, Any]:
     return {
         "score": total_score,
         "grade": grade,
-        "score_meaning": "deterministic SongSpec alignment heuristic; not an audio-quality score",
+        "score_meaning": (
+            "how far the *audio* follows the SongSpec, from what audio alone can "
+            "establish. Harmony is scored exactly in midi_alignment instead. Not an "
+            "audio-quality score, and it moves a lot with the render seed -- one "
+            "spec across three seeds spanned 28.03 to 61.21, so differences of a "
+            "few points between settings are not evidence"
+        ),
         "components": {
             name: {
                 "score": round(component_scores[name], 4),
@@ -189,6 +217,62 @@ def _midi_review(project_dir: Path, spec: SongSpec) -> dict[str, Any] | None:
     return review_midi_tracks(
         spec, {name: read_midi(path).notes for name, path in paths.items()}
     )
+
+
+def _material_defects(project_dir: Path) -> dict[str, Any] | None:
+    """The defect scan written by `analyze`, when it is there."""
+
+    path = project_dir / "material_defects.json"
+    if not path.is_file():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else None
+
+
+def _defect_findings(defects: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Surface usability defects next to conformance.
+
+    These are deliberately separate measurements -- a take can follow the plan
+    closely and still be unusable. The baseline render scored a respectable 56.32
+    for alignment while carrying a 2.28 s silent hole, and a render that scored
+    28.03 was defect-free.
+    """
+
+    if defects is None:
+        return []
+    findings: list[dict[str, Any]] = []
+    for defect in defects.get("findings", []):
+        if defect.get("severity") not in {"blocking", "warning"}:
+            continue
+        findings.append(
+            {
+                "code": f"material_{defect['code']}",
+                "severity": "high" if defect["severity"] == "blocking" else "medium",
+                "evidence": defect["detail"],
+                "recommendation": _DEFECT_ADVICE.get(
+                    defect["code"],
+                    "Inspect the audio at the reported position before using this take.",
+                ),
+            }
+        )
+    return findings
+
+
+_DEFECT_ADVICE = {
+    "silent_gap": (
+        "The take has a hole. If it sits at the end, render with --tail-guard-bars "
+        "so the model writes its ending past the song grid; elsewhere, repaint the "
+        "bars around the gap."
+    ),
+    "clipping": "Lower the render level or the LoRA scale before reusing this take.",
+    "dc_offset": "Remove the offset with a high-pass before splicing or layering.",
+    "crushed_dynamics": "Transients are squashed; this take will not sit under others.",
+    "phase_cancellation": "The channels partly cancel; check it in mono before committing.",
+    "discontinuity": (
+        "Likely a click. If it lands on a repaint boundary, raise "
+        "--repaint-wav-crossfade-sec."
+    ),
+}
 
 
 def _midi_findings(

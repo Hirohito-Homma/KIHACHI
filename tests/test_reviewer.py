@@ -143,7 +143,10 @@ class ReviewerTests(unittest.TestCase):
                 manifest.review["comparison"]["baseline_alignment_score"],
             )
             self.assertEqual(manifest.review["comparison"]["preferred_song_spec_alignment"], "target")
-            self.assertEqual(manifest.review["alignment"]["grade"], "partial")
+            # Audio-only weights: dropping the two components that measured nothing
+            # (key sat at a constant 0.350, chords at the detector floor) leaves a
+            # score made entirely of things audio can actually establish.
+            self.assertEqual(manifest.review["alignment"]["grade"], "aligned")
             codes = {item["code"] for item in manifest.review["findings"]}
             self.assertIn("chord_progression_alignment", codes)
             self.assertIn("section_energy_alignment", codes)

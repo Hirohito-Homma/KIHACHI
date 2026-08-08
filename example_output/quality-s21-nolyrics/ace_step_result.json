@@ -1,0 +1,74 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "427a4e04-b181-47a0-b5d7-07b85939048d",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fworkspace%2FACE-Step-1.5%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F09696d1d-f019-0c47-b091-2165a1a7144f.wav",
+      "status": 1,
+      "seed_value": "21",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 2.23s**\n- 2.23s per song\n- DiT phase (1 song): 2.23s",
+      "metas": {
+        "bpm": 110,
+        "duration": 74.182,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Title: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25, minimal, no vocal); minimal groove (8 bars, energy 0.44, minimal); mutation build (8 bars, energy 0.66, wide dub echoes); psychedelic drop (8 bars, energy 0.88, wide dub echoes, vocal-led, heavily psychedelic). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": ""
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 74.182,
+    "song_grid_duration_sec": 69.818,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 3561600,
+        "kept_frames": 3351264,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 69.818,
+        "kept_duration_sec": 69.818,
+        "fade_out_sec": 0.01,
+        "source_sha256": "a70727451a16b0ae03079075d18e8a830f763790d797c6ebebef10a924e8fb56",
+        "trimmed_sha256": "c96017115181c5bba3605c8ab741666d22aec63addb71eefe335095af96268cf"
+      }
+    ],
+    "delivered_music_end_sec": [
+      69.8177
+    ]
+  },
+  "lora": {
+    "requested": {
+      "lora_path": "/workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final",
+      "scale": 0.8
+    },
+    "status": {
+      "lora_loaded": true,
+      "use_lora": true,
+      "lora_scale": 0.8,
+      "adapter_type": "lora",
+      "scales": {
+        "final": 0.8
+      },
+      "active_adapter": "final",
+      "adapters": [
+        "final"
+      ],
+      "synthetic_default_mode": false
+    }
+  }
+}

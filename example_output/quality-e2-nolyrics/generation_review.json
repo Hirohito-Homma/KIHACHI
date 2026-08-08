@@ -1,0 +1,803 @@
+{
+  "review_version": "0.3",
+  "scope": "song_spec_alignment_not_audio_quality",
+  "project": "quality-e2-nolyrics",
+  "analysis_version": "0.3",
+  "analysis_audio_sha256": "f06328b75fa785d161b243ca86fe9750ae2e7a4494255400b20d5c28769b71c4",
+  "alignment": {
+    "score": 60.45,
+    "grade": "partial",
+    "score_meaning": "deterministic SongSpec alignment heuristic; not an audio-quality score",
+    "components": {
+      "duration": {
+        "score": 1.0,
+        "weight": 0.1,
+        "weighted_points": 10.0
+      },
+      "tempo": {
+        "score": 0.96,
+        "weight": 0.15,
+        "weighted_points": 14.4
+      },
+      "key": {
+        "score": 0.35,
+        "weight": 0.2,
+        "weighted_points": 7.0
+      },
+      "chords": {
+        "score": 0.049,
+        "weight": 0.25,
+        "weighted_points": 1.22
+      },
+      "section_boundaries": {
+        "score": 1.0,
+        "weight": 0.15,
+        "weighted_points": 15.0
+      },
+      "section_energy": {
+        "score": 0.8549,
+        "weight": 0.15,
+        "weighted_points": 12.82
+      }
+    }
+  },
+  "audio_alignment_note": "Derived from the finished mix, so harmony scores are limited by what a detector can hear through the mix. See midi_alignment for the exact check.",
+  "findings": [
+    {
+      "severity": "warning",
+      "code": "key_alignment",
+      "evidence": "Observed key candidate is C# minor at confidence 0.1153; status is low_confidence.",
+      "recommendation": "Anchor section openings and bass pedals on D#; make D# minor unambiguous."
+    },
+    {
+      "severity": "action",
+      "code": "chord_progression_alignment",
+      "evidence": "Reliable-bar progression match is 0.0667.",
+      "recommendation": "State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change."
+    },
+    {
+      "severity": "warning",
+      "code": "harmonic_readability",
+      "evidence": "Confident chord coverage is 0.4688.",
+      "recommendation": "Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks."
+    },
+    {
+      "code": "harmony_written_but_not_detected",
+      "severity": "info",
+      "evidence": "The written MIDI plays the SongSpec progression exactly (match 1.0000), while the audio analysis reads 0.0667 from the finished mix.",
+      "recommendation": "Treat the audio chord score as a detection limit, not a composition error. Do not repaint to 'fix' the progression; improve separation around chord attacks if the chords should become audible."
+    }
+  ],
+  "revision_prompt": "Revision pass: keep 110 BPM, D# minor, 4/4, 32 bars. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks. Treat the audio chord score as a detection limit, not a composition error. Do not repaint to 'fix' the progression; improve separation around chord attacks if the chords should become audible.",
+  "repaint_candidate": {
+    "plan_version": "0.1",
+    "execution_state": "prepared_not_rendered",
+    "song_spec_sha256": "ca88be5b4116ab26b3ec1f1e0e708e41e879b4f8a69a36ed47501d1cefd15730",
+    "analysis_audio_sha256": "f06328b75fa785d161b243ca86fe9750ae2e7a4494255400b20d5c28769b71c4",
+    "source_audio": {
+      "sha256": "f06328b75fa785d161b243ca86fe9750ae2e7a4494255400b20d5c28769b71c4",
+      "relative_path": "audio/ace-step-01.wav"
+    },
+    "selection": {
+      "selector": "section",
+      "start_bar": 9,
+      "end_bar": 16,
+      "start_sec": 17.455,
+      "end_sec": 34.909,
+      "section_name": "minimal_groove"
+    },
+    "selection_confidence": "high",
+    "selection_reason": "mean energy is 0.1365 above target; reliable chord coverage is 0.5000; chord match ratio is 0.0000",
+    "section_diagnostics": [
+      {
+        "section_name": "minimal_intro",
+        "start_bar": 1,
+        "end_bar": 8,
+        "target_energy": 0.25,
+        "observed_mean_energy": 0.2393,
+        "energy_error": -0.0107,
+        "terminal_energy_collapse": null,
+        "chord_coverage": 0.375,
+        "chord_match_ratio": 0.0,
+        "opening_boundary_match": null,
+        "priority_score": 50.95
+      },
+      {
+        "section_name": "minimal_groove",
+        "start_bar": 9,
+        "end_bar": 16,
+        "target_energy": 0.44,
+        "observed_mean_energy": 0.5765,
+        "energy_error": 0.1365,
+        "terminal_energy_collapse": null,
+        "chord_coverage": 0.5,
+        "chord_match_ratio": 0.0,
+        "opening_boundary_match": true,
+        "priority_score": 51.59
+      },
+      {
+        "section_name": "mutation_build",
+        "start_bar": 17,
+        "end_bar": 24,
+        "target_energy": 0.66,
+        "observed_mean_energy": 0.6653,
+        "energy_error": 0.0053,
+        "terminal_energy_collapse": null,
+        "chord_coverage": 0.375,
+        "chord_match_ratio": 0.3333,
+        "opening_boundary_match": true,
+        "priority_score": 39.12
+      },
+      {
+        "section_name": "psychedelic_drop",
+        "start_bar": 25,
+        "end_bar": 32,
+        "target_energy": 0.88,
+        "observed_mean_energy": 0.8935,
+        "energy_error": 0.0135,
+        "terminal_energy_collapse": 0.2198,
+        "chord_coverage": 0.625,
+        "chord_match_ratio": 0.0,
+        "opening_boundary_match": true,
+        "priority_score": 48.08
+      }
+    ],
+    "bar_level_candidates": [],
+    "recommended_selector": "section",
+    "revision_prompt": "Repaint only minimal_groove (bars 9-16). Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Make this section reach its planned energy 0.44 while preserving a clean splice at both boundaries. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Reduce harmonic masking from vocals, distortion, reverb, and dub delay around chord attacks.",
+    "ace_step_options": {
+      "task_type": "repaint",
+      "audio_cover_strength": 1.0,
+      "cover_noise_strength": 0.0,
+      "repaint_mode": "balanced",
+      "repaint_strength": 0.65,
+      "repaint_latent_crossfade_frames": 10,
+      "repaint_wav_crossfade_sec": 0.25,
+      "chunk_mask_mode": "explicit",
+      "tail_guard_bars": 2.0
+    },
+    "safety": {
+      "original_audio_mutated": false,
+      "render_started": false,
+      "requires_separate_output_project": true
+    }
+  },
+  "midi_alignment": {
+    "midi_review_version": "0.1",
+    "scope": "exact_midi_to_song_spec_comparison_not_audio",
+    "tracks": {
+      "bass": {
+        "notes": 186
+      },
+      "chords": {
+        "notes": 210
+      },
+      "drums": {
+        "notes": 399
+      }
+    },
+    "harmony": {
+      "grid": "song_spec_bars",
+      "progression": [
+        "D#m",
+        "B",
+        "F#",
+        "C#"
+      ],
+      "harmonic_rhythm_bars": 1,
+      "bars": [
+        {
+          "bar": 1,
+          "expected_chord": "D#m",
+          "bass_notes": 3,
+          "bass_on_root": 3,
+          "chord_notes": 3,
+          "chord_tones_in_chord": 3
+        },
+        {
+          "bar": 2,
+          "expected_chord": "B",
+          "bass_notes": 3,
+          "bass_on_root": 3,
+          "chord_notes": 3,
+          "chord_tones_in_chord": 3
+        },
+        {
+          "bar": 3,
+          "expected_chord": "F#",
+          "bass_notes": 3,
+          "bass_on_root": 3,
+          "chord_notes": 3,
+          "chord_tones_in_chord": 3
+        },
+        {
+          "bar": 4,
+          "expected_chord": "C#",
+          "bass_notes": 3,
+          "bass_on_root": 3,
+          "chord_notes": 3,
+          "chord_tones_in_chord": 3
+        },
+        {
+          "bar": 5,
+          "expected_chord": "D#m",
+          "bass_notes": 3,
+          "bass_on_root": 3,
+          "chord_notes": 3,
+          "chord_tones_in_chord": 3
+        },
+        {
+          "bar": 6,
+          "expected_chord": "B",
+          "bass_notes": 3,
+          "bass_on_root": 3,
+          "chord_notes": 3,
+          "chord_tones_in_chord": 3
+        },
+        {
+          "bar": 7,
+          "expected_chord": "F#",
+          "bass_notes": 3,
+          "bass_on_root": 3,
+          "chord_notes": 3,
+          "chord_tones_in_chord": 3
+        },
+        {
+          "bar": 8,
+          "expected_chord": "C#",
+          "bass_notes": 3,
+          "bass_on_root": 3,
+          "chord_notes": 3,
+          "chord_tones_in_chord": 3
+        },
+        {
+          "bar": 9,
+          "expected_chord": "D#m",
+          "bass_notes": 5,
+          "bass_on_root": 5,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 10,
+          "expected_chord": "B",
+          "bass_notes": 5,
+          "bass_on_root": 5,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 11,
+          "expected_chord": "F#",
+          "bass_notes": 5,
+          "bass_on_root": 5,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 12,
+          "expected_chord": "C#",
+          "bass_notes": 5,
+          "bass_on_root": 5,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 13,
+          "expected_chord": "D#m",
+          "bass_notes": 5,
+          "bass_on_root": 5,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 14,
+          "expected_chord": "B",
+          "bass_notes": 5,
+          "bass_on_root": 5,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 15,
+          "expected_chord": "F#",
+          "bass_notes": 6,
+          "bass_on_root": 6,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 16,
+          "expected_chord": "C#",
+          "bass_notes": 5,
+          "bass_on_root": 5,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 17,
+          "expected_chord": "D#m",
+          "bass_notes": 6,
+          "bass_on_root": 6,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 18,
+          "expected_chord": "B",
+          "bass_notes": 6,
+          "bass_on_root": 6,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 19,
+          "expected_chord": "F#",
+          "bass_notes": 6,
+          "bass_on_root": 6,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 20,
+          "expected_chord": "C#",
+          "bass_notes": 6,
+          "bass_on_root": 6,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 21,
+          "expected_chord": "D#m",
+          "bass_notes": 7,
+          "bass_on_root": 7,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 22,
+          "expected_chord": "B",
+          "bass_notes": 7,
+          "bass_on_root": 7,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 23,
+          "expected_chord": "F#",
+          "bass_notes": 8,
+          "bass_on_root": 8,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 24,
+          "expected_chord": "C#",
+          "bass_notes": 9,
+          "bass_on_root": 9,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 25,
+          "expected_chord": "D#m",
+          "bass_notes": 8,
+          "bass_on_root": 8,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 26,
+          "expected_chord": "B",
+          "bass_notes": 8,
+          "bass_on_root": 8,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 27,
+          "expected_chord": "F#",
+          "bass_notes": 9,
+          "bass_on_root": 9,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 28,
+          "expected_chord": "C#",
+          "bass_notes": 9,
+          "bass_on_root": 9,
+          "chord_notes": 6,
+          "chord_tones_in_chord": 6
+        },
+        {
+          "bar": 29,
+          "expected_chord": "D#m",
+          "bass_notes": 8,
+          "bass_on_root": 8,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 30,
+          "expected_chord": "B",
+          "bass_notes": 8,
+          "bass_on_root": 8,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 31,
+          "expected_chord": "F#",
+          "bass_notes": 8,
+          "bass_on_root": 8,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        },
+        {
+          "bar": 32,
+          "expected_chord": "C#",
+          "bass_notes": 8,
+          "bass_on_root": 8,
+          "chord_notes": 9,
+          "chord_tones_in_chord": 9
+        }
+      ],
+      "bass_root_match_ratio": 1.0,
+      "chord_tone_match_ratio": 1.0,
+      "score": 1.0
+    },
+    "key": {
+      "key": "D# minor",
+      "scale_pitch_classes": [
+        1,
+        3,
+        5,
+        6,
+        8,
+        10,
+        11
+      ],
+      "observed_pitch_classes": [
+        1,
+        3,
+        5,
+        6,
+        8,
+        10,
+        11
+      ],
+      "pitched_notes": 396,
+      "out_of_key_notes": 0,
+      "out_of_key_ratio": 0.0,
+      "score": 1.0
+    },
+    "sections": {
+      "grid": "song_spec_bars",
+      "bars": [
+        {
+          "bar": 1,
+          "planned_section": "minimal_intro",
+          "target_energy": 0.25,
+          "notes": 17,
+          "velocity_sum": 1170.0,
+          "written_energy": 0.0
+        },
+        {
+          "bar": 2,
+          "planned_section": "minimal_intro",
+          "target_energy": 0.25,
+          "notes": 17,
+          "velocity_sum": 1170.0,
+          "written_energy": 0.0
+        },
+        {
+          "bar": 3,
+          "planned_section": "minimal_intro",
+          "target_energy": 0.25,
+          "notes": 17,
+          "velocity_sum": 1170.0,
+          "written_energy": 0.0
+        },
+        {
+          "bar": 4,
+          "planned_section": "minimal_intro",
+          "target_energy": 0.25,
+          "notes": 17,
+          "velocity_sum": 1170.0,
+          "written_energy": 0.0
+        },
+        {
+          "bar": 5,
+          "planned_section": "minimal_intro",
+          "target_energy": 0.25,
+          "notes": 17,
+          "velocity_sum": 1170.0,
+          "written_energy": 0.0
+        },
+        {
+          "bar": 6,
+          "planned_section": "minimal_intro",
+          "target_energy": 0.25,
+          "notes": 17,
+          "velocity_sum": 1170.0,
+          "written_energy": 0.0
+        },
+        {
+          "bar": 7,
+          "planned_section": "minimal_intro",
+          "target_energy": 0.25,
+          "notes": 17,
+          "velocity_sum": 1170.0,
+          "written_energy": 0.0
+        },
+        {
+          "bar": 8,
+          "planned_section": "minimal_intro",
+          "target_energy": 0.25,
+          "notes": 17,
+          "velocity_sum": 1170.0,
+          "written_energy": 0.0
+        },
+        {
+          "bar": 9,
+          "planned_section": "minimal_groove",
+          "target_energy": 0.44,
+          "notes": 23,
+          "velocity_sum": 1777.0,
+          "written_energy": 0.3443
+        },
+        {
+          "bar": 10,
+          "planned_section": "minimal_groove",
+          "target_energy": 0.44,
+          "notes": 23,
+          "velocity_sum": 1777.0,
+          "written_energy": 0.3443
+        },
+        {
+          "bar": 11,
+          "planned_section": "minimal_groove",
+          "target_energy": 0.44,
+          "notes": 23,
+          "velocity_sum": 1777.0,
+          "written_energy": 0.3443
+        },
+        {
+          "bar": 12,
+          "planned_section": "minimal_groove",
+          "target_energy": 0.44,
+          "notes": 23,
+          "velocity_sum": 1777.0,
+          "written_energy": 0.3443
+        },
+        {
+          "bar": 13,
+          "planned_section": "minimal_groove",
+          "target_energy": 0.44,
+          "notes": 23,
+          "velocity_sum": 1777.0,
+          "written_energy": 0.3443
+        },
+        {
+          "bar": 14,
+          "planned_section": "minimal_groove",
+          "target_energy": 0.44,
+          "notes": 23,
+          "velocity_sum": 1793.0,
+          "written_energy": 0.3534
+        },
+        {
+          "bar": 15,
+          "planned_section": "minimal_groove",
+          "target_energy": 0.44,
+          "notes": 24,
+          "velocity_sum": 1832.0,
+          "written_energy": 0.3755
+        },
+        {
+          "bar": 16,
+          "planned_section": "minimal_groove",
+          "target_energy": 0.44,
+          "notes": 23,
+          "velocity_sum": 1740.0,
+          "written_energy": 0.3233
+        },
+        {
+          "bar": 17,
+          "planned_section": "mutation_build",
+          "target_energy": 0.66,
+          "notes": 28,
+          "velocity_sum": 2383.0,
+          "written_energy": 0.688
+        },
+        {
+          "bar": 18,
+          "planned_section": "mutation_build",
+          "target_energy": 0.66,
+          "notes": 28,
+          "velocity_sum": 2324.0,
+          "written_energy": 0.6545
+        },
+        {
+          "bar": 19,
+          "planned_section": "mutation_build",
+          "target_energy": 0.66,
+          "notes": 28,
+          "velocity_sum": 2340.0,
+          "written_energy": 0.6636
+        },
+        {
+          "bar": 20,
+          "planned_section": "mutation_build",
+          "target_energy": 0.66,
+          "notes": 28,
+          "velocity_sum": 2340.0,
+          "written_energy": 0.6636
+        },
+        {
+          "bar": 21,
+          "planned_section": "mutation_build",
+          "target_energy": 0.66,
+          "notes": 29,
+          "velocity_sum": 2426.0,
+          "written_energy": 0.7124
+        },
+        {
+          "bar": 22,
+          "planned_section": "mutation_build",
+          "target_energy": 0.66,
+          "notes": 29,
+          "velocity_sum": 2426.0,
+          "written_energy": 0.7124
+        },
+        {
+          "bar": 23,
+          "planned_section": "mutation_build",
+          "target_energy": 0.66,
+          "notes": 30,
+          "velocity_sum": 2469.0,
+          "written_energy": 0.7368
+        },
+        {
+          "bar": 24,
+          "planned_section": "mutation_build",
+          "target_energy": 0.66,
+          "notes": 31,
+          "velocity_sum": 2512.0,
+          "written_energy": 0.7612
+        },
+        {
+          "bar": 25,
+          "planned_section": "psychedelic_drop",
+          "target_energy": 0.88,
+          "notes": 31,
+          "velocity_sum": 2934.0,
+          "written_energy": 1.0
+        },
+        {
+          "bar": 26,
+          "planned_section": "psychedelic_drop",
+          "target_energy": 0.88,
+          "notes": 31,
+          "velocity_sum": 2934.0,
+          "written_energy": 1.0
+        },
+        {
+          "bar": 27,
+          "planned_section": "psychedelic_drop",
+          "target_energy": 0.88,
+          "notes": 29,
+          "velocity_sum": 2708.0,
+          "written_energy": 0.8723
+        },
+        {
+          "bar": 28,
+          "planned_section": "psychedelic_drop",
+          "target_energy": 0.88,
+          "notes": 29,
+          "velocity_sum": 2717.0,
+          "written_energy": 0.8774
+        },
+        {
+          "bar": 29,
+          "planned_section": "psychedelic_drop",
+          "target_energy": 0.88,
+          "notes": 31,
+          "velocity_sum": 2925.0,
+          "written_energy": 0.9954
+        },
+        {
+          "bar": 30,
+          "planned_section": "psychedelic_drop",
+          "target_energy": 0.88,
+          "notes": 31,
+          "velocity_sum": 2964.0,
+          "written_energy": 1.0
+        },
+        {
+          "bar": 31,
+          "planned_section": "psychedelic_drop",
+          "target_energy": 0.88,
+          "notes": 31,
+          "velocity_sum": 2955.0,
+          "written_energy": 1.0
+        },
+        {
+          "bar": 32,
+          "planned_section": "psychedelic_drop",
+          "target_energy": 0.88,
+          "notes": 30,
+          "velocity_sum": 2894.0,
+          "written_energy": 0.9778
+        }
+      ],
+      "planned_sections": [
+        {
+          "name": "minimal_intro",
+          "start_bar": 1,
+          "length_bars": 8,
+          "target_energy": 0.25,
+          "written_mean_energy": 0.0
+        },
+        {
+          "name": "minimal_groove",
+          "start_bar": 9,
+          "length_bars": 8,
+          "target_energy": 0.44,
+          "written_mean_energy": 0.3467
+        },
+        {
+          "name": "mutation_build",
+          "start_bar": 17,
+          "length_bars": 8,
+          "target_energy": 0.66,
+          "written_mean_energy": 0.6991
+        },
+        {
+          "name": "psychedelic_drop",
+          "start_bar": 25,
+          "length_bars": 8,
+          "target_energy": 0.88,
+          "written_mean_energy": 0.9654
+        }
+      ],
+      "energy_correlation": 0.9922
+    },
+    "coverage": {
+      "expected_bars": 32,
+      "tracks": 3,
+      "scored_track_bars": 96,
+      "empty_bars": {},
+      "resting_bars": {},
+      "score": 1.0
+    },
+    "alignment": {
+      "score": 99.77,
+      "grade": "aligned",
+      "score_meaning": "exact comparison of the written MIDI against the SongSpec; independent of any audio render",
+      "components": {
+        "harmony": {
+          "score": 1.0,
+          "weight": 0.35,
+          "weighted_points": 35.0
+        },
+        "key": {
+          "score": 1.0,
+          "weight": 0.2,
+          "weighted_points": 20.0
+        },
+        "section_energy": {
+          "score": 0.9922,
+          "weight": 0.3,
+          "weighted_points": 29.77
+        },
+        "coverage": {
+          "score": 1.0,
+          "weight": 0.15,
+          "weighted_points": 15.0
+        }
+      }
+    }
+  }
+}

@@ -28,6 +28,7 @@ from .repaint_planner import (
     stage_repaint_project,
 )
 from .arrangement import describe_arrangement
+from .defects import scan_material
 from .chunked import (
     DEFAULT_CHUNK_BARS,
     build_chunk_plan,
@@ -565,6 +566,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             sections = manifest.analysis["sections"]
             key = harmony["key"]
             comparison = manifest.analysis["song_spec_comparison"]
+            # A second, deliberately separate view of the same audio: conformance
+            # ("did it follow the plan") and defects ("is it usable") answer
+            # different questions, and mixing them is what made a take with a
+            # 2.28 s silent hole score a respectable 56.32.
+            defects_file = manifest.project_dir / "material_defects.json"
+            defects = None
+            if defects_file.exists() and not args.overwrite:
+                print(f"- keeping existing defect scan: {defects_file}")
+            else:
+                defects = scan_material(manifest.audio_file)
+                defects_file.write_text(
+                    json.dumps(defects, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
             print(f"Analyzed KIHACHI audio: {manifest.audio_file}")
             print(f"- result: {manifest.analysis_file}")
             print(f"- estimated BPM: {tempo['estimated_bpm']} (confidence {tempo['confidence']})")
@@ -579,6 +594,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- section boundaries after bars: {sections['detected_boundaries_after_bar']}")
             print(f"- planned boundary recall: {sections['planned_boundary_recall_within_one_bar']}")
             print(f"- section energy correlation: {sections['energy_correlation_to_song_spec']}")
+            if defects is not None:
+                summary = (
+                    "clean"
+                    if defects["clean"]
+                    else ", ".join(
+                        f"{item['code']}({item['severity']})" for item in defects["findings"]
+                    )
+                )
+                print(f"- material defects: {summary}")
+                for item in defects["findings"]:
+                    if item["severity"] in {"blocking", "warning"}:
+                        print(f"    {item['severity']}: {item['detail']}")
+                print(f"- defect scan: {defects_file}")
             print(f"- peak: {level['peak_dbfs']} dBFS")
             print(f"- RMS: {level['rms_dbfs']} dBFS")
             return 0
@@ -703,6 +731,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"harmony written {midi_alignment['harmony']['bass_root_match_ratio']}/"
                     f"{midi_alignment['harmony']['chord_tone_match_ratio']}"
                 )
+            # Printed right under the score on purpose: a take can align well and
+            # still be unusable, and the score alone hides that.
+            defects = manifest.review.get("material_defects")
+            if defects is not None:
+                if defects["clean"]:
+                    print("- material defects: none")
+                else:
+                    for defect in defects["findings"]:
+                        if defect["severity"] in {"blocking", "warning"}:
+                            print(f"- material {defect['severity']}: {defect['detail']}")
             if "comparison" in manifest.review:
                 comparison = manifest.review["comparison"]
                 print(

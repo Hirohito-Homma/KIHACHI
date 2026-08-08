@@ -204,10 +204,13 @@ class DualChannelReviewTests(unittest.TestCase):
             manifest = review_project(self._project(Path(temp)))
 
         review = manifest.review
-        self.assertEqual(review["review_version"], "0.3")
+        self.assertEqual(review["review_version"], "0.4")
         self.assertIn("midi_alignment", review)
         # The mix hides the harmony; the written MIDI states it exactly.
-        self.assertEqual(review["alignment"]["components"]["chords"]["score"], 0.0)
+        # harmony is no longer an audio component at all -- it is compared, not detected
+        self.assertNotIn("chords", review["alignment"]["components"])
+        self.assertNotIn("key", review["alignment"]["components"])
+        self.assertEqual(review["detected_harmony"]["progression_match_ratio"], 0.0)
         self.assertEqual(review["midi_alignment"]["harmony"]["bass_root_match_ratio"], 1.0)
 
     def test_a_detection_limit_is_not_reported_as_a_composition_error(self) -> None:

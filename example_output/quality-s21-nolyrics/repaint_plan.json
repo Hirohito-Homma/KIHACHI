@@ -1,0 +1,93 @@
+{
+  "plan_version": "0.1",
+  "execution_state": "prepared_not_rendered",
+  "song_spec_sha256": "0e06a5d87712dfa8a16fcc0ba4d1efcbeea5e7d9e7aaf5f5d0a0abe765cb3b46",
+  "analysis_audio_sha256": "c96017115181c5bba3605c8ab741666d22aec63addb71eefe335095af96268cf",
+  "source_audio": {
+    "sha256": "c96017115181c5bba3605c8ab741666d22aec63addb71eefe335095af96268cf",
+    "relative_path": "audio/ace-step-01.wav"
+  },
+  "selection": {
+    "selector": "section",
+    "start_bar": 1,
+    "end_bar": 8,
+    "start_sec": 0.0,
+    "end_sec": 17.455,
+    "section_name": "minimal_intro"
+  },
+  "selection_confidence": "high",
+  "selection_reason": "mean energy is 0.4105 above target; reliable chord coverage is 0.5000; chord match ratio is 0.0000",
+  "section_diagnostics": [
+    {
+      "section_name": "minimal_intro",
+      "start_bar": 1,
+      "end_bar": 8,
+      "target_energy": 0.25,
+      "observed_mean_energy": 0.6605,
+      "energy_error": 0.4105,
+      "terminal_energy_collapse": null,
+      "chord_coverage": 0.5,
+      "chord_match_ratio": 0.0,
+      "opening_boundary_match": null,
+      "priority_score": 59.81
+    },
+    {
+      "section_name": "minimal_groove",
+      "start_bar": 9,
+      "end_bar": 16,
+      "target_energy": 0.44,
+      "observed_mean_energy": 0.1162,
+      "energy_error": -0.3238,
+      "terminal_energy_collapse": null,
+      "chord_coverage": 0.75,
+      "chord_match_ratio": 0.1667,
+      "opening_boundary_match": true,
+      "priority_score": 45.13
+    },
+    {
+      "section_name": "mutation_build",
+      "start_bar": 17,
+      "end_bar": 24,
+      "target_energy": 0.66,
+      "observed_mean_energy": 0.6537,
+      "energy_error": -0.0063,
+      "terminal_energy_collapse": null,
+      "chord_coverage": 0.375,
+      "chord_match_ratio": 0.0,
+      "opening_boundary_match": true,
+      "priority_score": 50.81
+    },
+    {
+      "section_name": "psychedelic_drop",
+      "start_bar": 25,
+      "end_bar": 32,
+      "target_energy": 0.88,
+      "observed_mean_energy": 0.951,
+      "energy_error": 0.071,
+      "terminal_energy_collapse": 0.0,
+      "chord_coverage": 0.375,
+      "chord_match_ratio": 0.0,
+      "opening_boundary_match": true,
+      "priority_score": 52.75
+    }
+  ],
+  "bar_level_candidates": [],
+  "recommended_selector": "section",
+  "revision_prompt": "Repaint only minimal_intro (bars 1-8). Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Make this section reach its planned energy 0.25 while preserving a clean splice at both boundaries. Anchor section openings and bass pedals on D#; make D# minor unambiguous. State one clear chord per bar in the repeating progression D#m - B - F# - C#; keep delay tails below the next change. Follow a clearly rising energy arc: minimal_intro 0.25 → minimal_groove 0.44 → mutation_build 0.66 → psychedelic_drop 0.88.",
+  "ace_step_options": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.65,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.25,
+    "chunk_mask_mode": "explicit",
+    "tail_guard_bars": 2.0
+  },
+  "safety": {
+    "original_audio_mutated": false,
+    "render_started": false,
+    "requires_separate_output_project": true
+  }
+}
