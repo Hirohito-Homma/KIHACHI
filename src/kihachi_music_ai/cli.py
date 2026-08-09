@@ -27,6 +27,7 @@ from .repaint_planner import (
     song_spec_sha256,
     stage_repaint_project,
 )
+from .ableton import parse_automation_binding, plan_project_arrangement
 from .arrangement import describe_arrangement
 from .defects import scan_material
 from .chunked import (
@@ -129,6 +130,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="show the lyric sheet a project's SongSpec writes (read-only)",
     )
     lyrics_command.add_argument("project", type=Path, help="project containing song_spec.json")
+
+    ableton_plan = subparsers.add_parser(
+        "ableton-plan",
+        help="emit the operation list that lays this song out in Live (talks to nothing)",
+    )
+    ableton_plan.add_argument("project", type=Path, help="project containing song_spec.json and .mid")
+    ableton_plan.add_argument(
+        "--first-track-index",
+        type=int,
+        default=0,
+        help="Live index the first created track lands on; check it with get_live_state",
+    )
+    ableton_plan.add_argument(
+        "--session-slot",
+        type=int,
+        default=0,
+        help="empty Session slot the clips are built in before being copied",
+    )
+    ableton_plan.add_argument(
+        "--automate",
+        action="append",
+        default=[],
+        metavar="BINDING",
+        help=(
+            "bind a per-section SongSpec field to a Live device parameter as "
+            "part:field:device_index:parameter_index[:low:high], e.g. "
+            "chords:fx_amount:1:52:0.18:0.52 (repeatable). The indices come from "
+            "get_track_devices; low/high keep a musical 0..1 off the parameter's extremes"
+        ),
+    )
+    ableton_plan.add_argument("--overwrite", action="store_true", help="replace arrangement_plan.json")
 
     midi_review = subparsers.add_parser(
         "midi-review",
@@ -709,6 +741,48 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "midi-review":
             manifest = review_project_midi(args.project)
             _print_midi_alignment(manifest.review, manifest.project_dir)
+            return 0
+
+        if args.command == "ableton-plan":
+            manifest = plan_project_arrangement(
+                args.project,
+                first_track_index=args.first_track_index,
+                session_slot=args.session_slot,
+                automation=[parse_automation_binding(text) for text in args.automate],
+                overwrite=args.overwrite,
+            )
+            plan = manifest.plan
+            song = plan["song"]
+            print(f"Planned KIHACHI arrangement for Live: {manifest.project_dir}")
+            print(
+                f"- {song['title']}: {song['total_bars']} bars / {song['total_beats']:g} beats "
+                f"at {song['bpm']:g} BPM, {song['key']}"
+            )
+            for track in plan["tracks"]:
+                print(
+                    f"    track {track['live_track_index']}: {track['name']} "
+                    f"({track['notes']} notes)"
+                )
+            # The resting tracks are the point of the whole MIDI path: the audio
+            # model kept playing drums through the breakdown, the MIDI does not.
+            for section in plan["structure"]:
+                resting = ", ".join(section["resting_tracks"]) or "-"
+                print(
+                    f"    bar {section['start_bar']:>3}  {section['name']:<20} "
+                    f"energy {section['energy']:.2f}  resting: {resting}"
+                )
+            automated = [op for op in plan["operations"] if op["op"] == "set_clip_parameter_envelope"]
+            for operation in automated:
+                params = operation["params"]
+                print(
+                    f"- automation: track {params['track_index']} device "
+                    f"{params['device_index']} parameter {params['parameter_index']}, "
+                    f"{len(params['steps'])} steps"
+                )
+            for warning in plan["warnings"]:
+                print(f"- warning: {warning}")
+            print(f"- {len(plan['operations'])} operations, {plan['execution_state']}")
+            print(f"- plan: {manifest.plan_file}")
             return 0
 
         if args.command == "review":

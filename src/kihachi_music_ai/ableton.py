@@ -22,9 +22,12 @@ Pure and stdlib-only.
 
 from __future__ import annotations
 
+import json
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .midi import MidiNote
+from .midi import MidiNote, read_midi
 from .models import TRACK_NAMES, SongSpec
 
 ARRANGEMENT_PLAN_VERSION = "0.1"
@@ -33,6 +36,100 @@ MAX_CLIP_BEATS = 4096
 MAX_NOTES_PER_CLIP = 4096
 
 TRACK_LABELS = {"bass": "KIHACHI Bass", "drums": "KIHACHI Drums", "chords": "KIHACHI Chords"}
+
+
+@dataclass(frozen=True)
+class ArrangementPlanManifest:
+    project_dir: Path
+    midi_files: tuple[Path, ...]
+    plan_file: Path
+    plan: dict[str, Any]
+
+
+def plan_project_arrangement(
+    project_dir: Path,
+    *,
+    first_track_index: int = 0,
+    session_slot: int = 0,
+    automation: Sequence[Mapping[str, Any]] = (),
+    overwrite: bool = False,
+) -> ArrangementPlanManifest:
+    """Read a project's SongSpec and written MIDI, write ``arrangement_plan.json``.
+
+    The MIDI is read back from disk rather than recomposed from the SongSpec, for
+    the same reason the MIDI review does it: the plan has to describe the notes
+    that actually exist, not the notes that were meant to. Measured against a
+    plan built from in-memory notes, the two agree on every pitch and velocity,
+    and on timing to within half a tick -- writing quantizes to 480 PPQ, which is
+    0.57 ms at 110 BPM. Live reads the file exactly the way this does.
+    """
+
+    project_dir = Path(project_dir)
+    spec_path = project_dir / "song_spec.json"
+    if not spec_path.is_file():
+        raise FileNotFoundError(f"SongSpec not found: {spec_path}")
+    spec = SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
+
+    tracks: dict[str, tuple[MidiNote, ...]] = {}
+    files: list[Path] = []
+    for name in TRACK_NAMES:
+        path = project_dir / f"{name}.mid"
+        if not path.is_file():
+            raise FileNotFoundError(f"MIDI track not found: {path}")
+        tracks[name] = read_midi(path).notes
+        files.append(path)
+
+    plan = build_arrangement_plan(
+        spec,
+        tracks,
+        first_track_index=first_track_index,
+        session_slot=session_slot,
+        automation=automation,
+    )
+    destination = project_dir / "arrangement_plan.json"
+    if destination.exists() and not overwrite:
+        raise FileExistsError(f"refusing to overwrite arrangement plan: {destination}")
+    destination.write_text(
+        json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return ArrangementPlanManifest(project_dir, tuple(files), destination, plan)
+
+
+def parse_automation_binding(text: str) -> dict[str, Any]:
+    """``part:field:device_index:parameter_index[:low:high]`` from the command line.
+
+    The device and parameter indices are facts about the Live set, not about the
+    song, so they cannot be derived here -- ``get_track_devices`` in AbletonGPT is
+    what reports them.
+    """
+
+    parts = text.split(":")
+    if len(parts) not in (4, 6):
+        raise ValueError(
+            f"automation binding {text!r} must be "
+            "part:field:device_index:parameter_index[:low:high]"
+        )
+    part, field = parts[0], parts[1]
+    if part not in TRACK_NAMES:
+        raise ValueError(f"unknown part {part!r}; expected one of {', '.join(TRACK_NAMES)}")
+    try:
+        device_index, parameter_index = int(parts[2]), int(parts[3])
+    except ValueError:
+        raise ValueError(f"device and parameter indices must be integers in {text!r}") from None
+    if device_index < 0 or parameter_index < 0:
+        raise ValueError(f"device and parameter indices cannot be negative in {text!r}")
+    binding: dict[str, Any] = {
+        "part": part,
+        "field": field,
+        "device_index": device_index,
+        "parameter_index": parameter_index,
+    }
+    if len(parts) == 6:
+        try:
+            binding["low"], binding["high"] = float(parts[4]), float(parts[5])
+        except ValueError:
+            raise ValueError(f"low and high must be numbers in {text!r}") from None
+    return binding
 
 
 def beats_per_bar(spec: SongSpec) -> float:
