@@ -545,10 +545,19 @@ class AceStepClient:
         wait_timeout: float = 600.0,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        on_poll: Callable[[AceStepTaskResult, float], None] | None = None,
     ) -> AceStepTaskResult:
+        """Poll until the task finishes.
+
+        ``on_poll`` is handed each unfinished result and the seconds waited so
+        far, so a caller can show progress. A render takes minutes, and a client
+        that prints nothing for that long is indistinguishable from a hung one.
+        """
+
         if poll_interval < 0 or wait_timeout <= 0:
             raise ValueError("poll_interval must be non-negative and wait_timeout must be positive")
-        deadline = clock() + wait_timeout
+        started = clock()
+        deadline = started + wait_timeout
         while True:
             result = self.query(task_id)
             if result.status == 1:
@@ -557,6 +566,8 @@ class AceStepClient:
                 return result
             if result.status == 2:
                 raise AceStepError(f"ACE-Step task {task_id} failed")
+            if on_poll is not None:
+                on_poll(result, clock() - started)
             if clock() >= deadline:
                 raise AceStepError(f"ACE-Step task {task_id} timed out")
             sleep(poll_interval)
@@ -811,6 +822,7 @@ def render_with_ace_step(
     overwrite: bool = False,
     poll_interval: float = 2.0,
     wait_timeout: float = 600.0,
+    on_poll: Callable[[AceStepTaskResult, float], None] | None = None,
 ) -> AceStepRenderManifest:
     project_dir = Path(project_dir)
     options = options or AceStepOptions()
@@ -851,7 +863,12 @@ def render_with_ace_step(
         source_audio=source_audio,
         reference_audio=reference_audio,
     )
-    result = client.wait(task.task_id, poll_interval=poll_interval, wait_timeout=wait_timeout)
+    result = client.wait(
+        task.task_id,
+        poll_interval=poll_interval,
+        wait_timeout=wait_timeout,
+        on_poll=on_poll,
+    )
     if len(result.outputs) > len(expected_audio):
         raise AceStepError("ACE-Step returned more audio files than requested")
     spec = load_project_spec(project_dir)

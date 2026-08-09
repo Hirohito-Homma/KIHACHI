@@ -301,6 +301,67 @@ class AceStepAdapterTests(unittest.TestCase):
             self.assertEqual(payload["repainting_end"], 69.818)
             self.assertIn("repaint bars 25:32", stdout.getvalue())
 
+    def test_waiting_reports_progress_to_the_caller(self) -> None:
+        """A render takes minutes; a client that prints nothing looks hung."""
+
+        task_id = "task-progress"
+        pending = wrapped(
+            [
+                {
+                    "task_id": task_id,
+                    "status": 0,
+                    "result": json.dumps([{"file": "", "status": 0, "stage": "running"}]),
+                }
+            ]
+        )
+        done = wrapped(
+            [
+                {
+                    "task_id": task_id,
+                    "status": 1,
+                    "result": json.dumps(
+                        [{"file": "/v1/audio?path=%2Ftmp%2Fa.wav", "status": 1, "seed_value": "8"}]
+                    ),
+                }
+            ]
+        )
+        client = AceStepClient(
+            AceStepConfig(request_timeout=3), opener=ScriptedOpener([pending, pending, done])
+        )
+        seen: list[tuple[int, float]] = []
+        elapsed = iter([0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+
+        result = client.wait(
+            task_id,
+            poll_interval=0,
+            wait_timeout=60,
+            sleep=lambda _seconds: None,
+            clock=lambda: next(elapsed),
+            on_poll=lambda outcome, waited: seen.append((outcome.status, waited)),
+        )
+
+        self.assertEqual(result.status, 1)
+        # only the unfinished polls are reported, and the wait is cumulative
+        self.assertEqual([status for status, _ in seen], [0, 0])
+        self.assertEqual([waited for _, waited in seen], [0.0, 2.0])
+
+    def test_waiting_without_a_progress_hook_still_works(self) -> None:
+        task_id = "task-quiet"
+        done = wrapped(
+            [
+                {
+                    "task_id": task_id,
+                    "status": 1,
+                    "result": json.dumps(
+                        [{"file": "/v1/audio?path=%2Ftmp%2Fa.wav", "status": 1, "seed_value": "8"}]
+                    ),
+                }
+            ]
+        )
+        client = AceStepClient(AceStepConfig(request_timeout=3), opener=ScriptedOpener([done]))
+
+        self.assertEqual(client.wait(task_id, poll_interval=0, wait_timeout=5).status, 1)
+
     def test_submit_wait_and_download_use_official_async_flow(self) -> None:
         task_id = "task-123"
         success_outputs = [
