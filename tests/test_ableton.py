@@ -43,6 +43,7 @@ class ArrangementPlanTests(unittest.TestCase):
             "set_tempo",
             "create_track",
             "apply_live_instrument_selection",
+            "apply_live_drum_kit",
             "create_midi_clip",
             "copy_session_clip_to_arrangement",
         }
@@ -92,16 +93,59 @@ class ArrangementPlanTests(unittest.TestCase):
             min(i for i, op in enumerate(operations) if op == "create_midi_clip"),
         )
 
-    def test_drums_are_not_given_a_silent_empty_sampler(self) -> None:
-        assignments = [
+    def test_drums_ask_for_a_kit_not_a_silent_empty_sampler(self) -> None:
+        instruments = [
             op["params"]
             for op in self.plan["operations"]
             if op["op"] == "apply_live_instrument_selection"
         ]
+        kits = [
+            op["params"]
+            for op in self.plan["operations"]
+            if op["op"] == "apply_live_drum_kit"
+        ]
 
-        self.assertNotIn("drums", [params["role"] for params in assignments])
-        self.assertTrue(
+        # Drums never travel the device-insertion path: that is what produced a
+        # silent Drum Rack.
+        self.assertNotIn("drums", [params["role"] for params in instruments])
+        self.assertEqual([params["role"] for params in kits], ["drums"])
+        self.assertEqual(kits[0]["track_index"], 0)
+        self.assertEqual(kits[0]["genre"], "edm")
+        self.assertEqual(kits[0]["mood"], "dark")
+        self.assertFalse(
             any("silent empty sampler" in warning for warning in self.plan["warnings"])
+        )
+
+    def test_kihachi_never_names_a_live_preset_or_browser_path(self) -> None:
+        # The boundary this whole operation exists to keep: musical intent only.
+        for op in self.plan["operations"]:
+            if op["op"] != "apply_live_drum_kit":
+                continue
+            self.assertEqual(
+                set(op["params"]),
+                {"track_index", "role", "genre", "mood", "live_edition"},
+            )
+        serialised = json.dumps(self.plan)
+        for leaked in ("Core Kit", ".adg", "query:", "Drum Rack", "Impulse"):
+            self.assertNotIn(leaked, serialised)
+
+    def test_every_split_drum_track_gets_its_own_kit(self) -> None:
+        plan = build_arrangement_plan(self.spec, self.tracks, split_drums=True)
+        kits = [
+            op["params"]["role"]
+            for op in plan["operations"]
+            if op["op"] == "apply_live_drum_kit"
+        ]
+
+        # A split track with no instrument is silent however few pitches it plays.
+        self.assertEqual(kits, ["kick", "snare", "percussion"])
+
+    def test_a_kit_is_requested_before_the_drum_clip_is_created(self) -> None:
+        operations = [op["op"] for op in self.plan["operations"]]
+
+        self.assertLess(
+            operations.index("apply_live_drum_kit"),
+            operations.index("create_midi_clip"),
         )
 
     def test_clip_length_matches_the_song_grid(self) -> None:
@@ -542,7 +586,7 @@ class TwelveTrackLayoutTests(unittest.TestCase):
             ["kick", "snare", "percussion", "bass", "sub", "chords", "synth", "arp", "vocoder"],
         )
 
-    def test_extended_tonal_roles_are_mapped_without_faking_drums_or_vocoder(self) -> None:
+    def test_extended_tonal_roles_are_mapped_without_faking_the_vocoder(self) -> None:
         plan = build_arrangement_plan(self.spec, self.tracks, split_drums=True)
         assignments = [
             op["params"]
@@ -554,7 +598,10 @@ class TwelveTrackLayoutTests(unittest.TestCase):
             [params["role"] for params in assignments],
             ["bass", "bass", "chords", "chords", "pluck"],
         )
-        self.assertTrue(any("silent empty sampler" in item for item in plan["warnings"]))
+        # Drums are no longer a gap in the layout -- they take the kit path --
+        # but the vocoder still is, and inventing an instrument for it would be
+        # the same mistake in a new place.
+        self.assertFalse(any("silent empty sampler" in item for item in plan["warnings"]))
         self.assertTrue(any("carrier/modulator" in item for item in plan["warnings"]))
 
     def test_automation_that_targets_nothing_is_refused_not_ignored(self) -> None:
