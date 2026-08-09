@@ -54,9 +54,30 @@ LIVE_INSTRUMENT_ROLE_BY_PART = {
 }
 """Semantic AbletonGPT roles for parts that a native synth can sound directly.
 
-Drums are deliberately absent: inserting Drum Rack or Impulse without content
-creates a silent sampler. Vocoder is absent because it needs carrier/modulator
-routing, not merely an instrument on one track.
+Drums are absent on purpose and handled by ``LIVE_DRUM_KIT_ROLE_BY_PART``
+instead: inserting Drum Rack or Impulse without content creates a silent
+sampler, so a drum track needs a *kit preset* loaded rather than a device
+inserted. Vocoder is absent with no counterpart because it needs
+carrier/modulator routing, not merely an instrument on one track.
+"""
+
+LIVE_DRUM_KIT_ROLE_BY_PART = {
+    "drums": "drums",
+    "kick": "kick",
+    "snare": "snare",
+    "percussion": "percussion",
+}
+"""Drum parts, and the semantic kit role each one asks AbletonGPT for.
+
+The keys cover both layouts: ``drums`` when the kit stays on one Live track, and
+the three split roles from ``DRUM_ROLES`` when it does not. Every split track
+gets its own kit, because a Live track without an instrument is silent no matter
+how few pitches its clip uses.
+
+What KIHACHI does *not* say is which kit. No preset name, no ``.adg``, no
+browser path and no Live URI appears anywhere in this module -- those are facts
+about an installed Live, and AbletonGPT resolves them by walking the browser at
+apply time.
 """
 
 LIVE_GENRE_KEYWORDS = {
@@ -365,21 +386,42 @@ def build_arrangement_plan(
     warnings: list[str] = []
     instrument_genre = _live_instrument_genre(spec)
     instrument_mood = _live_instrument_mood(spec)
-    skipped_drums = False
     skipped_vocoder = False
     for offset, (name, _label, _notes) in enumerate(layout):
+        track_index = first_track_index + offset
+        kit_role = LIVE_DRUM_KIT_ROLE_BY_PART.get(name)
+        if kit_role is not None:
+            # A drum track asks for a kit, not a device. The op is separate from
+            # instrument selection because the two are not interchangeable:
+            # inserting Drum Rack succeeds and stays silent, which is the failure
+            # this whole path exists to remove.
+            operations.append(
+                {
+                    "op": "apply_live_drum_kit",
+                    "params": {
+                        "track_index": track_index,
+                        "role": kit_role,
+                        "genre": instrument_genre,
+                        "mood": instrument_mood,
+                        "live_edition": "unknown",
+                    },
+                    "why": (
+                        f"AbletonGPT resolves an installed drum kit for the {name} role and "
+                        "loads exactly one; KIHACHI does not name a preset or a browser path"
+                    ),
+                }
+            )
+            continue
         role = LIVE_INSTRUMENT_ROLE_BY_PART.get(name)
         if role is None:
-            if name in {"drums", "kick", "snare", "percussion"}:
-                skipped_drums = True
-            elif name == "vocoder":
+            if name == "vocoder":
                 skipped_vocoder = True
             continue
         operations.append(
             {
                 "op": "apply_live_instrument_selection",
                 "params": {
-                    "track_index": first_track_index + offset,
+                    "track_index": track_index,
                     "role": role,
                     "genre": instrument_genre,
                     "mood": instrument_mood,
@@ -390,11 +432,6 @@ def build_arrangement_plan(
                     "KIHACHI does not hard-code a Live device"
                 ),
             }
-        )
-    if skipped_drums:
-        warnings.append(
-            "drums have no automatic instrument: Drum Rack and Impulse need loaded "
-            "content, so the plan refuses to create a silent empty sampler"
         )
     if skipped_vocoder:
         warnings.append(

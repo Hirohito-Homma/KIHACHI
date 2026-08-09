@@ -1037,6 +1037,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                         f"- instrument: track {params['track_index']} role {params['role']} "
                         f"({params['genre']}, {params['mood']}; AbletonGPT selects the device)"
                     )
+                if operation["op"] == "apply_live_drum_kit":
+                    params = operation["params"]
+                    print(
+                        f"- drum kit: track {params['track_index']} role {params['role']} "
+                        f"({params['genre']}, {params['mood']}; AbletonGPT resolves the kit)"
+                    )
                 if operation["op"] == "set_clip_send_envelope":
                     params = operation["params"]
                     values = [step["value"] for step in params["steps"]]
