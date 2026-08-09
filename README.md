@@ -479,6 +479,20 @@ ACE-Step did not answer within request_timeout=30s; raise it if the server is ru
 以前はこれが「response could not be decoded」と表示され、サーバのJSONを疑う方向へ
 誘導していました。
 
+## Liveの楽器割り当て
+
+`ableton-plan`は、新しく作るBass／Sub／Chords／Synth／Arpトラックへ
+`apply_live_instrument_selection`を出力します。KIHACHIが渡すのはパートの役割と
+SongSpecから導いたgenre・moodだけです。OperatorなどのLive固有デバイス名と、
+インストール状況に応じたフォールバック順はAbletonGPTが管理します。
+
+実行時は既存デバイスを先に読み、候補と一致する楽器が1台だけなら再開として受け入れます。
+別の楽器がある場合は置換せず拒否します。
+
+ドラムは例外です。空のDrum Rack／Impulseを挿しても音は鳴らないため自動追加せず、
+Live Browserで実在確認したキットを別工程でロードする警告を出します。Vocoderも
+carrier／modulatorの配線が必要なので、単体楽器を挿しただけで完成扱いしません。
+
 ## センド（ダブのFXをリターンへ送る）
 
 ```bash

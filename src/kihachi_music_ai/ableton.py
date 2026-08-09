@@ -45,6 +45,59 @@ TRACK_LABELS = {
     "vocoder": "KIHACHI Vocoder",
 }
 
+LIVE_INSTRUMENT_ROLE_BY_PART = {
+    "bass": "bass",
+    "sub": "bass",
+    "chords": "chords",
+    "synth": "chords",
+    "arp": "pluck",
+}
+"""Semantic AbletonGPT roles for parts that a native synth can sound directly.
+
+Drums are deliberately absent: inserting Drum Rack or Impulse without content
+creates a silent sampler. Vocoder is absent because it needs carrier/modulator
+routing, not merely an instrument on one track.
+"""
+
+LIVE_GENRE_KEYWORDS = {
+    "edm": ("edm", "house", "techno", "electro", "dub", "trance", "dance"),
+    "hiphop": ("hip hop", "hip-hop", "hiphop", "trap", "boom bap"),
+    "rnb": ("r&b", "rnb", "soul", "funk"),
+    "jazz": ("jazz",),
+    "rock": ("rock", "punk", "metal"),
+    "lofi": ("lo fi", "lofi", "chillhop"),
+    "pop": ("pop",),
+}
+
+
+def _live_instrument_genre(spec: SongSpec) -> str:
+    """Collapse weighted free-form KIHACHI genres into AbletonGPT's taxonomy."""
+
+    scores = {genre: 0.0 for genre in LIVE_GENRE_KEYWORDS}
+    for item in spec.style.genres:
+        name = item.name.casefold().replace("_", " ").replace("-", " ")
+        matched = False
+        for genre, keywords in LIVE_GENRE_KEYWORDS.items():
+            if any(keyword in name for keyword in keywords):
+                scores[genre] += item.weight
+                matched = True
+                break
+        if not matched:
+            scores["pop"] += item.weight
+    return max(scores, key=lambda genre: scores[genre])
+
+
+def _live_instrument_mood(spec: SongSpec) -> str:
+    """Map the two SongSpec timbre axes without inventing a new mood model."""
+
+    if spec.style.darkness >= 0.6:
+        return "dark"
+    if spec.style.psychedelic >= 0.65:
+        return "tense"
+    if spec.style.darkness <= 0.25:
+        return "bright"
+    return "chill"
+
 
 # The Live layout the architecture diagram asks for, in its order. This is a
 # separate concern from `spec.parts()`: the SongSpec says what the song is made
@@ -310,6 +363,44 @@ def build_arrangement_plan(
         )
 
     warnings: list[str] = []
+    instrument_genre = _live_instrument_genre(spec)
+    instrument_mood = _live_instrument_mood(spec)
+    skipped_drums = False
+    skipped_vocoder = False
+    for offset, (name, _label, _notes) in enumerate(layout):
+        role = LIVE_INSTRUMENT_ROLE_BY_PART.get(name)
+        if role is None:
+            if name in {"drums", "kick", "snare", "percussion"}:
+                skipped_drums = True
+            elif name == "vocoder":
+                skipped_vocoder = True
+            continue
+        operations.append(
+            {
+                "op": "apply_live_instrument_selection",
+                "params": {
+                    "track_index": first_track_index + offset,
+                    "role": role,
+                    "genre": instrument_genre,
+                    "mood": instrument_mood,
+                    "live_edition": "unknown",
+                },
+                "why": (
+                    f"AbletonGPT chooses an installed native instrument for the {name} role; "
+                    "KIHACHI does not hard-code a Live device"
+                ),
+            }
+        )
+    if skipped_drums:
+        warnings.append(
+            "drums have no automatic instrument: Drum Rack and Impulse need loaded "
+            "content, so the plan refuses to create a silent empty sampler"
+        )
+    if skipped_vocoder:
+        warnings.append(
+            "vocoder has no automatic instrument: it needs reviewed carrier/modulator "
+            "routing rather than one additive native instrument"
+        )
     clip_note_counts: dict[str, int] = {}
     matched: set[str] = set()
     available_parts = {name for name, _label, _notes in layout}

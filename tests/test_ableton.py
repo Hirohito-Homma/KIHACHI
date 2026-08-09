@@ -42,6 +42,7 @@ class ArrangementPlanTests(unittest.TestCase):
         allowed = {
             "set_tempo",
             "create_track",
+            "apply_live_instrument_selection",
             "create_midi_clip",
             "copy_session_clip_to_arrangement",
         }
@@ -71,6 +72,37 @@ class ArrangementPlanTests(unittest.TestCase):
 
         self.assertLess(max(i for i, o in enumerate(ops) if o == "create_track"),
                         min(i for i, o in enumerate(ops) if o == "create_midi_clip"))
+
+    def test_tonal_tracks_get_semantic_instrument_selection_before_clips(self) -> None:
+        assignments = [
+            op
+            for op in self.plan["operations"]
+            if op["op"] == "apply_live_instrument_selection"
+        ]
+
+        self.assertEqual(
+            [(op["params"]["track_index"], op["params"]["role"]) for op in assignments],
+            [(1, "bass"), (2, "chords")],
+        )
+        self.assertTrue(all(op["params"]["genre"] == "edm" for op in assignments))
+        self.assertTrue(all(op["params"]["mood"] == "dark" for op in assignments))
+        operations = [op["op"] for op in self.plan["operations"]]
+        self.assertLess(
+            max(i for i, op in enumerate(operations) if op == "apply_live_instrument_selection"),
+            min(i for i, op in enumerate(operations) if op == "create_midi_clip"),
+        )
+
+    def test_drums_are_not_given_a_silent_empty_sampler(self) -> None:
+        assignments = [
+            op["params"]
+            for op in self.plan["operations"]
+            if op["op"] == "apply_live_instrument_selection"
+        ]
+
+        self.assertNotIn("drums", [params["role"] for params in assignments])
+        self.assertTrue(
+            any("silent empty sampler" in warning for warning in self.plan["warnings"])
+        )
 
     def test_clip_length_matches_the_song_grid(self) -> None:
         expected = self.spec.song.total_bars * beats_per_bar(self.spec)
@@ -198,7 +230,11 @@ class ArrangementPlanTests(unittest.TestCase):
         indices = [item["live_track_index"] for item in plan["tracks"]]
         self.assertEqual(indices, list(range(4, 4 + len(self.spec.parts()))))
         for op in plan["operations"]:
-            if op["op"] in {"create_midi_clip", "copy_session_clip_to_arrangement"}:
+            if op["op"] in {
+                "apply_live_instrument_selection",
+                "create_midi_clip",
+                "copy_session_clip_to_arrangement",
+            }:
                 self.assertGreaterEqual(op["params"]["track_index"], 4)
 
     def test_a_song_too_long_for_a_live_clip_is_refused(self) -> None:
@@ -441,6 +477,8 @@ class ProjectPlanTests(unittest.TestCase):
             printed = out.getvalue()
             # the drumless breakdown is the whole reason for the MIDI path
             self.assertIn("resting: drums", printed)
+            self.assertIn("instrument: track 1 role bass (edm, dark", printed)
+            self.assertIn("instrument: track 2 role chords (edm, dark", printed)
             self.assertIn("automation: track 2 device 1 parameter 52", printed)
             self.assertIn("planned_not_applied", printed)
             self.assertTrue((project / "arrangement_plan.json").is_file())
@@ -503,6 +541,21 @@ class TwelveTrackLayoutTests(unittest.TestCase):
             [t["part"] for t in plan["tracks"]],
             ["kick", "snare", "percussion", "bass", "sub", "chords", "synth", "arp", "vocoder"],
         )
+
+    def test_extended_tonal_roles_are_mapped_without_faking_drums_or_vocoder(self) -> None:
+        plan = build_arrangement_plan(self.spec, self.tracks, split_drums=True)
+        assignments = [
+            op["params"]
+            for op in plan["operations"]
+            if op["op"] == "apply_live_instrument_selection"
+        ]
+
+        self.assertEqual(
+            [params["role"] for params in assignments],
+            ["bass", "bass", "chords", "chords", "pluck"],
+        )
+        self.assertTrue(any("silent empty sampler" in item for item in plan["warnings"]))
+        self.assertTrue(any("carrier/modulator" in item for item in plan["warnings"]))
 
     def test_automation_that_targets_nothing_is_refused_not_ignored(self) -> None:
         """Silently applying a whole-kit binding to the snare is worse than failing."""

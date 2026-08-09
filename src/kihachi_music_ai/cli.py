@@ -1031,6 +1031,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"energy {section['energy']:.2f}  resting: {resting}"
                 )
             for operation in plan["operations"]:
+                if operation["op"] == "apply_live_instrument_selection":
+                    params = operation["params"]
+                    print(
+                        f"- instrument: track {params['track_index']} role {params['role']} "
+                        f"({params['genre']}, {params['mood']}; AbletonGPT selects the device)"
+                    )
                 if operation["op"] == "set_clip_send_envelope":
                     params = operation["params"]
                     values = [step["value"] for step in params["steps"]]
