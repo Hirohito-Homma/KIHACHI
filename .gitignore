@@ -16,3 +16,7 @@ __pycache__/
 *.py[cod]
 .venv/
 .DS_Store
+
+# generate.py writes working projects here when the external drive is not
+# mounted. Curated projects that are worth keeping move to example_output/.
+output/
