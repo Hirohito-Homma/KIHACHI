@@ -779,3 +779,56 @@ class SendTests(unittest.TestCase):
         for bad in ("chords", "chords:x", "chords:-1", "guitar:0", "chords:0:0.2"):
             with self.assertRaises(ValueError, msg=bad):
                 parse_send_binding(bad)
+
+
+class SafetyDeclarationTests(unittest.TestCase):
+    """The safety block must describe what the plan does, not what it intended."""
+
+    def setUp(self) -> None:
+        self.spec = build_spec()
+        self.tracks = compose_tracks(self.spec)
+
+    def _plan(self, **kwargs):
+        return build_arrangement_plan(self.spec, self.tracks, **kwargs)
+
+    def _assert_count_matches(self, plan) -> None:
+        actual = sum(1 for op in plan["operations"] if op["op"] == "create_track")
+        self.assertEqual(plan["safety"]["creates_tracks"], actual)
+
+    def test_creates_tracks_matches_the_operations(self) -> None:
+        self._assert_count_matches(self._plan())
+
+    def test_creates_tracks_counts_every_split_drum_track(self) -> None:
+        # One composed part becomes three Live tracks; the count used to say one.
+        plan = self._plan(split_drums=True)
+
+        self._assert_count_matches(plan)
+        self.assertEqual(
+            plan["safety"]["creates_tracks"], self._plan()["safety"]["creates_tracks"] + 2
+        )
+
+    def test_creates_tracks_counts_an_empty_audio_track(self) -> None:
+        plan = self._plan(audio_tracks=[{"name": "Reference", "role": "reference"}])
+
+        self._assert_count_matches(plan)
+
+    def test_creates_tracks_matches_with_both_at_once(self) -> None:
+        self._assert_count_matches(
+            self._plan(
+                split_drums=True,
+                audio_tracks=[{"name": "Reference", "role": "reference"}],
+            )
+        )
+
+    def test_the_track_offset_is_declared_so_the_no_modify_claim_is_checkable(self) -> None:
+        plan = self._plan(first_track_index=7)
+
+        self.assertEqual(plan["safety"]["first_track_index"], 7)
+        self.assertFalse(plan["safety"]["modifies_existing_tracks"])
+        # and it must agree with where the plan actually writes
+        targeted = [
+            op["params"]["track_index"]
+            for op in plan["operations"]
+            if "track_index" in op.get("params", {})
+        ]
+        self.assertEqual(min(targeted), 7)
