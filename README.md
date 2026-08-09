@@ -464,6 +464,21 @@ SongSpecは`swing`と`humanize`を持ちますが、それが実現している�
 ハーモニーがミックスから検出できずMIDIでは厳密だったのと同じ構図です。音声側の測定は
 `reliable: false`と理由を添えて残してあり、判定には使いません。
 
+## ローカルサーバ（CPU推論）での注意
+
+ACE-StepをCPUで動かす場合、`--request-timeout` の既定は180秒です。30秒ではありません。
+
+CPU推論はサーバのワーカーを生成中ずっと占有するため、状態確認のポーリングですら
+その後ろで待たされます。30秒はGPU前提の値で、ローカルのIntel Macでは全ポーリングが
+タイムアウトしました。タイムアウト時は設定名を含むメッセージが出ます。
+
+```
+ACE-Step did not answer within request_timeout=30s; raise it if the server is running on CPU
+```
+
+以前はこれが「response could not be decoded」と表示され、サーバのJSONを疑う方向へ
+誘導していました。
+
 ## Revision Loop（測る→直す→また測る、を回す）
 
 `analyze`で測り、`review`で直す場所を決め、`stage-repaint`で新しいプロジェクトを作り、

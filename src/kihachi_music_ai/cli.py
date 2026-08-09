@@ -9,6 +9,7 @@ from typing import Sequence
 
 from .analyzer import analyze_project
 from .adapters.ace_step import (
+    DEFAULT_REQUEST_TIMEOUT,
     AceStepClient,
     AceStepConfig,
     AceStepError,
@@ -368,7 +369,15 @@ def _add_ace_connection_arguments(parser: argparse.ArgumentParser) -> None:
         default="ACESTEP_API_KEY",
         help="environment variable containing the API key",
     )
-    parser.add_argument("--request-timeout", type=float, default=30.0, help="HTTP timeout in seconds")
+    parser.add_argument(
+        "--request-timeout",
+        type=float,
+        default=DEFAULT_REQUEST_TIMEOUT,
+        help=(
+            "seconds for a single HTTP call. A CPU-inference server blocks its "
+            "worker during generation, so polls wait behind it"
+        ),
+    )
 
 
 def _add_ace_generation_arguments(parser: argparse.ArgumentParser) -> None:

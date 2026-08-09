@@ -301,6 +301,30 @@ class AceStepAdapterTests(unittest.TestCase):
             self.assertEqual(payload["repainting_end"], 69.818)
             self.assertIn("repaint bars 25:32", stdout.getvalue())
 
+    def test_a_timeout_says_it_timed_out_and_names_the_setting(self) -> None:
+        """It used to surface as "response could not be decoded", which sends
+        you looking at the server's JSON instead of at the timeout."""
+
+        class Slow:
+            def __call__(self, request, timeout=None):
+                raise TimeoutError("timed out")
+
+        client = AceStepClient(AceStepConfig(request_timeout=7.0), opener=Slow())
+
+        with self.assertRaises(AceStepError) as caught:
+            client.get_lora_status()
+
+        message = str(caught.exception)
+        self.assertIn("request_timeout=7", message)
+        self.assertIn("CPU", message)
+        self.assertNotIn("could not be decoded", message)
+
+    def test_the_default_timeout_survives_a_cpu_inference_poll(self) -> None:
+        """A CPU server blocks its worker during generation; 30 s failed every
+        poll against the local machine."""
+
+        self.assertGreaterEqual(AceStepConfig().request_timeout, 120.0)
+
     def test_a_server_error_carries_the_server_s_own_message(self) -> None:
         """A dropped model read as a bare "HTTP error 500" for far too long."""
 

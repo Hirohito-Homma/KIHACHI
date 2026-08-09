@@ -265,11 +265,20 @@ class AceStepGenerationRequest:
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=2) + "\n"
 
 
+DEFAULT_REQUEST_TIMEOUT = 180.0
+
+
 @dataclass(frozen=True)
 class AceStepConfig:
     base_url: str = "http://127.0.0.1:8001"
     api_key: str | None = None
-    request_timeout: float = 30.0
+    request_timeout: float = DEFAULT_REQUEST_TIMEOUT
+    """Seconds allowed for a single HTTP call, not for a whole render.
+
+    Not 30: a server doing CPU inference blocks its worker for the length of a
+    generation step, so even a status poll waits behind it. Thirty seconds is a
+    GPU-era default and it failed every poll against the local Intel Mac.
+    """
 
     def __post_init__(self) -> None:
         parsed = urllib.parse.urlsplit(self.base_url)
@@ -655,6 +664,14 @@ class AceStepClient:
             ) from exc
         except urllib.error.URLError as exc:
             raise AceStepError(f"ACE-Step connection failed: {exc.reason}") from exc
+        except TimeoutError as exc:
+            # Otherwise this lands in the decode branch below and reads as a
+            # malformed response, which sends you looking in the wrong place.
+            raise AceStepError(
+                f"ACE-Step did not answer within request_timeout="
+                f"{self.config.request_timeout:g}s; raise it if the server is "
+                f"running on CPU"
+            ) from exc
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise AceStepError(f"ACE-Step response could not be decoded: {exc}") from exc
         if not isinstance(decoded, Mapping):
