@@ -75,7 +75,7 @@ class GrooveSpec:
 CORE_TRACKS = ("bass", "drums", "chords")
 """The parts every song has. A SongSpec that names no instruments writes these."""
 
-EXTRA_TRACKS = ("synth", "arp", "vocoder")
+EXTRA_TRACKS = ("sub", "synth", "arp", "vocoder")
 """Parts written only when the brief asks for them.
 
 They are opt-in rather than default-on because ``SectionSpec.plays`` treats an

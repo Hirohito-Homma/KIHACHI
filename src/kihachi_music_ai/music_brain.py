@@ -122,6 +122,10 @@ class MusicBrain:
         """
 
         extra: list[str] = []
+        if any(word in lower for word in ("sub bass", "sub-bass", "subbass", "808")) or any(
+            word in prompt for word in ("サブベース", "サブ・ベース")
+        ):
+            extra.append("sub")
         if any(word in lower for word in ("synth", "stab", "lead")) or any(
             word in prompt for word in ("シンセ", "スタブ", "リード")
         ):

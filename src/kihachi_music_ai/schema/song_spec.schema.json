@@ -212,6 +212,7 @@
             "items": {
               "enum": [
                 "bass",
+                "sub",
                 "drums",
                 "chords",
                 "synth",
@@ -346,6 +347,7 @@
       "items": {
         "enum": [
           "bass",
+          "sub",
           "drums",
           "chords",
           "synth",

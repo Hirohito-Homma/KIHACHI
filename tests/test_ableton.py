@@ -10,6 +10,7 @@ from pathlib import Path
 
 from kihachi_music_ai.ableton import (
     MAX_NOTES_PER_CLIP,
+    split_drum_notes,
     build_arrangement_plan,
     beats_per_bar,
     parse_automation_binding,
@@ -394,3 +395,126 @@ class ProjectPlanTests(unittest.TestCase):
 
             self.assertEqual(status, 2)
             self.assertFalse((project / "arrangement_plan.json").exists())
+
+
+class TwelveTrackLayoutTests(unittest.TestCase):
+    """The Live layout from the architecture diagram."""
+
+    def setUp(self) -> None:
+        self.spec = MusicBrain(seed=8).analyze(
+            "Mutation Funk、DUB。110 BPM、D#m。5分程度。"
+            "スラップベース、サブベース、シンセスタブ、アルペジオ、ボコーダー。"
+        )
+        self.tracks = compose_tracks(self.spec)
+
+    def test_the_drum_part_becomes_three_tracks_without_losing_a_note(self) -> None:
+        """The .mid stays one channel-10 track; only the Live layout splits."""
+
+        plan = build_arrangement_plan(self.spec, self.tracks, split_drums=True)
+
+        drum_rows = [t for t in plan["tracks"] if t["part"] in {"kick", "snare", "percussion"}]
+        self.assertEqual(
+            [row["part"] for row in drum_rows], ["kick", "snare", "percussion"]
+        )
+        self.assertEqual(
+            [row["name"] for row in drum_rows],
+            ["KIHACHI Kick", "KIHACHI Drums", "KIHACHI Percussion"],
+        )
+        self.assertEqual(
+            sum(row["notes"] for row in drum_rows), len(self.tracks["drums"])
+        )
+
+    def test_the_split_sorts_by_role_not_by_accident(self) -> None:
+        rows = split_drum_notes(self.tracks["drums"])
+        by_role = {role: notes for role, _label, notes in rows}
+
+        self.assertTrue(all(n.pitch in (35, 36) for n in by_role["kick"]))
+        self.assertTrue(all(n.pitch in (37, 38, 39, 40) for n in by_role["snare"]))
+        self.assertTrue(all(n.pitch not in (35, 36, 37, 38, 39, 40) for n in by_role["percussion"]))
+
+    def test_without_the_flag_the_kit_stays_one_track(self) -> None:
+        plan = build_arrangement_plan(self.spec, self.tracks)
+
+        self.assertEqual([t["part"] for t in plan["tracks"]].count("drums"), 1)
+        self.assertNotIn("kick", [t["part"] for t in plan["tracks"]])
+
+    def test_tracks_come_out_in_the_order_the_layout_asks_for(self) -> None:
+        plan = build_arrangement_plan(self.spec, self.tracks, split_drums=True)
+
+        self.assertEqual(
+            [t["part"] for t in plan["tracks"]],
+            ["kick", "snare", "percussion", "bass", "sub", "chords", "synth", "arp", "vocoder"],
+        )
+
+    def test_automation_that_targets_nothing_is_refused_not_ignored(self) -> None:
+        """Silently applying a whole-kit binding to the snare is worse than failing."""
+
+        binding = {**ECHO_DRY_WET, "part": "drums"}
+        with self.assertRaises(ValueError) as caught:
+            build_arrangement_plan(
+                self.spec, self.tracks, split_drums=True, automation=[binding]
+            )
+
+        message = str(caught.exception)
+        self.assertIn("drums", message)
+        self.assertIn("kick", message)
+
+    def test_the_same_binding_is_fine_when_the_kit_is_one_track(self) -> None:
+        binding = {**ECHO_DRY_WET, "part": "drums"}
+
+        plan = build_arrangement_plan(self.spec, self.tracks, automation=[binding])
+
+        self.assertIn(
+            "set_clip_parameter_envelope", [op["op"] for op in plan["operations"]]
+        )
+
+    def test_a_typo_in_a_binding_is_caught(self) -> None:
+        with self.assertRaises(ValueError):
+            build_arrangement_plan(
+                self.spec, self.tracks, automation=[{**ECHO_DRY_WET, "part": "chord"}]
+            )
+
+
+class AudioTrackTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.spec = MusicBrain(seed=8).analyze(LONG_PROMPT)
+        self.tracks = compose_tracks(self.spec)
+
+    def test_audio_tracks_land_after_every_midi_track(self) -> None:
+        """Inserting them earlier would shift the indices the clips were written for."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            take = Path(temp) / "take.wav"
+            take.write_bytes(b"RIFF____WAVEfmt ")
+
+            plan = build_arrangement_plan(
+                self.spec,
+                self.tracks,
+                audio_tracks=[{"role": "reference", "name": "ACE-Step Ref", "file": take}],
+            )
+
+            rows = plan["tracks"]
+            self.assertEqual(rows[-1]["part"], "reference")
+            self.assertEqual(rows[-1]["live_track_index"], len(rows) - 1)
+            self.assertTrue(all("notes" in row for row in rows[:-1]))
+
+    def test_a_reference_import_names_a_file_that_exists(self) -> None:
+        with self.assertRaises(FileNotFoundError):
+            build_arrangement_plan(
+                self.spec,
+                self.tracks,
+                audio_tracks=[{"name": "ACE-Step Ref", "file": "/no/such/take.wav"}],
+            )
+
+    def test_an_fx_track_is_created_empty(self) -> None:
+        plan = build_arrangement_plan(
+            self.spec, self.tracks, audio_tracks=[{"role": "fx", "name": "KIHACHI FX"}]
+        )
+
+        created = [
+            op for op in plan["operations"]
+            if op["op"] == "create_track" and op["params"]["track_type"] == "audio"
+        ]
+        self.assertEqual(len(created), 1)
+        self.assertEqual(created[0]["params"]["name"], "KIHACHI FX")
+        self.assertNotIn("import_vocal_take", [op["op"] for op in plan["operations"]])

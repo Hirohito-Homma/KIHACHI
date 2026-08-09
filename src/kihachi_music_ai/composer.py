@@ -26,6 +26,7 @@ SYNTH_STEPS = (1, 4)
 
 # Registers, in octaves. Each part gets its own so a six-part arrangement does
 # not pile every line into the same two octaves and turn to mud.
+SUB_OCTAVE = 1
 BASS_OCTAVE = 2
 CHORD_OCTAVE = 3
 SYNTH_OCTAVE = 4
@@ -429,8 +430,46 @@ def compose_vocoder(spec: SongSpec) -> tuple[MidiNote, ...]:
     return tuple(notes)
 
 
+def compose_sub(spec: SongSpec) -> tuple[MidiNote, ...]:
+    """The root, an octave under the bass, held.
+
+    A sub is not a second bass line. The slap bass is busy by design -- ghost
+    notes, octave jumps, displaced sixteenths -- and doubling that an octave down
+    puts two moving parts in the range where the ear reads pitch worst and the
+    speaker has least headroom. So this part states the root of the chord and
+    holds it, changing only when the harmony does.
+    """
+
+    notes: list[MidiNote] = []
+    progression = spec.harmony.progression
+    rhythm_bars = spec.harmony.harmonic_rhythm_bars
+    for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
+        if not section.plays("sub"):
+            continue
+        rng = _section_rng(spec, "sub", index)
+        bar = start_bar
+        while bar < end_bar:
+            chord = progression[(bar // rhythm_bars) % len(progression)]
+            # Hold until the harmony moves or the section ends, whichever is first.
+            span_end = min(end_bar, ((bar // rhythm_bars) + 1) * rhythm_bars)
+            span_end = max(span_end, bar + 1)
+            start = _groove(bar * 4.0, spec, rng)
+            length = (span_end - bar) * 4.0 - (start - bar * 4.0) - MONOPHONIC_GAP_BEATS
+            notes.append(
+                MidiNote(
+                    max(0, min(127, midi_pitch(chord_root(chord), SUB_OCTAVE))),
+                    start,
+                    length,
+                    _velocity_for(96, section),
+                )
+            )
+            bar = span_end
+    return tuple(_monophonic(notes))
+
+
 COMPOSERS = {
     "bass": compose_bass,
+    "sub": compose_sub,
     "drums": compose_drums,
     "chords": compose_chords,
     "synth": compose_synth,

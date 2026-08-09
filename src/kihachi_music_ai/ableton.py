@@ -37,12 +37,52 @@ MAX_NOTES_PER_CLIP = 4096
 
 TRACK_LABELS = {
     "bass": "KIHACHI Bass",
+    "sub": "KIHACHI Sub Bass",
     "drums": "KIHACHI Drums",
     "chords": "KIHACHI Chords",
     "synth": "KIHACHI Synth",
     "arp": "KIHACHI Arp",
     "vocoder": "KIHACHI Vocoder",
 }
+
+
+# The Live layout the architecture diagram asks for, in its order. This is a
+# separate concern from `spec.parts()`: the SongSpec says what the song is made
+# of, this says how it is laid out on a timeline for a person to work with.
+LAYOUT_ORDER = ("drums", "bass", "sub", "chords", "synth", "arp", "vocoder")
+
+DRUM_ROLES = (
+    ("kick", "KIHACHI Kick", (35, 36)),
+    # The role is "snare", not "drums", although the Live track is labelled
+    # Drums as the layout asks. Reusing "drums" would collide with the SongSpec
+    # part of that name: an automation binding written for the whole kit would
+    # have matched this one track and silently automated the snare alone.
+    ("snare", "KIHACHI Drums", (37, 38, 39, 40)),
+    ("percussion", "KIHACHI Percussion", ()),  # everything else: hats, cymbals, toms
+)
+"""How one GM drum part becomes three Live tracks.
+
+The MIDI file stays a single channel-10 track, because that is what a drum .mid
+is; splitting it on disk would break the convention every other tool reads it
+by. Which tracks Live gets is a layout question, and it is answered here.
+"""
+
+
+def split_drum_notes(
+    notes: Sequence[MidiNote],
+) -> list[tuple[str, str, tuple[MidiNote, ...]]]:
+    """One entry per drum role that actually has notes."""
+
+    named = {pitch for _role, _label, pitches in DRUM_ROLES for pitch in pitches}
+    grouped: list[tuple[str, str, tuple[MidiNote, ...]]] = []
+    for role, label, pitches in DRUM_ROLES:
+        if pitches:
+            selected = tuple(note for note in notes if note.pitch in pitches)
+        else:
+            selected = tuple(note for note in notes if note.pitch not in named)
+        if selected:
+            grouped.append((role, label, selected))
+    return grouped
 
 
 @dataclass(frozen=True)
@@ -59,6 +99,8 @@ def plan_project_arrangement(
     first_track_index: int = 0,
     session_slot: int = 0,
     automation: Sequence[Mapping[str, Any]] = (),
+    split_drums: bool = False,
+    audio_tracks: Sequence[Mapping[str, Any]] = (),
     overwrite: bool = False,
 ) -> ArrangementPlanManifest:
     """Read a project's SongSpec and written MIDI, write ``arrangement_plan.json``.
@@ -92,6 +134,8 @@ def plan_project_arrangement(
         first_track_index=first_track_index,
         session_slot=session_slot,
         automation=automation,
+        split_drums=split_drums,
+        audio_tracks=audio_tracks,
     )
     destination = project_dir / "arrangement_plan.json"
     if destination.exists() and not overwrite:
@@ -117,8 +161,9 @@ def parse_automation_binding(text: str) -> dict[str, Any]:
             "part:field:device_index:parameter_index[:low:high]"
         )
     part, field = parts[0], parts[1]
-    if part not in TRACK_NAMES:
-        raise ValueError(f"unknown part {part!r}; expected one of {', '.join(TRACK_NAMES)}")
+    allowed = TRACK_NAMES + tuple(role for role, _label, _pitches in DRUM_ROLES)
+    if part not in allowed:
+        raise ValueError(f"unknown part {part!r}; expected one of {', '.join(sorted(set(allowed)))}")
     try:
         device_index, parameter_index = int(parts[2]), int(parts[3])
     except ValueError:
@@ -151,6 +196,8 @@ def build_arrangement_plan(
     first_track_index: int = 0,
     session_slot: int = 0,
     automation: Sequence[Mapping[str, Any]] = (),
+    split_drums: bool = False,
+    audio_tracks: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Operations that lay this song out in Live, plus the structure they encode.
 
@@ -180,7 +227,17 @@ def build_arrangement_plan(
             f"song is {song_beats:g} beats; Live clips are capped at {MAX_CLIP_BEATS}"
         )
 
-    parts = [name for name in spec.parts() if name in tracks]
+    ordered = [name for name in LAYOUT_ORDER if name in spec.parts()]
+    ordered += [name for name in spec.parts() if name not in LAYOUT_ORDER]
+    parts = [name for name in ordered if name in tracks]
+    # Each entry becomes one Live track: (part, label, notes). Splitting drums
+    # turns one composed part into three of them.
+    layout: list[tuple[str, str, Sequence[MidiNote]]] = []
+    for name in parts:
+        if name == "drums" and split_drums:
+            layout.extend(split_drum_notes(tracks[name]))
+        else:
+            layout.append((name, TRACK_LABELS.get(name, name), tracks[name]))
     operations: list[dict[str, Any]] = [
         {
             "op": "set_tempo",
@@ -188,23 +245,20 @@ def build_arrangement_plan(
             "why": f"the whole plan is written against {spec.song.bpm:g} BPM",
         }
     ]
-    for offset, name in enumerate(parts):
+    for name, label, _notes in layout:
         operations.append(
             {
                 "op": "create_track",
-                "params": {
-                    "name": TRACK_LABELS.get(name, name),
-                    "track_type": "midi",
-                    "index": -1,
-                },
-                "why": f"one Live track per composed part ({name})",
+                "params": {"name": label, "track_type": "midi", "index": -1},
+                "why": f"one Live track per part ({name})",
             }
         )
 
     warnings: list[str] = []
-    for offset, name in enumerate(parts):
+    matched: set[str] = set()
+    for offset, (name, label, part_notes) in enumerate(layout):
         track_index = first_track_index + offset
-        notes = _clip_notes(tracks[name], song_beats)
+        notes = _clip_notes(part_notes, song_beats)
         if len(notes) > MAX_NOTES_PER_CLIP:
             warnings.append(
                 f"{name} has {len(notes)} notes; Live accepts "
@@ -216,7 +270,7 @@ def build_arrangement_plan(
                 "params": {
                     "track_index": track_index,
                     "clip_index": session_slot,
-                    "name": f"{TRACK_LABELS.get(name, name)} (full)",
+                    "name": f"{label} (full)",
                     "length_beats": song_beats,
                     "notes": notes,
                 },
@@ -229,6 +283,7 @@ def build_arrangement_plan(
         for binding in automation:
             if binding.get("part") != name:
                 continue
+            matched.add(str(binding.get("part")))
             steps = _envelope_steps(spec, binding, bar_beats)
             operations.append(
                 {
@@ -253,10 +308,67 @@ def build_arrangement_plan(
                     "track_index": track_index,
                     "clip_index": session_slot,
                     "destination_time_beats": 0.0,
-                    "name": TRACK_LABELS.get(name, name),
+                    "name": label,
                 },
                 "why": "place the part on the Arrangement timeline at bar 1",
             }
+        )
+
+    # Audio tracks come last, after every MIDI track exists, so their indices do
+    # not shift the ones the clips were written against. These are references and
+    # imports rather than composed parts: the rendered ACE-Step take to write
+    # against, and a vocal take if one has been recorded.
+    audio_rows: list[dict[str, Any]] = []
+    for offset, entry in enumerate(audio_tracks):
+        label = str(entry["name"])
+        source = entry.get("file")
+        index = first_track_index + len(layout) + offset
+        audio_rows.append(
+            {
+                "part": entry.get("role", "audio"),
+                "live_track_index": index,
+                "name": label,
+                "file": str(source) if source else None,
+            }
+        )
+        if source is None:
+            operations.append(
+                {
+                    "op": "create_track",
+                    "params": {"name": label, "track_type": "audio", "index": -1},
+                    "why": entry.get("why", "an empty audio track to work on"),
+                }
+            )
+            continue
+        path = Path(source)
+        if not path.is_file():
+            raise FileNotFoundError(f"audio track source not found: {path}")
+        # import_vocal_take creates the audio track itself and imports the clip.
+        # The name is about where it came from, not what it accepts.
+        operations.append(
+            {
+                "op": "import_vocal_take",
+                "params": {
+                    "file_path": str(path.resolve()),
+                    "track_name": label,
+                    "clip_name": f"{label} (take)",
+                    "clip_index": session_slot,
+                },
+                "why": entry.get("why", "bring the rendered audio in alongside the MIDI"),
+            }
+        )
+
+    # A binding that matched nothing is a silent no-op in the Live set, and the
+    # likeliest cause is the drum split: "drums" names the whole kit in the
+    # SongSpec but only the snare track once the kit is spread over three.
+    unmatched = sorted({str(b.get("part")) for b in automation} - matched)
+    if unmatched:
+        available = ", ".join(name for name, _label, _notes in layout)
+        hint = ""
+        if split_drums and "drums" in unmatched:
+            hint = " (the kit is split here; target kick, snare or percussion)"
+        raise ValueError(
+            f"automation targets no track: {unmatched}; this plan has {available}{hint}"
         )
 
     return {
@@ -274,14 +386,16 @@ def build_arrangement_plan(
             {
                 "part": name,
                 "live_track_index": first_track_index + offset,
-                "name": TRACK_LABELS.get(name, name),
-                "notes": len(tracks[name]),
+                "name": label,
+                "notes": len(part_notes),
             }
-            for offset, name in enumerate(parts)
-        ],
+            for offset, (name, label, part_notes) in enumerate(layout)
+        ]
+        + audio_rows,
         "structure": _structure(spec, bar_beats),
         "operations": operations,
-        "clip_strategy": "one full-length clip per part",
+        "clip_strategy": "one full-length clip per Live track",
+        "drums_split": split_drums,
         "clip_strategy_reason": (
             "create_midi_clip needs an empty Session slot and a default set has "
             "eight per track; this arrangement has nine sections"

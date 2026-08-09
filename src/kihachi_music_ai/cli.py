@@ -43,6 +43,35 @@ from .reviewer import review_project
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS
 
 
+def _audio_tracks(args: argparse.Namespace) -> list[dict[str, object]]:
+    """The audio rows of the layout: a reference take, a vocal, an FX track."""
+
+    rows: list[dict[str, object]] = []
+    if args.vocal_audio is not None:
+        rows.append({"role": "vocal", "name": "KIHACHI Vocal", "file": args.vocal_audio})
+    if args.fx_track:
+        rows.append(
+            {
+                "role": "fx",
+                "name": "KIHACHI FX",
+                "why": "somewhere to put returns and prints; devices are added in Live",
+            }
+        )
+    if args.reference_audio is not None:
+        path = args.reference_audio
+        if not path.is_absolute():
+            path = args.project / path
+        rows.append(
+            {
+                "role": "reference",
+                "name": "ACE-Step Ref",
+                "file": path,
+                "why": "the rendered take, to write and mix against",
+            }
+        )
+    return rows
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="kihachi", description="KIHACHI Music AI v0.1")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -158,6 +187,31 @@ def build_parser() -> argparse.ArgumentParser:
             "chords:fx_amount:1:52:0.18:0.52 (repeatable). The indices come from "
             "get_track_devices; low/high keep a musical 0..1 off the parameter's extremes"
         ),
+    )
+    ableton_plan.add_argument(
+        "--split-drums",
+        action="store_true",
+        help=(
+            "lay the one composed drum part out as three Live tracks -- kick, "
+            "drums and percussion -- as the 12-track layout asks for. The MIDI "
+            "file stays one channel-10 track either way"
+        ),
+    )
+    ableton_plan.add_argument(
+        "--reference-audio",
+        type=Path,
+        nargs="?",
+        const=Path("audio/ace-step-01.wav"),
+        help=(
+            "bring a rendered take in as an audio track to write against; with no "
+            "value, the project's own audio/ace-step-01.wav"
+        ),
+    )
+    ableton_plan.add_argument("--vocal-audio", type=Path, help="import a recorded vocal take")
+    ableton_plan.add_argument(
+        "--fx-track",
+        action="store_true",
+        help="add an empty audio track for FX; the devices on it are AbletonGPT's job",
     )
     ableton_plan.add_argument("--overwrite", action="store_true", help="replace arrangement_plan.json")
 
@@ -736,6 +790,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 first_track_index=args.first_track_index,
                 session_slot=args.session_slot,
                 automation=[parse_automation_binding(text) for text in args.automate],
+                split_drums=args.split_drums,
+                audio_tracks=_audio_tracks(args),
                 overwrite=args.overwrite,
             )
             plan = manifest.plan
@@ -746,10 +802,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 f"at {song['bpm']:g} BPM, {song['key']}"
             )
             for track in plan["tracks"]:
-                print(
-                    f"    track {track['live_track_index']}: {track['name']} "
-                    f"({track['notes']} notes)"
-                )
+                if "notes" in track:
+                    detail = f"{track['notes']} notes"
+                elif track.get("file"):
+                    detail = f"audio: {Path(track['file']).name}"
+                else:
+                    detail = "audio, empty"
+                print(f"    track {track['live_track_index']}: {track['name']} ({detail})")
             # The resting tracks are the point of the whole MIDI path: the audio
             # model kept playing drums through the breakdown, the MIDI does not.
             for section in plan["structure"]:
