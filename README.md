@@ -499,6 +499,11 @@ SongSpecの`fx_amount`は、各セクションの開始拍・長さ・送り量�
 LiveはArrangement上のオートメーションを直接書けないため、順序は
 **Sessionクリップ作成 → Send Envelope → Arrangementへコピー**です。
 
+Liveは同じpitch・同じstartのノートを1音へ統合し、同じpitchのノートが
+重なると前のdurationを次のstartまで短縮します。`ableton-plan`はこの規則を
+先に適用し、統合・短縮した件数をwarningへ出すため、計画のノート数とLiveへ
+保存されたノート数が一致します。
+
 ## Revision Loop（測る→直す→また測る、を回す）
 
 `analyze`で測り、`review`で直す場所を決め、`stage-repaint`で新しいプロジェクトを作り、

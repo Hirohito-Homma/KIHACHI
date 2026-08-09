@@ -310,6 +310,7 @@ def build_arrangement_plan(
         )
 
     warnings: list[str] = []
+    clip_note_counts: dict[str, int] = {}
     matched: set[str] = set()
     available_parts = {name for name, _label, _notes in layout}
     unmatched_sends = sorted(
@@ -322,7 +323,19 @@ def build_arrangement_plan(
         )
     for offset, (name, label, part_notes) in enumerate(layout):
         track_index = first_track_index + offset
-        notes = _clip_notes(part_notes, song_beats)
+        notes, merged, shortened = _clip_notes(part_notes, song_beats)
+        clip_note_counts[name] = len(notes)
+        if merged:
+            warnings.append(
+                f"{name} had {merged} same-pitch/same-start collision(s); "
+                "Live keeps one note at each onset, so the highest velocity "
+                "(then longest duration) was kept"
+            )
+        if shortened:
+            warnings.append(
+                f"{name} had {shortened} same-pitch overlap(s); Live shortens "
+                "each earlier note to the next onset, so the plan now does the same"
+            )
         if len(notes) > MAX_NOTES_PER_CLIP:
             warnings.append(
                 f"{name} has {len(notes)} notes; Live accepts "
@@ -473,7 +486,7 @@ def build_arrangement_plan(
                 "part": name,
                 "live_track_index": first_track_index + offset,
                 "name": label,
-                "notes": len(part_notes),
+                "notes": clip_note_counts[name],
             }
             for offset, (name, label, part_notes) in enumerate(layout)
         ]
@@ -554,7 +567,9 @@ def _structure(spec: SongSpec, bar_beats: float) -> list[dict[str, Any]]:
     ]
 
 
-def _clip_notes(notes: Sequence[MidiNote], song_beats: float) -> list[dict[str, Any]]:
+def _clip_notes(
+    notes: Sequence[MidiNote], song_beats: float
+) -> tuple[list[dict[str, Any]], int, int]:
     """Notes in AbletonGPT's shape, clamped to stay inside the clip.
 
     Humanize can push a note a hair past the final bar line; Live rejects a note
@@ -563,18 +578,34 @@ def _clip_notes(notes: Sequence[MidiNote], song_beats: float) -> list[dict[str, 
     """
 
     limit = song_beats - 1e-4
-    payload: list[dict[str, Any]] = []
+    by_onset: dict[tuple[int, float], dict[str, Any]] = {}
     for note in sorted(notes, key=lambda item: (item.start_beats, item.pitch)):
         start = min(max(0.0, note.start_beats), limit)
         duration = min(note.duration_beats, song_beats - start)
         if duration <= 0:
             continue
-        payload.append(
-            {
-                "pitch": note.pitch,
-                "start_time": round(start, 6),
-                "duration": round(duration, 6),
-                "velocity": note.velocity,
-            }
-        )
-    return payload
+        candidate = {
+            "pitch": note.pitch,
+            "start_time": round(start, 6),
+            "duration": round(duration, 6),
+            "velocity": note.velocity,
+        }
+        key = (candidate["pitch"], candidate["start_time"])
+        previous = by_onset.get(key)
+        if previous is None or (
+            candidate["velocity"], candidate["duration"]
+        ) > (previous["velocity"], previous["duration"]):
+            by_onset[key] = candidate
+    payload = sorted(
+        by_onset.values(), key=lambda note: (note["start_time"], note["pitch"])
+    )
+    shortened = 0
+    next_start_by_pitch: dict[int, float] = {}
+    for note in reversed(payload):
+        next_start = next_start_by_pitch.get(note["pitch"])
+        if next_start is not None and note["start_time"] + note["duration"] > next_start:
+            note["duration"] = round(next_start - note["start_time"], 6)
+            shortened += 1
+        next_start_by_pitch[note["pitch"]] = note["start_time"]
+    merged = len(notes) - len(payload)
+    return payload, merged, shortened
