@@ -323,3 +323,41 @@ class ReviewerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SpectralBalanceTests(unittest.TestCase):
+    """Corpus-relative outlier flags, not a general-purpose mix target."""
+
+    def test_a_take_with_almost_no_top_end_is_flagged(self) -> None:
+        from kihachi_music_ai.reviewer import _balance_findings
+
+        findings = _balance_findings(
+            {
+                "low_to_high_ratio": 64.373,
+                "bands": {"bass": {"share": 0.837}, "high": {"share": 0.001}},
+            }
+        )
+
+        codes = [item["code"] for item in findings]
+        self.assertIn("dull_high_end", codes)
+        self.assertIn("bass_masking", codes)
+
+    def test_the_balance_this_generator_normally_produces_is_not_a_finding(self) -> None:
+        """63% of the energy in 60-250 Hz is this corpus's median, not a defect."""
+
+        from kihachi_music_ai.reviewer import _balance_findings
+
+        findings = _balance_findings(
+            {
+                "low_to_high_ratio": 19.8,
+                "bands": {"bass": {"share": 0.627}, "high": {"share": 0.016}},
+            }
+        )
+
+        self.assertEqual(findings, [])
+
+    def test_a_project_without_a_spectrum_reviews_unchanged(self) -> None:
+        from kihachi_music_ai.reviewer import _balance_findings
+
+        self.assertEqual(_balance_findings(None), [])
+        self.assertEqual(_balance_findings({}), [])

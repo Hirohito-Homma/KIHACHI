@@ -393,6 +393,28 @@ python3 -m kihachi_music_ai ace-step prepare \
 
 確認後に実際の生成へ使う場合は、`ace-step render`にも同じ`--revision-file`を明示します。生成結果JSONには適用したrevisionのSHA-256とrequestファイル名が記録されます。
 
+## 帯域バランス（Criticが「ベースが弱い」を言えるようにする）
+
+`analyze`が全帯域のエネルギー配分を測り、`review`が群から外れたテイクを指摘します。
+
+```
+- spectral balance: sub 5% bass 84% low_mid 4% mid 6% high_mid 1% high 0%
+- low/high ratio: 64.373 (corpus median 19.8), centroid 258 Hz
+- dull_high_end: 6 kHz以上が0.1%しかない
+- bass_masking: 60-250 Hzに83.7%が集中
+```
+
+**閾値は実レンダー21本から較正しました。一般的なミックスの理想値ではありません。**
+この生成器の出力は中央値で**エネルギーの63%が60–250 Hz**に集中しており、
+一般的な基準で判定すると全部が不合格になって何も言えなくなります。
+21本のうち外れるのは2本だけで、どちらも高域がほぼ無いテイクです。
+
+副産物として、LoRAの効果が初めて数字になりました。LoRA前のベースラインは
+6 kHz以上が0.1%、LoRA後は1.6%で**16倍**です。整合度スコアには一度も現れなかった差です。
+
+FFTは標準ライブラリに無いため自前で書いています（radix-2、テストで定義式と照合済み）。
+窓は全長に分散して最大200枚なので、5分尺でも70秒尺でも約2.3秒です。
+
 ## Revision Loop（測る→直す→また測る、を回す）
 
 `analyze`で測り、`review`で直す場所を決め、`stage-repaint`で新しいプロジェクトを作り、

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .defects import scan_material
+from .spectrum import band_energies
 from .models import SongSpec
 from .theory import NOTE_TO_PC, chord_root
 
@@ -222,6 +223,7 @@ def analyze_wave(audio_path: Path, spec: SongSpec | None = None) -> dict[str, An
         },
         "harmony": harmony,
         "sections": sections,
+        "spectrum": band_energies(audio_path),
         "quality_flags": quality_flags,
     }
 

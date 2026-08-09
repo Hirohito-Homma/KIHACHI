@@ -719,6 +719,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                     if item["severity"] in {"blocking", "warning"}:
                         print(f"    {item['severity']}: {item['detail']}")
                 print(f"- defect scan: {defects_file}")
+            spectrum = manifest.analysis.get("spectrum")
+            if spectrum is not None:
+                shares = " ".join(
+                    f"{name} {spectrum['bands'][name]['share']:.0%}"
+                    for name in ("sub", "bass", "low_mid", "mid", "high_mid", "high")
+                )
+                print(f"- spectral balance: {shares}")
+                print(
+                    f"- low/high ratio: {spectrum['low_to_high_ratio']} "
+                    f"(corpus median 19.8), centroid {spectrum['centroid_hz']:.0f} Hz"
+                )
             print(f"- peak: {level['peak_dbfs']} dBFS")
             print(f"- RMS: {level['rms_dbfs']} dBFS")
             return 0
@@ -1004,6 +1015,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             # Printed right under the score on purpose: a take can align well and
             # still be unusable, and the score alone hides that.
+            for finding in manifest.review["findings"]:
+                if finding["code"] in {"dull_high_end", "bass_masking"}:
+                    print(f"- {finding['code']}: {finding['evidence']}")
             defects = manifest.review.get("material_defects")
             if defects is not None:
                 if defects["clean"]:

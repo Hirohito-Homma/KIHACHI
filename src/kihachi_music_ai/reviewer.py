@@ -9,6 +9,7 @@ from typing import Any
 
 from .midi import read_midi
 from .midi_review import TRACK_FILES, review_midi_tracks
+from .spectrum import DULL_LOW_TO_HIGH, MASKING_BASS_SHARE
 from .models import SongSpec
 from .repaint_planner import build_repaint_plan
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS
@@ -64,6 +65,7 @@ def review_project(
     findings = _findings(spec, analysis)
     findings.extend(_midi_findings(analysis, midi_review))
     findings.extend(_defect_findings(defects))
+    findings.extend(_balance_findings(analysis.get("spectrum")))
     revision_prompt = _revision_prompt(spec, findings)
     repaint_plan = build_repaint_plan(
         spec,
@@ -109,6 +111,8 @@ def review_project(
         review["midi_alignment"] = midi_review
     if defects is not None:
         review["material_defects"] = defects
+    if analysis.get("spectrum") is not None:
+        review["spectral_balance"] = analysis["spectrum"]
 
     if against is not None:
         baseline_dir = Path(against)
@@ -217,6 +221,59 @@ def _midi_review(project_dir: Path, spec: SongSpec) -> dict[str, Any] | None:
     return review_midi_tracks(
         spec, {name: read_midi(path).notes for name, path in paths.items()}
     )
+
+
+def _balance_findings(spectrum: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Where a take's spectrum falls outside what this generator normally does.
+
+    Deliberately not a mix target. Across 21 real renders 63% of the energy sits
+    in 60-250 Hz, so judging these takes against a general-purpose balance would
+    condemn all of them and say nothing. These thresholds are calibrated from
+    that corpus and fire on the two takes that genuinely sit apart from it, both
+    of which have almost no top end.
+
+    The full band balance is reported either way, under ``spectral_balance``.
+    """
+
+    if not spectrum:
+        return []
+    bands = spectrum.get("bands", {})
+    findings: list[dict[str, Any]] = []
+    ratio = spectrum.get("low_to_high_ratio")
+    if ratio is not None and ratio > DULL_LOW_TO_HIGH:
+        findings.append(
+            {
+                "code": "dull_high_end",
+                "severity": "medium",
+                "evidence": (
+                    f"low-to-high energy ratio {ratio:g} against a corpus median of "
+                    f"19.8; only {bands.get('high', {}).get('share', 0.0):.1%} of the "
+                    "energy is above 6 kHz"
+                ),
+                "recommendation": (
+                    "Compare against another take before repainting: repeated "
+                    "repaints of the same material smear the top end, and the "
+                    "chunked render is the other take that lands here."
+                ),
+            }
+        )
+    bass_share = bands.get("bass", {}).get("share")
+    if bass_share is not None and bass_share > MASKING_BASS_SHARE:
+        findings.append(
+            {
+                "code": "bass_masking",
+                "severity": "medium",
+                "evidence": (
+                    f"{bass_share:.1%} of the energy is in 60-250 Hz, past the "
+                    f"{MASKING_BASS_SHARE:.0%} the corpus reaches"
+                ),
+                "recommendation": (
+                    "Everything above the bass is being buried. Check whether the "
+                    "other parts are audible at all before working on the mix."
+                ),
+            }
+        )
+    return findings
 
 
 def _material_defects(project_dir: Path) -> dict[str, Any] | None:
