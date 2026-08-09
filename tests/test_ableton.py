@@ -58,9 +58,11 @@ class ArrangementPlanTests(unittest.TestCase):
             if op["op"] == "copy_session_clip_to_arrangement"
         ]
 
-        self.assertEqual(len(creates), len(TRACK_NAMES))
-        self.assertEqual(len(clips), len(TRACK_NAMES))
-        self.assertEqual(len(copies), len(TRACK_NAMES))
+        # the spec's own parts, not every part the system can write
+        expected = len(self.spec.parts())
+        self.assertEqual(len(creates), expected)
+        self.assertEqual(len(clips), expected)
+        self.assertEqual(len(copies), expected)
 
     def test_tracks_are_created_before_their_clips(self) -> None:
         ops = [op["op"] for op in self.plan["operations"]]
@@ -135,7 +137,7 @@ class ArrangementPlanTests(unittest.TestCase):
         plan = build_arrangement_plan(self.spec, self.tracks, first_track_index=4)
 
         indices = [item["live_track_index"] for item in plan["tracks"]]
-        self.assertEqual(indices, [4, 5, 6])
+        self.assertEqual(indices, list(range(4, 4 + len(self.spec.parts()))))
         for op in plan["operations"]:
             if op["op"] in {"create_midi_clip", "copy_session_clip_to_arrangement"}:
                 self.assertGreaterEqual(op["params"]["track_index"], 4)
@@ -350,14 +352,17 @@ class ProjectPlanTests(unittest.TestCase):
                 project, first_track_index=1, automation=[ECHO_DRY_WET], overwrite=False
             )
 
+            parts = manifest.plan["tracks"]
             self.assertEqual(
-                [track["live_track_index"] for track in manifest.plan["tracks"]], [1, 2, 3]
+                [track["live_track_index"] for track in parts],
+                list(range(1, 1 + len(parts))),
             )
             envelope = next(
                 op for op in manifest.plan["operations"]
                 if op["op"] == "set_clip_parameter_envelope"
             )
-            self.assertEqual(envelope["params"]["track_index"], 3)
+            chords = next(t for t in parts if t["part"] == "chords")
+            self.assertEqual(envelope["params"]["track_index"], chords["live_track_index"])
 
     def test_the_cli_reports_the_resting_tracks_and_the_automation(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

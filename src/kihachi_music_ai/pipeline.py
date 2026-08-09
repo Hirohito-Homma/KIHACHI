@@ -22,6 +22,15 @@ ARTIFACT_NAMES = (
     "prompt.txt",
     "lyrics.txt",
 )
+"""What a core-three song writes. Kept as a constant because the overwrite guard
+names these five files; a song with extra parts adds to it, never removes."""
+
+
+def artifact_names(spec: SongSpec) -> tuple[str, ...]:
+    """The files this particular SongSpec writes, in a stable order."""
+
+    extra = tuple(f"{name}.mid" for name in spec.parts() if f"{name}.mid" not in ARTIFACT_NAMES)
+    return ARTIFACT_NAMES + extra
 
 
 @dataclass(frozen=True)
@@ -67,11 +76,11 @@ def compose_project(
         (stage / "lyrics.txt").write_text(compile_lyrics(spec), encoding="utf-8")
 
         destination.mkdir(parents=True, exist_ok=True)
-        for name in ARTIFACT_NAMES:
+        for name in artifact_names(spec):
             os.replace(stage / name, destination / name)
     finally:
         shutil.rmtree(stage, ignore_errors=True)
 
-    files = tuple(destination / name for name in ARTIFACT_NAMES)
+    files = tuple(destination / name for name in artifact_names(spec))
     return ArtifactManifest(destination, spec, files)
 

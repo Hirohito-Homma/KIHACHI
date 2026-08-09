@@ -72,7 +72,18 @@ class GrooveSpec:
         _unit_interval("humanize", self.humanize)
 
 
-TRACK_NAMES = ("bass", "drums", "chords")
+CORE_TRACKS = ("bass", "drums", "chords")
+"""The parts every song has. A SongSpec that names no instruments writes these."""
+
+EXTRA_TRACKS = ("synth", "arp", "vocoder")
+"""Parts written only when the brief asks for them.
+
+They are opt-in rather than default-on because ``SectionSpec.plays`` treats an
+unset ``active_tracks`` as "everything plays": switching these on by default
+would make every SongSpec ever written suddenly grow three parts.
+"""
+
+TRACK_NAMES = CORE_TRACKS + EXTRA_TRACKS
 DENSITY_FIELDS = {
     "bass": "bass_density",
     "drums": "drum_density",
@@ -146,7 +157,8 @@ class SectionSpec:
 
         if track not in TRACK_NAMES:
             raise ValueError(f"unknown track name: {track!r}")
-        value = getattr(self, DENSITY_FIELDS[track])
+        field_name = DENSITY_FIELDS.get(track)
+        value = None if field_name is None else getattr(self, field_name)
         return self.energy if value is None else float(value)
 
     def plays(self, track: str) -> bool:
@@ -241,6 +253,11 @@ class SongSpec:
     drums: DrumSpec
     chords: ChordSpec
     vocal: VocalSpec
+    # Which parts this song is made of. ``None`` means the core three, and
+    # ``to_dict`` omits the field entirely in that case, so every SongSpec
+    # written before instruments existed still serializes to identical bytes --
+    # and keeps the SHA-256 that repaint plans are pinned to.
+    instruments: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
         if self.spec_version != "0.1":
@@ -256,10 +273,30 @@ class SongSpec:
             cursor += section.length_bars
         if cursor != self.song.total_bars:
             raise ValueError("arrangement length must equal song.total_bars")
+        if self.instruments is not None:
+            unknown = set(self.instruments) - set(TRACK_NAMES)
+            if unknown:
+                raise ValueError(f"unknown instrument: {sorted(unknown)}")
+            missing = set(CORE_TRACKS) - set(self.instruments)
+            if missing:
+                raise ValueError(
+                    f"instruments must include the core parts; missing {sorted(missing)}"
+                )
+
+    def parts(self) -> tuple[str, ...]:
+        """The parts to compose, in a stable order."""
+
+        if self.instruments is None:
+            return CORE_TRACKS
+        return tuple(name for name in TRACK_NAMES if name in self.instruments)
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["arrangement"] = [section.to_dict() for section in self.arrangement]
+        if self.instruments is None:
+            del payload["instruments"]
+        else:
+            payload["instruments"] = list(self.instruments)
         return payload
 
     def to_json(self, *, indent: int = 2) -> str:
@@ -291,6 +328,9 @@ class SongSpec:
             drums=DrumSpec(**data["drums"]),
             chords=ChordSpec(**data["chords"]),
             vocal=VocalSpec(**data["vocal"]),
+            instruments=(
+                tuple(data["instruments"]) if data.get("instruments") is not None else None
+            ),
         )
 
     @classmethod

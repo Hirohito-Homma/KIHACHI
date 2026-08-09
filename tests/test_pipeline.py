@@ -17,7 +17,11 @@ class PipelineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "mutation-signal"
             manifest = compose_project(EXAMPLE, output)
-            self.assertEqual(tuple(path.name for path in manifest.files), ARTIFACT_NAMES)
+            # EXAMPLE asks for a vocoder, so the project writes that part too
+            self.assertEqual(
+                tuple(path.name for path in manifest.files),
+                ARTIFACT_NAMES + ("vocoder.mid",),
+            )
             self.assertTrue(all(path.is_file() for path in manifest.files))
             for name in ("bass.mid", "drums.mid", "chords.mid"):
                 inspect_midi(output / name)

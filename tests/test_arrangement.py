@@ -294,7 +294,8 @@ class ArrangementRoundTripTests(unittest.TestCase):
         breakdown = next(
             item for item in payload["arrangement"] if item["name"] == "dub_breakdown"
         )
-        self.assertEqual(breakdown["active_tracks"], ["bass", "chords"])
+        # drums rest; the vocoder pad EXAMPLE asks for keeps playing
+        self.assertEqual(breakdown["active_tracks"], ["bass", "chords", "vocoder"])
         self.assertEqual(breakdown["drum_density"], 0.0)
 
     def test_describe_arrangement_is_printable(self) -> None:

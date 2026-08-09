@@ -53,6 +53,10 @@ if __name__ == "__main__":
 
 
 LONG_PROMPT = EXAMPLE + "5分程度。"
+SIX_PART_PROMPT = (
+    "Mutation Funk、DUB、Tech House。110 BPM、D#m。5分程度。"
+    "シンセスタブ、アルペジオ、ボコーダー。"
+)
 
 
 class MaterialIntegrityTests(unittest.TestCase):
@@ -60,6 +64,46 @@ class MaterialIntegrityTests(unittest.TestCase):
 
     def _tracks(self, seed: int, prompt: str = LONG_PROMPT):
         return compose_tracks(MusicBrain(seed=seed).analyze(prompt))
+
+    def test_the_extra_parts_hold_the_same_properties(self) -> None:
+        """Synth, arp and vocoder are held to what bass, drums and chords are."""
+
+        tracks = self._tracks(8, SIX_PART_PROMPT)
+        self.assertEqual(
+            sorted(tracks), ["arp", "bass", "chords", "drums", "synth", "vocoder"]
+        )
+        for part, notes in tracks.items():
+            self.assertTrue(notes, f"{part} wrote nothing")
+            keys = [(round(note.start_beats, 6), note.pitch) for note in notes]
+            self.assertEqual(len(keys), len(set(keys)), f"{part} doubled a note")
+
+    def test_the_parts_do_not_all_pile_into_one_register(self) -> None:
+        """Six lines in two octaves is mud, however good each line is."""
+
+        tracks = self._tracks(8, SIX_PART_PROMPT)
+        centres = {
+            part: sum(n.pitch for n in notes) / len(notes)
+            for part, notes in tracks.items()
+            if part != "drums"  # drum pitches are kit slots, not a register
+        }
+
+        self.assertLess(centres["bass"], centres["chords"])
+        self.assertLess(centres["chords"], centres["synth"])
+        self.assertLess(centres["synth"], centres["arp"])
+
+    def test_the_synth_does_not_double_the_vocoder_note_for_note(self) -> None:
+        """Both sit in octave 4; in root position they would be one part, louder."""
+
+        tracks = self._tracks(8, SIX_PART_PROMPT)
+        synth = {(round(n.start_beats, 1), n.pitch) for n in tracks["synth"]}
+        vocoder = {(round(n.start_beats, 1), n.pitch) for n in tracks["vocoder"]}
+
+        self.assertEqual(synth & vocoder, set())
+
+    def test_a_brief_that_asks_for_nothing_extra_still_writes_three_parts(self) -> None:
+        tracks = self._tracks(8, "ダブとテックハウス。110 BPM、D#m。")
+
+        self.assertEqual(sorted(tracks), ["bass", "chords", "drums"])
 
     def test_no_part_ever_writes_two_notes_at_one_position(self) -> None:
         """A doubled note is a flam nobody asked for.

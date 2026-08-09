@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
-from .models import TRACK_NAMES, SectionSpec
+from .models import CORE_TRACKS, TRACK_NAMES, SectionSpec
 
 BLOCK_BARS = 8
 
@@ -42,10 +42,24 @@ class SectionArchetype:
     fx_amount: float
     vocal_probability: float
     mutation: float
-    active_tracks: tuple[str, ...] = TRACK_NAMES
+    resting_tracks: tuple[str, ...] = ()
+    """Which parts sit this section out.
+
+    Named as what *rests* rather than what plays, so an archetype stays correct
+    when the song gains parts. Listing the active ones meant that adding synth,
+    arp and vocoder silently rested all three everywhere an archetype had named
+    a subset -- the breakdown would have gone from "no drums" to "bass and
+    chords only" without anyone deciding that.
+    """
+
     blocks: int = 1
 
-    def to_section(self, start_bar: int, length_bars: int) -> SectionSpec:
+    def to_section(
+        self,
+        start_bar: int,
+        length_bars: int,
+        parts: Sequence[str] = CORE_TRACKS,
+    ) -> SectionSpec:
         return SectionSpec(
             name=self.name,
             start_bar=start_bar,
@@ -60,7 +74,9 @@ class SectionArchetype:
             vocal_probability=self.vocal_probability,
             mutation=self.mutation,
             active_tracks=(
-                None if set(self.active_tracks) == set(TRACK_NAMES) else self.active_tracks
+                None
+                if not self.resting_tracks
+                else tuple(name for name in parts if name not in self.resting_tracks)
             ),
         )
 
@@ -99,7 +115,7 @@ ARCHETYPES: dict[str, SectionArchetype] = {
         bass_density=0.30, drum_density=0.0, chord_density=0.45,
         fx_amount=1.0, vocal_probability=0.35, mutation=0.55,
         # Dub takes the drums out entirely; that is the contrast the drop needs.
-        active_tracks=("bass", "chords"), blocks=2,
+        resting_tracks=("drums",), blocks=2,
     ),
     "final_drop": SectionArchetype(
         name="final_drop", energy=0.95, psychedelic=0.92, minimal=False,
@@ -110,7 +126,7 @@ ARCHETYPES: dict[str, SectionArchetype] = {
         name="outro", energy=0.22, psychedelic=0.40, minimal=True,
         bass_density=0.35, drum_density=0.20, chord_density=0.25,
         fx_amount=0.55, vocal_probability=0.15, mutation=0.20,
-        active_tracks=("bass", "chords"), blocks=1,
+        resting_tracks=("drums",), blocks=1,
     ),
 }
 
@@ -222,6 +238,7 @@ def build_arrangement(
     minimal_requested: bool = True,
     psychedelic_requested: bool = True,
     arc: Sequence[str] | None = None,
+    parts: Sequence[str] = CORE_TRACKS,
 ) -> tuple[SectionSpec, ...]:
     """Lay out a full arrangement for ``total_bars``.
 
@@ -245,7 +262,7 @@ def build_arrangement(
         archetype = ARCHETYPES[name]
         if not psychedelic_requested and name == "psychedelic_drop":
             archetype = _replace_psychedelic(archetype, 0.58)
-        section = archetype.to_section(start, length)
+        section = archetype.to_section(start, length, parts)
         if section_names[index] != name:
             section = _rename(section, section_names[index])
         if not (minimal_requested and index < 2):

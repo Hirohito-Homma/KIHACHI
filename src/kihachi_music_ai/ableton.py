@@ -35,7 +35,14 @@ ARRANGEMENT_PLAN_VERSION = "0.1"
 MAX_CLIP_BEATS = 4096
 MAX_NOTES_PER_CLIP = 4096
 
-TRACK_LABELS = {"bass": "KIHACHI Bass", "drums": "KIHACHI Drums", "chords": "KIHACHI Chords"}
+TRACK_LABELS = {
+    "bass": "KIHACHI Bass",
+    "drums": "KIHACHI Drums",
+    "chords": "KIHACHI Chords",
+    "synth": "KIHACHI Synth",
+    "arp": "KIHACHI Arp",
+    "vocoder": "KIHACHI Vocoder",
+}
 
 
 @dataclass(frozen=True)
@@ -72,7 +79,7 @@ def plan_project_arrangement(
 
     tracks: dict[str, tuple[MidiNote, ...]] = {}
     files: list[Path] = []
-    for name in TRACK_NAMES:
+    for name in spec.parts():
         path = project_dir / f"{name}.mid"
         if not path.is_file():
             raise FileNotFoundError(f"MIDI track not found: {path}")
@@ -173,7 +180,7 @@ def build_arrangement_plan(
             f"song is {song_beats:g} beats; Live clips are capped at {MAX_CLIP_BEATS}"
         )
 
-    parts = [name for name in TRACK_NAMES if name in tracks]
+    parts = [name for name in spec.parts() if name in tracks]
     operations: list[dict[str, Any]] = [
         {
             "op": "set_tempo",
@@ -340,8 +347,8 @@ def _structure(spec: SongSpec, bar_beats: float) -> list[dict[str, Any]]:
             "start_beats": round(section.start_bar * bar_beats, 6),
             "end_beats": round((section.start_bar + section.length_bars) * bar_beats, 6),
             "energy": section.energy,
-            "active_tracks": [track for track in TRACK_NAMES if section.plays(track)],
-            "resting_tracks": [track for track in TRACK_NAMES if not section.plays(track)],
+            "active_tracks": [track for track in spec.parts() if section.plays(track)],
+            "resting_tracks": [track for track in spec.parts() if not section.plays(track)],
         }
         for section in spec.arrangement
     ]

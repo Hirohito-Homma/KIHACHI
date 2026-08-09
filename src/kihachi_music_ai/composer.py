@@ -14,11 +14,26 @@ from .theory import chord_pitches, chord_root, midi_pitch
 BASS_POSITIONS = (0.0, 1.5, 2.75, 0.75, 3.5, 2.0, 3.25, 1.0, 0.25, 2.25)
 KICK_POSITIONS = (0.0, 2.0, 1.5, 3.25, 2.5, 0.75)
 CHORD_POSITIONS = (1.5, 0.75, 2.75, 3.5, 2.25)
+# Stabs answer the chords rather than doubling them, so they sit in the gaps the
+# chord slots leave: 0.5 and 2.5 are the strongest offbeats not already taken.
+SYNTH_POSITIONS = (2.5, 0.5, 3.25, 1.25, 3.75)
 BACKBEAT_POSITIONS = (1.0, 3.0)
 
 BASS_STEPS = (2, 8)
 KICK_STEPS = (1, 5)
 CHORD_STEPS = (1, 4)
+SYNTH_STEPS = (1, 4)
+
+# Registers, in octaves. Each part gets its own so a six-part arrangement does
+# not pile every line into the same two octaves and turn to mud.
+BASS_OCTAVE = 2
+CHORD_OCTAVE = 3
+SYNTH_OCTAVE = 4
+VOCODER_OCTAVE = 4
+ARP_OCTAVE = 5
+
+ARP_GRID = 0.25
+"""Sixteenth notes: an arpeggio is a continuous line, not a sparse pattern."""
 
 
 def _section_at(spec: SongSpec, bar: int) -> SectionSpec:
@@ -273,8 +288,152 @@ def compose_chords(spec: SongSpec) -> tuple[MidiNote, ...]:
 
 
 def compose_tracks(spec: SongSpec) -> dict[str, tuple[MidiNote, ...]]:
-    return {
-        "bass": compose_bass(spec),
-        "drums": compose_drums(spec),
-        "chords": compose_chords(spec),
-    }
+    """Every part the SongSpec names, in a stable order.
+
+    A spec that names no instruments composes the core three, so nothing written
+    before the extra parts existed changes.
+    """
+
+    return {name: COMPOSERS[name](spec) for name in spec.parts()}
+
+
+def compose_synth(spec: SongSpec) -> tuple[MidiNote, ...]:
+    """Chord stabs an octave above the chords, in the gaps the chords leave."""
+
+    notes: list[MidiNote] = []
+    progression = spec.harmony.progression
+    for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
+        if not section.plays("synth"):
+            continue
+        rng = _section_rng(spec, "synth", index)
+        base = build_pattern(
+            SYNTH_POSITIONS,
+            density=_clamp(section.density("synth")),
+            minimum=SYNTH_STEPS[0],
+            maximum=SYNTH_STEPS[1],
+            duration=0.18,
+            velocity=_velocity_for(88, section),
+            anchors=(),
+        )
+        generations = mutation_series(
+            base,
+            bars=end_bar - start_bar,
+            amount=_mutation_amount(spec, section, spec.groove.syncopation * 0.7),
+            rng=rng,
+            syncopation=spec.groove.syncopation,
+            ghost_probability=0.0,
+            octave_jump_probability=0.0,
+            space=_clamp(0.4 * (1.0 - section.energy)),
+            minimum_steps=SYNTH_STEPS[0],
+        )
+        for offset, pattern in enumerate(generations):
+            bar = start_bar + offset
+            chord = progression[(bar // spec.harmony.harmonic_rhythm_bars) % len(progression)]
+            for step in pattern:
+                start = _groove(bar * 4.0 + step.position, spec, rng)
+                # First inversion. The vocoder carrier sits in the same octave in
+                # root position, and two parts playing the identical three notes
+                # is not two parts -- it is one, louder.
+                root, third, fifth = chord_pitches(chord, octave=SYNTH_OCTAVE)
+                for voice, pitch in enumerate((third, fifth, root + 12)):
+                    notes.append(
+                        MidiNote(
+                            max(0, min(127, pitch + step.octave)),
+                            start,
+                            step.duration,
+                            max(1, step.velocity - voice * 5),
+                        )
+                    )
+    return tuple(notes)
+
+
+def compose_arp(spec: SongSpec) -> tuple[MidiNote, ...]:
+    """A sixteenth-note line walking the chord tones.
+
+    Not built from ``build_pattern``: that picks a handful of slots out of a bar,
+    which is the right shape for a stab or a kick and the wrong one for an
+    arpeggio. Density here decides how much of the continuous line sounds, and
+    the rests fall on the weakest sixteenths first so the line keeps its shape as
+    it thins.
+    """
+
+    notes: list[MidiNote] = []
+    progression = spec.harmony.progression
+    steps_per_bar = int(round(4.0 / ARP_GRID))
+    # Weakest sixteenths first, so thinning removes filler before structure.
+    rest_order = tuple(
+        sorted(range(steps_per_bar), key=lambda step: (step % 4 == 0, step % 2 == 0, step))
+    )
+    for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
+        if not section.plays("arp"):
+            continue
+        rng = _section_rng(spec, "arp", index)
+        density = _clamp(section.density("arp"))
+        sounding = max(4, round(steps_per_bar * (0.35 + 0.65 * density)))
+        resting = set(rest_order[: max(0, steps_per_bar - sounding)])
+        for bar in range(start_bar, end_bar):
+            chord = progression[(bar // spec.harmony.harmonic_rhythm_bars) % len(progression)]
+            tones = chord_pitches(chord, octave=ARP_OCTAVE)
+            # Up over one octave, then back down: a plain ascending loop restates
+            # the root every three notes and reads as a stutter.
+            contour = tones + (tones[0] + 12,) + tuple(reversed(tones[1:]))
+            for step in range(steps_per_bar):
+                if step in resting:
+                    continue
+                pitch = contour[step % len(contour)]
+                start = _groove(bar * 4.0 + step * ARP_GRID, spec, rng)
+                accent = 12 if step % 4 == 0 else 0
+                notes.append(
+                    MidiNote(
+                        max(0, min(127, pitch)),
+                        start,
+                        ARP_GRID * 0.8,
+                        _velocity_for(64 + accent, section),
+                    )
+                )
+    return tuple(_monophonic(notes))
+
+
+def compose_vocoder(spec: SongSpec) -> tuple[MidiNote, ...]:
+    """Sustained carrier chords for a vocoder.
+
+    A vocoder needs something held to shape, so this part does not mutate: it
+    states the harmony and holds it for the whole bar.
+
+    Where it rests is ``active_tracks``, like every other part. An earlier
+    version skipped sections whose ``vocal_probability`` was low, which put a
+    second, invisible resting rule next to the arrangement's -- the MIDI review
+    then reported those bars as missing coverage, because as far as the SongSpec
+    was concerned the part was supposed to be playing.
+    """
+
+    notes: list[MidiNote] = []
+    progression = spec.harmony.progression
+    for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
+        if not section.plays("vocoder"):
+            continue
+        rng = _section_rng(spec, "vocoder", index)
+        for bar in range(start_bar, end_bar):
+            chord = progression[(bar // spec.harmony.harmonic_rhythm_bars) % len(progression)]
+            start = _groove(bar * 4.0, spec, rng)
+            length = 4.0 - (start - bar * 4.0) - MONOPHONIC_GAP_BEATS
+            for voice, pitch in enumerate(chord_pitches(chord, octave=VOCODER_OCTAVE)):
+                notes.append(
+                    MidiNote(
+                        max(0, min(127, pitch)),
+                        start,
+                        length,
+                        max(1, _velocity_for(74, section) - voice * 4),
+                    )
+                )
+    return tuple(notes)
+
+
+COMPOSERS = {
+    "bass": compose_bass,
+    "drums": compose_drums,
+    "chords": compose_chords,
+    "synth": compose_synth,
+    "arp": compose_arp,
+    "vocoder": compose_vocoder,
+}

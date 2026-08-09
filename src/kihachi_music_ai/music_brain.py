@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import re
+from typing import Sequence
 
 from .arrangement import build_arrangement
 from .models import (
+    CORE_TRACKS,
+    EXTRA_TRACKS,
     BassSpec,
     ChordSpec,
     DrumSpec,
@@ -45,11 +48,13 @@ class MusicBrain:
         vocoder_requested = "vocoder" in lower or "ボコーダー" in prompt
         mutation_requested = "mutation" in lower or "変態" in prompt
         dub_requested = any(item.name == "dub" for item in genres)
+        instruments = self._instruments(prompt, lower, vocoder_requested)
 
         sections = self._sections(
             total_bars,
             minimal_requested=minimal_requested,
             psychedelic_requested=psychedelic_requested,
+            parts=instruments or CORE_TRACKS,
         )
         progression = progression_for_key(tonic_pc, mode, prefer_flats="b" in tonic)
 
@@ -104,7 +109,32 @@ class MusicBrain:
                 vocoder=vocoder_requested,
                 character="dark robotic phrases" if vocoder_requested else "none",
             ),
+            instruments=instruments,
         )
+
+    @staticmethod
+    def _instruments(prompt: str, lower: str, vocoder_requested: bool) -> tuple[str, ...] | None:
+        """Which parts the brief asks for, beyond the core three.
+
+        Returns ``None`` when it asks for nothing extra, so a plain brief still
+        produces a SongSpec that serializes exactly as it did before these parts
+        existed -- and keeps the SHA-256 repaint plans are pinned to.
+        """
+
+        extra: list[str] = []
+        if any(word in lower for word in ("synth", "stab", "lead")) or any(
+            word in prompt for word in ("シンセ", "スタブ", "リード")
+        ):
+            extra.append("synth")
+        if any(word in lower for word in ("arp", "sequence", "sequencer")) or any(
+            word in prompt for word in ("アルペジ", "シーケンス")
+        ):
+            extra.append("arp")
+        if vocoder_requested:
+            extra.append("vocoder")
+        if not extra:
+            return None
+        return CORE_TRACKS + tuple(name for name in EXTRA_TRACKS if name in extra)
 
     @staticmethod
     def _parse_bpm(prompt: str) -> float:
@@ -146,9 +176,11 @@ class MusicBrain:
         *,
         minimal_requested: bool,
         psychedelic_requested: bool,
+        parts: Sequence[str],
     ) -> tuple[SectionSpec, ...]:
         return build_arrangement(
             total_bars,
             minimal_requested=minimal_requested,
             psychedelic_requested=psychedelic_requested,
+            parts=parts,
         )

@@ -39,6 +39,8 @@ MIDI_ALIGNMENT_WEIGHTS = {
     "coverage": 0.15,
 }
 TRACK_FILES = ("bass", "drums", "chords")
+"""The parts a SongSpec that names no instruments writes. Specs that do name
+them are read through ``spec.parts()`` instead."""
 
 
 @dataclass(frozen=True)
@@ -59,7 +61,7 @@ def review_project_midi(project_dir: Path) -> MidiReviewManifest:
 
     tracks: dict[str, tuple[MidiNote, ...]] = {}
     files: list[Path] = []
-    for name in TRACK_FILES:
+    for name in spec.parts():
         path = project_dir / f"{name}.mid"
         if not path.is_file():
             raise FileNotFoundError(f"MIDI track not found: {path}")

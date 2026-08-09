@@ -1,0 +1,28 @@
+{
+  "defect_scan_version": "0.1",
+  "scope": "absolute_audio_defects_not_song_spec_conformance",
+  "audio_file": "ace-step-01.wav",
+  "measurements": {
+    "duration_sec": 69.818,
+    "sample_rate": 48000,
+    "channels": 2,
+    "peak_dbfs": -1.0,
+    "rms_dbfs": -21.293,
+    "crest_db": 20.293,
+    "clipped_runs": 0,
+    "dc_offset": [
+      0.000535,
+      0.000875
+    ],
+    "stereo_correlation": 0.8742,
+    "longest_silence_sec": 0.42,
+    "longest_silence_at_sec": 24.36,
+    "max_sample_jump": 0.365,
+    "max_sample_jump_at_sec": 19.726,
+    "mean_sample_jump": 0.004742
+  },
+  "findings": [],
+  "blocking": 0,
+  "warnings": 0,
+  "clean": true
+}
