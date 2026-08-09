@@ -86,6 +86,15 @@ def build_parser() -> argparse.ArgumentParser:
     analyze = subparsers.add_parser("analyze", help="analyze generated WAV and compare it with SongSpec")
     analyze.add_argument("project", type=Path, help="directory containing song_spec.json")
     analyze.add_argument("--audio", type=Path, help="WAV path, relative to the project unless absolute")
+    analyze.add_argument(
+        "--loudness",
+        action="store_true",
+        help=(
+            "also measure integrated loudness (ITU-R BS.1770-4). Off by default: "
+            "it filters every sample, which is ~11 s for a 70 s take and ~49 s "
+            "for a five-minute one"
+        ),
+    )
     analyze.add_argument("--overwrite", action="store_true", help="replace only audio_analysis.json")
 
     review = subparsers.add_parser("review", help="turn audio analysis into a non-destructive revision plan")
@@ -683,6 +692,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.project,
                 args.audio,
                 overwrite=args.overwrite,
+                measure_loudness=args.loudness,
             )
             tempo = manifest.analysis["tempo"]
             level = manifest.analysis["level"]
@@ -719,6 +729,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     if item["severity"] in {"blocking", "warning"}:
                         print(f"    {item['severity']}: {item['detail']}")
                 print(f"- defect scan: {defects_file}")
+            loudness = manifest.analysis.get("loudness")
+            if loudness is not None:
+                print(
+                    f"- integrated loudness: {loudness['integrated_lufs']} LUFS "
+                    f"(range {loudness['loudness_range_lu']} LU, "
+                    f"{loudness['gated_blocks']}/{loudness['total_blocks']} blocks kept)"
+                )
             spectrum = manifest.analysis.get("spectrum")
             if spectrum is not None:
                 shares = " ".join(

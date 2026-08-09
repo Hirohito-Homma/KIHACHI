@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .defects import scan_material
+from .loudness import integrated_loudness
 from .spectrum import band_energies
 from .models import SongSpec
 from .theory import NOTE_TO_PC, chord_root
@@ -41,6 +42,7 @@ def analyze_project(
     *,
     overwrite: bool = False,
     scan_defects: bool = True,
+    measure_loudness: bool = False,
 ) -> AudioAnalysisManifest:
     """Analyze a project's audio and scan it for defects.
 
@@ -76,7 +78,7 @@ def analyze_project(
     if scan_defects and defects_path.exists() and not overwrite:
         raise FileExistsError(f"refusing to overwrite defect scan: {defects_path}")
 
-    analysis = analyze_wave(audio_path, spec)
+    analysis = analyze_wave(audio_path, spec, measure_loudness=measure_loudness)
     try:
         display_path = str(audio_path.relative_to(project_dir))
     except ValueError:
@@ -104,7 +106,12 @@ def analyze_project(
     )
 
 
-def analyze_wave(audio_path: Path, spec: SongSpec | None = None) -> dict[str, Any]:
+def analyze_wave(
+    audio_path: Path,
+    spec: SongSpec | None = None,
+    *,
+    measure_loudness: bool = False,
+) -> dict[str, Any]:
     audio_path = Path(audio_path)
     digest = hashlib.sha256()
     with audio_path.open("rb") as source:
@@ -224,6 +231,12 @@ def analyze_wave(audio_path: Path, spec: SongSpec | None = None) -> dict[str, An
         "harmony": harmony,
         "sections": sections,
         "spectrum": band_energies(audio_path),
+        # Off by default: BS.1770 filters every sample, which is 11 s for a
+        # seventy-second take and 49 s for a five-minute one, and `analyze` is
+        # called on a loop by `revise`. The corpus also gives no reason to pay
+        # it routinely -- 21 renders sit inside a 5 LU band, so loudness is not
+        # where this generator goes wrong.
+        "loudness": integrated_loudness(audio_path) if measure_loudness else None,
         "quality_flags": quality_flags,
     }
 
