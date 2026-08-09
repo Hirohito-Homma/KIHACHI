@@ -101,6 +101,7 @@ def plan_project_arrangement(
     automation: Sequence[Mapping[str, Any]] = (),
     split_drums: bool = False,
     audio_tracks: Sequence[Mapping[str, Any]] = (),
+    sends: Sequence[Mapping[str, Any]] = (),
     overwrite: bool = False,
 ) -> ArrangementPlanManifest:
     """Read a project's SongSpec and written MIDI, write ``arrangement_plan.json``.
@@ -136,6 +137,7 @@ def plan_project_arrangement(
         automation=automation,
         split_drums=split_drums,
         audio_tracks=audio_tracks,
+        sends=sends,
     )
     destination = project_dir / "arrangement_plan.json"
     if destination.exists() and not overwrite:
@@ -144,6 +146,58 @@ def plan_project_arrangement(
         json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     return ArrangementPlanManifest(project_dir, tuple(files), destination, plan)
+
+
+def parse_send_binding(text: str) -> dict[str, Any]:
+    """``part:send_index[:low:high]`` from the command line.
+
+    Send 0 is return A, send 1 is return B -- which returns those are is a fact
+    about the Live set, not about the song, so the index has to come from
+    outside. ``get_mix_snapshot`` in AbletonGPT reports their names.
+    """
+
+    parts = text.split(":")
+    if len(parts) not in (2, 4):
+        raise ValueError(f"send binding {text!r} must be part:send_index[:low:high]")
+    part = parts[0]
+    if part not in TRACK_NAMES:
+        raise ValueError(f"unknown part {part!r}; expected one of {', '.join(TRACK_NAMES)}")
+    try:
+        send_index = int(parts[1])
+    except ValueError:
+        raise ValueError(f"send index must be an integer in {text!r}") from None
+    if send_index < 0:
+        raise ValueError(f"send index cannot be negative in {text!r}")
+    binding: dict[str, Any] = {"part": part, "send_index": send_index}
+    if len(parts) == 4:
+        try:
+            binding["low"], binding["high"] = float(parts[2]), float(parts[3])
+        except ValueError:
+            raise ValueError(f"low and high must be numbers in {text!r}") from None
+    return binding
+
+
+def _send_envelope_steps(
+    spec: SongSpec,
+    binding: Mapping[str, Any],
+    bar_beats: float,
+) -> list[dict[str, Any]]:
+    """Map the song's section-level FX intent onto one mixer send.
+
+    Send envelopes use the same timing and range rules as device-parameter
+    envelopes. The target differs -- a send lives on the track mixer -- but the
+    musical source is still the per-section ``fx_amount`` curve.
+    """
+
+    return _envelope_steps(
+        spec,
+        {
+            "field": "fx_amount",
+            "low": binding.get("low", 0.0),
+            "high": binding.get("high", 1.0),
+        },
+        bar_beats,
+    )
 
 
 def parse_automation_binding(text: str) -> dict[str, Any]:
@@ -198,6 +252,7 @@ def build_arrangement_plan(
     automation: Sequence[Mapping[str, Any]] = (),
     split_drums: bool = False,
     audio_tracks: Sequence[Mapping[str, Any]] = (),
+    sends: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Operations that lay this song out in Live, plus the structure they encode.
 
@@ -256,6 +311,15 @@ def build_arrangement_plan(
 
     warnings: list[str] = []
     matched: set[str] = set()
+    available_parts = {name for name, _label, _notes in layout}
+    unmatched_sends = sorted(
+        {str(binding.get("part")) for binding in sends} - available_parts
+    )
+    if unmatched_sends:
+        raise ValueError(
+            f"send targets no track: {unmatched_sends}; this plan has "
+            f"{', '.join(sorted(available_parts))}"
+        )
     for offset, (name, label, part_notes) in enumerate(layout):
         track_index = first_track_index + offset
         notes = _clip_notes(part_notes, song_beats)
@@ -298,6 +362,28 @@ def build_arrangement_plan(
                     "why": (
                         f"section {binding['field']} drives this parameter "
                         f"({len(steps)} steps, one per section)"
+                    ),
+                }
+            )
+        for binding in sends:
+            if binding.get("part") != name:
+                continue
+            send_index = int(binding["send_index"])
+            if send_index < 0:
+                raise ValueError("send index cannot be negative")
+            steps = _send_envelope_steps(spec, binding, bar_beats)
+            operations.append(
+                {
+                    "op": "set_clip_send_envelope",
+                    "params": {
+                        "track_index": track_index,
+                        "clip_index": session_slot,
+                        "send_index": send_index,
+                        "steps": steps,
+                    },
+                    "why": (
+                        "section fx_amount drives this mixer send "
+                        f"({len(steps)} steps, one per populated section)"
                     ),
                 }
             )

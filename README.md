@@ -479,6 +479,26 @@ ACE-Step did not answer within request_timeout=30s; raise it if the server is ru
 以前はこれが「response could not be decoded」と表示され、サーバのJSONを疑う方向へ
 誘導していました。
 
+## センド（ダブのFXをリターンへ送る）
+
+```bash
+python3 -m kihachi_music_ai ableton-plan projects/my-song --send chords:1:0.1:0.6
+```
+
+`send_index` の0がリターンA、1がB。どのリターンかはLiveセット側の事実なので導出できません
+（AbletonGPTの`get_mix_snapshot`が名前を返します）。
+
+SongSpecの`fx_amount`は、各セクションの開始拍・長さ・送り量を持つ
+`set_clip_send_envelope`へ変換されます。ダブのディレイ・スローは、曲全体の
+平均値ではなく、セクションごとに動きます。
+
+```
+- send envelope: track 4 → return B, 9 steps (0.250-0.600)
+```
+
+LiveはArrangement上のオートメーションを直接書けないため、順序は
+**Sessionクリップ作成 → Send Envelope → Arrangementへコピー**です。
+
 ## Revision Loop（測る→直す→また測る、を回す）
 
 `analyze`で測り、`review`で直す場所を決め、`stage-repaint`で新しいプロジェクトを作り、
