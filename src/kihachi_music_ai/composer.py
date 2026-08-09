@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import random
+from dataclasses import replace
 
-from .midi import MidiNote
+from .midi import PPQ, MidiNote
 from .models import SectionSpec, SongSpec
 from .mutation import Step, build_pattern, mutation_series
 from .theory import chord_pitches, chord_root, midi_pitch
@@ -79,6 +80,40 @@ def _section_rng(spec: SongSpec, track: str, index: int) -> random.Random:
     return random.Random(f"{spec.seed}:{track}:{index}")
 
 
+MONOPHONIC_GAP_BEATS = 2.0 / PPQ
+"""Release gap held open between consecutive notes of a monophonic part.
+
+Two ticks rather than one: note starts carry humanize jitter and are not on tick
+boundaries, so a single tick can round away and let the notes touch again.
+"""
+
+
+def _monophonic(notes: list[MidiNote]) -> list[MidiNote]:
+    """Stop each note before the next one starts.
+
+    A bass line plays one note at a time, so a note that runs into the next is
+    not a musical choice -- it comes from writing a 0.3-beat note onto a
+    0.25-beat grid. It also cannot survive the trip through a MIDI file: when two
+    overlapping notes share a pitch, the format cannot say which note-off closes
+    which note-on, and any reader (Live included) re-pairs them first-in
+    first-out and gets durations nobody wrote.
+    """
+
+    ordered = sorted(notes, key=lambda note: (note.start_beats, note.pitch))
+    trimmed: list[MidiNote] = []
+    for index, note in enumerate(ordered):
+        duration = note.duration_beats
+        if index + 1 < len(ordered):
+            room = ordered[index + 1].start_beats - note.start_beats - MONOPHONIC_GAP_BEATS
+            duration = min(duration, room)
+        if duration < MONOPHONIC_GAP_BEATS:
+            # Two notes this close are one note; keeping both would write a flam
+            # nobody asked for.
+            continue
+        trimmed.append(replace(note, duration_beats=duration))
+    return trimmed
+
+
 def compose_bass(spec: SongSpec) -> tuple[MidiNote, ...]:
     notes: list[MidiNote] = []
     progression = spec.harmony.progression
@@ -121,7 +156,7 @@ def compose_bass(spec: SongSpec) -> tuple[MidiNote, ...]:
                         step.velocity,
                     )
                 )
-    return tuple(notes)
+    return tuple(_monophonic(notes))
 
 
 def compose_drums(spec: SongSpec) -> tuple[MidiNote, ...]:

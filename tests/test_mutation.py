@@ -8,6 +8,7 @@ from kihachi_music_ai.composer import compose_bass, compose_chords, compose_drum
 from kihachi_music_ai.models import SongSpec
 from kihachi_music_ai.music_brain import MusicBrain
 from kihachi_music_ai.mutation import (
+    _displace,
     GRID,
     Step,
     build_pattern,
@@ -301,3 +302,44 @@ class ComposerDrivenBySongSpecTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DisplacementTests(unittest.TestCase):
+    def test_displacement_never_lands_on_an_occupied_slot(self) -> None:
+        """Two steps at one position is a doubled note, not a mutation.
+
+        Humanize then separates them by a fraction of a millisecond, so it hides
+        in the data as two notes 0.0001 beats apart rather than as an exact
+        duplicate. Ghost insertion always checked occupancy; displacement did not.
+        """
+
+        base = build_pattern(
+            (0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75),
+            density=1.0,
+            minimum=8,
+            maximum=8,
+            duration=0.2,
+            velocity=90,
+        )
+        for seed in range(60):
+            pattern = base
+            rng = random.Random(seed)
+            for _ in range(12):
+                pattern = mutate_pattern(
+                    pattern, amount=1.0, rng=rng, syncopation=1.0, minimum_steps=2
+                )
+                positions = [step.position for step in pattern]
+                self.assertEqual(
+                    len(positions), len(set(positions)), f"seed {seed}: {positions}"
+                )
+
+    def test_a_step_with_nowhere_to_go_stays_put(self) -> None:
+        # both neighbouring slots taken, so displacement has no legal move
+        packed = (
+            Step(position=0.0, duration=0.2, velocity=90),
+            Step(position=0.25, duration=0.2, velocity=90),
+            Step(position=0.5, duration=0.2, velocity=90),
+        )
+        moved = _displace(packed[1], random.Random(0), 4.0, (packed[0], packed[2]))
+
+        self.assertEqual(moved.position, 0.25)

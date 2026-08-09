@@ -133,7 +133,8 @@ def mutate_pattern(
         index = rng.randrange(len(current))
         step = current[index]
         if operation == "displace" and not step.anchor:
-            current[index] = _displace(step, rng, bar_beats)
+            others = current[:index] + current[index + 1 :]
+            current[index] = _displace(step, rng, bar_beats, others)
         elif operation == "ghost":
             ghost = _ghost(step, rng, bar_beats)
             if ghost is not None and not _occupied(current, ghost.position):
@@ -210,14 +211,25 @@ def _weighted_choice(
     return weights[-1][0]
 
 
-def _displace(step: Step, rng: random.Random, bar_beats: float) -> Step:
+def _displace(
+    step: Step,
+    rng: random.Random,
+    bar_beats: float,
+    others: Sequence[Step] = (),
+) -> Step:
+    """Move a step one grid slot, but never onto a slot that is already taken.
+
+    Landing on an occupied slot writes two notes at the same position. Humanize
+    then separates them by a fraction of a millisecond, so it does not read as a
+    doubled note in the data -- it reads as a flam, and in a monophonic part it
+    is simply wrong. Ghost insertion always checked this; displacement did not.
+    """
+
     offset = GRID if rng.random() < 0.5 else -GRID
-    position = step.position + offset
-    if not 0.0 <= position < bar_beats:
-        position = step.position - offset
-    if not 0.0 <= position < bar_beats:
-        return step
-    return replace(step, position=round(position, 4))
+    for candidate in (step.position + offset, step.position - offset):
+        if 0.0 <= candidate < bar_beats and not _occupied(others, candidate):
+            return replace(step, position=round(candidate, 4))
+    return step
 
 
 def _ghost(step: Step, rng: random.Random, bar_beats: float) -> Step | None:
