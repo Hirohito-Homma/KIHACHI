@@ -14,12 +14,26 @@ SongSpec
 
 AbletonGPTとAbleton Liveには接続しません。コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。
 
-## 実行
+## 導入
 
-Python 3.11以降で、リポジトリ直下から実行します。
+Python 3.11以降。編集可能モードで入れると、ソースを直した結果がそのまま反映されます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai compose \
+python3 -m pip install -e .
+```
+
+以降 `PYTHONPATH=src` は不要です。呼び出しは `python3 -m kihachi_music_ai` を使います
+（`kihachi` コマンドも入りますが、環境によってはスクリプト置き場がPATHに載っておらず、
+モジュール形式のほうがどこでも確実に動きます）。
+
+インストールせずに動かす場合は、すべてのコマンドの頭に `PYTHONPATH=src` を付けてください。
+
+## 実行
+
+リポジトリ直下から実行します。
+
+```bash
+python3 -m kihachi_music_ai compose \
   'Mutation Funk、DUB、Tech House。110 BPM、D#m。ファンキーなスラップベース。前半ミニマル、後半サイケデリック。Vocoderを使用。'
 ```
 
@@ -36,7 +50,7 @@ prompt.txt
 出力先を指定する場合:
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai compose '...' --output projects/my-song
+python3 -m kihachi_music_ai compose '...' --output projects/my-song
 ```
 
 既存の対象ファイルは上書きしません。意図して再生成するときだけ `--overwrite` を付けます。
@@ -48,7 +62,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai compose '...' --output projects/my-so
 そのためライターはまず**声の処理方法**で駆動され、テーマは二番目です。モードがフレーズ長・反復・フックの戻り方を決め、SongSpecのジャンルと気分が語彙を決め、`section.vocal_probability` がそもそもどこで歌うかを決めます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai lyrics projects/my-song
+python3 -m kihachi_music_ai lyrics projects/my-song
 ```
 
 ```
@@ -114,7 +128,7 @@ Arrangement: ... dub breakdown (16 bars, energy 0.28, no drums, drenched in dub 
 現在は**SongSpecの全フィールドが消費されています**。加えて、Composerだけが読んでいてプロンプトには反映されていなかった値（`groove.humanize`、`bass.syncopation`、`drums.dub_space`、`chords.dub_delay` など）も文言に反映されるようになりました。
 
 ```
-$ kihachi apply-edit ... "dub_breakdownのディレイをかなり増やして"
+$ python3 -m kihachi_music_ai apply-edit ... "dub_breakdownのディレイをかなり増やして"
 - sections regenerated: none          ← 音符は動かない（正しい）
 - audio prompt changed: True          ← 以前は False だった
 
@@ -137,7 +151,7 @@ $ kihachi apply-edit ... "dub_breakdownのディレイをかなり増やして"
 `edit.py` は短い指示を **Spec Diff** — before/after を明示した検証可能なパラメータ変更リスト — に変換します。計画と適用は分かれていて、適用は常に**新しいプロジェクト**へ書きます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai edit projects/my-song "Dropのベースだけもっと変態的に"
+python3 -m kihachi_music_ai edit projects/my-song "Dropのベースだけもっと変態的に"
 ```
 
 ```
@@ -149,7 +163,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai edit projects/my-song "Dropのベー�
 ```
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai apply-edit projects/my-song projects/my-song-v2
+python3 -m kihachi_music_ai apply-edit projects/my-song projects/my-song-v2
 ```
 
 ```
@@ -198,7 +212,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai apply-edit projects/my-song projects/
 `arrangement.py` は使える8小節ブロック数に応じて**セクション・アーキタイプの並び**を選び、各セクションに固有のパート別密度とアクティブトラックを与えます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai compose '... 5分程度。'
+python3 -m kihachi_music_ai compose '... 5分程度。'
 ```
 
 ```
@@ -269,7 +283,7 @@ Composerは以下のSongSpec値を実際に読みます。
 外部パッケージなしで基本テストを実行できます。
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v
 ```
 
 ## Critic の二経路（MIDI照合 と Audio解析）
@@ -279,7 +293,7 @@ Analyzerは**完成ミックスから**ハーモニーを推定します。こ�
 しかしMIDIをSongSpecから書いている以上、**ハーモニーは推定する必要がありません。既に分かっています。** `midi_review.py` はディスク上の`.mid`を読み戻し、SongSpecと厳密照合します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai midi-review projects/my-song
+python3 -m kihachi_music_ai midi-review projects/my-song
 ```
 
 ```
@@ -308,7 +322,7 @@ MIDI由来のfindingはrepaintのrevision promptには載りません（あれ�
 ACE-Stepで生成したWAVを読み取り専用で解析し、SongSpecの尺、BPM、キー、コード進行、セクション/エネルギー設計に照合します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai analyze \
+python3 -m kihachi_music_ai analyze \
   projects/mutation-signal
 ```
 
@@ -330,7 +344,7 @@ WAVやMIDIは変更しません。既存の`audio_analysis.json`も`--overwrite`
 `audio_analysis.json`とSongSpecの差から、整合度と再生成方針を作れます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai review \
+python3 -m kihachi_music_ai review \
   example_output/mutation-signal-lora \
   --against example_output/mutation-signal
 ```
@@ -350,7 +364,7 @@ repaint_plan.json
 Reviewerの計画をACE-Step requestへ変換できます。この段階もネットワーク送信しません。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
+python3 -m kihachi_music_ai ace-step prepare \
   example_output/mutation-signal-lora \
   --repaint-plan repaint_plan.json
 ```
@@ -360,7 +374,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
 実生成は元プロジェクトと分離します。次のコマンドはSongSpec、MIDI、prompt、repaint計画だけを新規ディレクトリへ複製し、元AudioはSHA-256を確認するだけでコピーしません。適用した計画は`applied_repaint_plan.json`にも固定保存され、生成後のReviewerが作る次の計画と区別されます。出力先が既に存在する場合は停止します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step stage-repaint \
+python3 -m kihachi_music_ai ace-step stage-repaint \
   example_output/mutation-signal-lora \
   example_output/mutation-signal-lora-repaint-auto-01
 ```
@@ -370,7 +384,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step stage-repaint \
 再生成前に、元のACE-Step requestを残したまま改訂版requestを確認できます。この段階ではネットワーク送信しません。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
+python3 -m kihachi_music_ai ace-step prepare \
   example_output/mutation-signal-lora \
   --revision-file example_output/mutation-signal-lora/revision_prompt.txt
 ```
@@ -391,7 +405,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
 ネットワーク接続なしで、送信予定の内容を確認できます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
+python3 -m kihachi_music_ai ace-step prepare \
   projects/mutation-signal
 ```
 
@@ -401,7 +415,7 @@ ACE-Step 1.5 RESTサーバーを起動後、生成と音声取得を実行しま
 
 ```bash
 ACESTEP_API_KEY='serverに設定したキー' \
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal \
   --base-url http://127.0.0.1:8001
 ```
@@ -423,7 +437,7 @@ ACE-Step側の5Hz LM計画を使う場合だけ`--thinking`を追加します。
 既存Audioの尺と大きな構造を保持しながら、SongSpec、改訂指示、LoRAを使って再生成できます。Mac上のAudioはmultipartで直接アップロードされるため、Vast側へ手動コピーしたり、サーバーの絶対パスを成果物へ保存したりしません。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal-cover \
   --base-url http://127.0.0.1:8001 \
   --task-type cover \
@@ -442,7 +456,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
 `repaint`は参照元の指定範囲だけを再生成し、それ以外を保持します。推奨指定はSongSpecのセクション名です。CLIがBPMと拍子から安全に秒へ変換します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal-repaint \
   --base-url http://127.0.0.1:8001 \
   --task-type repaint \
@@ -470,7 +484,7 @@ ACE-Stepは与えられたバッファの中で「曲を完結」させます。
 `--tail-guard-bars`は曲尺より数小節だけ長いバッファを要求し、モデルの終止を採点対象の小節の外へ追い出します。生成後、配信WAVは曲尺へトリムし直され、未トリムのレンダーは`audio/ace-step-01.untrimmed.wav`として監査用に残ります。トリム端には10 msのフェードだけを掛けるので、クリックは出ず、小節エネルギーは動きません。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal-repaint \
   --base-url http://127.0.0.1:8001 \
   --task-type repaint \
@@ -490,14 +504,14 @@ repaint範囲が最終小節に届く場合は、マスク自体もguard領域�
 LoRAは生成JSONへ埋め込むのではなく、ACE-Stepサーバー上のモデルへロードします。まず現在の状態を確認できます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step lora status \
+python3 -m kihachi_music_ai ace-step lora status \
   --base-url http://127.0.0.1:8001
 ```
 
 KIHACHI LoRAをロードし、強度を設定して有効化します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step lora load \
+python3 -m kihachi_music_ai ace-step lora load \
   /workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final \
   --scale 0.8 \
   --base-url http://127.0.0.1:8001
@@ -508,7 +522,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step lora load \
 ロードから生成まで一度に実行する場合:
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal \
   --base-url http://127.0.0.1:8001 \
   --lora-path /workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final \
