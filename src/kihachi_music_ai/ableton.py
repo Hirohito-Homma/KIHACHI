@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .genres import find as find_genre
 from .midi import MidiNote, read_midi
 from .models import TRACK_NAMES, SongSpec
 
@@ -90,9 +91,62 @@ LIVE_GENRE_KEYWORDS = {
     "pop": ("pop",),
 }
 
+LIVE_GENRE_BY_FAMILY = {
+    "Blues": "rock",
+    "Jazz": "jazz",
+    "R&B / Soul / Funk": "rnb",
+    "Rock": "rock",
+    "Metal": "rock",
+    "Punk / Hardcore": "rock",
+    "Pop": "pop",
+    "Hip-Hop / Rap": "hiphop",
+    "House": "edm",
+    "Techno": "edm",
+    "Trance": "edm",
+    "Breakbeat / Breaks": "edm",
+    "Jungle / Drum & Bass": "edm",
+    "UK Garage / Bass": "edm",
+    "Hardcore Electronic": "edm",
+    "Ambient / Downtempo": "lofi",
+    "IDM / Experimental Electronic": "edm",
+    "Electro / Synth / Industrial": "edm",
+    "Disco": "rnb",
+    "Vaporwave / Internet": "lofi",
+    "Reggae / Dub / Ska": "edm",
+    "Global Bass / Club": "edm",
+    "EDM / Future Bass": "edm",
+    "Experimental / Noise / Drone": "edm",
+    "Country / Americana": "rock",
+    "Folk": "rock",
+}
+"""Genre-database families that map onto one of AbletonGPT's seven buckets.
+
+Consulted **only when no keyword matched**, which is what makes it safe to add:
+every prompt that resolved before this existed still resolves the same way, and
+the seed prompt still lands on ``edm`` because ``funk``/``dub``/``house`` all
+match keywords first.
+
+It exists because recognising 1020 genres made the old blind ``pop`` default
+much more visible. ``drum_bass`` matches no keyword, and used to arrive here as
+``electronic`` -- which hit the ``electro`` keyword and landed on ``edm`` by
+accident. Naming the genre properly removed the accident, so drum & bass would
+have become ``pop``. Families restore the intent deliberately instead.
+
+Families with no honest home among the seven (Classical, Latin, Brazilian,
+African, the regional traditions, Soundtrack) are deliberately absent and fall
+through to ``pop``, because inventing a mapping would be worse than admitting
+the taxonomy does not reach them.
+"""
+
 
 def _live_instrument_genre(spec: SongSpec) -> str:
-    """Collapse weighted free-form KIHACHI genres into AbletonGPT's taxonomy."""
+    """Collapse weighted free-form KIHACHI genres into AbletonGPT's taxonomy.
+
+    Keyword first, then the genre database's family, then ``pop``. The order is
+    deliberate: keywords decide every case they already decided, so nothing that
+    worked before changes, and the family lookup only replaces the blind ``pop``
+    fallback.
+    """
 
     scores = {genre: 0.0 for genre in LIVE_GENRE_KEYWORDS}
     for item in spec.style.genres:
@@ -104,7 +158,9 @@ def _live_instrument_genre(spec: SongSpec) -> str:
                 matched = True
                 break
         if not matched:
-            scores["pop"] += item.weight
+            entry = find_genre(item.name)
+            family = LIVE_GENRE_BY_FAMILY.get(entry.parent) if entry else None
+            scores[family or "pop"] += item.weight
     return max(scores, key=lambda genre: scores[genre])
 
 
