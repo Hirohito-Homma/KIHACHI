@@ -232,8 +232,8 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "route a part to a return as part:send_index[:low:high], e.g. "
             "chords:1:0.1:0.6 (repeatable). Send 0 is return A, 1 is return B; "
-            "get_mix_snapshot reports their names. The level is one value for "
-            "the whole song -- Live cannot automate a send from a clip envelope"
+            "get_mix_snapshot reports their names. SongSpec fx_amount becomes "
+            "one Send Envelope step per section"
         ),
     )
     ableton_plan.add_argument(
@@ -1031,12 +1031,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"energy {section['energy']:.2f}  resting: {resting}"
                 )
             for operation in plan["operations"]:
-                if operation["op"] == "set_track_send":
+                if operation["op"] == "set_clip_send_envelope":
                     params = operation["params"]
+                    values = [step["value"] for step in params["steps"]]
                     print(
-                        f"- send: track {params['track_index']} → return "
-                        f"{chr(ord('A') + params['send_index'])} at "
-                        f"{params['value']:.3f}"
+                        f"- send envelope: track {params['track_index']} → return "
+                        f"{chr(ord('A') + params['send_index'])}, "
+                        f"{len(values)} steps ({min(values):.3f}-{max(values):.3f})"
                     )
             automated = [op for op in plan["operations"] if op["op"] == "set_clip_parameter_envelope"]
             for operation in automated:

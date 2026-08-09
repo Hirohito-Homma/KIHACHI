@@ -522,14 +522,14 @@ class AudioTrackTests(unittest.TestCase):
 
 
 class SendTests(unittest.TestCase):
-    """A dub delay throw is send automation; this can only set a level."""
+    """A dub delay throw follows the SongSpec section by section."""
 
     def setUp(self) -> None:
         self.spec = MusicBrain(seed=8).analyze(LONG_PROMPT)
         self.tracks = compose_tracks(self.spec)
 
     def _sends(self, plan):
-        return [op for op in plan["operations"] if op["op"] == "set_track_send"]
+        return [op for op in plan["operations"] if op["op"] == "set_clip_send_envelope"]
 
     def test_a_send_targets_the_track_the_part_landed_on(self) -> None:
         plan = build_arrangement_plan(
@@ -540,7 +540,18 @@ class SendTests(unittest.TestCase):
         self.assertEqual(self._sends(plan)[0]["params"]["track_index"], chords["live_track_index"])
         self.assertEqual(self._sends(plan)[0]["params"]["send_index"], 1)
 
-    def test_the_level_comes_from_the_song_and_respects_the_range(self) -> None:
+    def test_one_step_per_section_uses_the_song_grid(self) -> None:
+        plan = build_arrangement_plan(
+            self.spec, self.tracks, sends=[{"part": "chords", "send_index": 1}]
+        )
+        steps = self._sends(plan)[0]["params"]["steps"]
+
+        self.assertEqual(len(steps), len(self.spec.arrangement))
+        for step, section in zip(steps, self.spec.arrangement):
+            self.assertEqual(step["start"], section.start_bar * 4.0)
+            self.assertEqual(step["length"], section.length_bars * 4.0)
+
+    def test_values_come_from_each_section_and_respect_the_range(self) -> None:
         plain = build_arrangement_plan(
             self.spec, self.tracks, sends=[{"part": "chords", "send_index": 0}]
         )
@@ -550,21 +561,25 @@ class SendTests(unittest.TestCase):
             sends=[{"part": "chords", "send_index": 0, "low": 0.0, "high": 0.5}],
         )
 
-        full = self._sends(plain)[0]["params"]["value"]
-        half = self._sends(scaled)[0]["params"]["value"]
-        self.assertAlmostEqual(half, full * 0.5, places=5)
-        self.assertTrue(0.0 < full <= 1.0)
+        full = [step["value"] for step in self._sends(plain)[0]["params"]["steps"]]
+        half = [step["value"] for step in self._sends(scaled)[0]["params"]["steps"]]
+        self.assertEqual(
+            len(set(full)),
+            len(set(section.fx_amount for section in self.spec.arrangement)),
+        )
+        for full_value, half_value in zip(full, half):
+            self.assertAlmostEqual(half_value, full_value * 0.5, places=5)
 
-    def test_flattening_the_curve_is_reported_not_hidden(self) -> None:
-        """0.30 and 0.70 both become 0.49; that must not be found by ear."""
-
+    def test_the_envelope_is_written_before_the_clip_is_copied(self) -> None:
         plan = build_arrangement_plan(
             self.spec, self.tracks, sends=[{"part": "chords", "send_index": 1}]
         )
+        operations = plan["operations"]
+        envelope = operations.index(self._sends(plan)[0])
 
-        flattened = [w for w in plan["warnings"] if "one level for the whole song" in w]
-        self.assertEqual(len(flattened), 1)
-        self.assertIn("fx_amount runs", flattened[0])
+        self.assertEqual(operations[envelope - 1]["op"], "create_midi_clip")
+        self.assertEqual(operations[envelope + 1]["op"], "copy_session_clip_to_arrangement")
+        self.assertFalse(any("one level for the whole song" in warning for warning in plan["warnings"]))
 
     def test_a_send_to_a_part_that_is_not_in_the_plan_is_refused(self) -> None:
         with self.assertRaises(ValueError) as caught:
@@ -583,6 +598,21 @@ class SendTests(unittest.TestCase):
                     self.tracks,
                     sends=[{"part": "chords", "send_index": 0, **bad}],
                 )
+
+    def test_no_fx_amount_is_refused_rather_than_guessed(self) -> None:
+        bare = dataclasses.replace(
+            self.spec,
+            arrangement=tuple(
+                dataclasses.replace(section, fx_amount=None)
+                for section in self.spec.arrangement
+            ),
+        )
+        with self.assertRaises(ValueError):
+            build_arrangement_plan(
+                bare,
+                compose_tracks(bare),
+                sends=[{"part": "chords", "send_index": 0}],
+            )
 
     def test_binding_syntax(self) -> None:
         self.assertEqual(

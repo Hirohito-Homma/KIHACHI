@@ -488,19 +488,16 @@ python3 -m kihachi_music_ai ableton-plan projects/my-song --send chords:1:0.1:0.
 `send_index` の0がリターンA、1がB。どのリターンかはLiveセット側の事実なので導出できません
 （AbletonGPTの`get_mix_snapshot`が名前を返します）。
 
-**送り量は曲全体で1つの値です。** ダブのディレイ・スローは本来セクションごとに送りを変える技法ですが、
-Liveがクリップエンベロープを公開しているのは**デバイスチェーン上のパラメータだけ**で、
-センドはミキサー側にあるため`set_clip_parameter_envelope`が届きません。
-
-そのためSongSpecの`fx_amount`は平均され、**平坦化した事実が警告として出ます**。
+SongSpecの`fx_amount`は、各セクションの開始拍・長さ・送り量を持つ
+`set_clip_send_envelope`へ変換されます。ダブのディレイ・スローは、曲全体の
+平均値ではなく、セクションごとに動きます。
 
 ```
-warning: chords send is one level for the whole song: fx_amount runs 0.30-0.70
-and was averaged to 0.49. Live exposes clip envelopes for device parameters only,
-so a send cannot be automated per section from here
+- send envelope: track 4 → return B, 9 steps (0.250-0.600)
 ```
 
-0.30と0.70が同じ0.49になることを、耳で気づかせないためです。
+LiveはArrangement上のオートメーションを直接書けないため、順序は
+**Sessionクリップ作成 → Send Envelope → Arrangementへコピー**です。
 
 ## Revision Loop（測る→直す→また測る、を回す）
 

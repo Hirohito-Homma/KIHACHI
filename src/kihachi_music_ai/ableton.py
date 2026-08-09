@@ -177,70 +177,27 @@ def parse_send_binding(text: str) -> dict[str, Any]:
     return binding
 
 
-def _send_operations(
+def _send_envelope_steps(
     spec: SongSpec,
-    sends: Sequence[Mapping[str, Any]],
-    track_index_of: Mapping[str, int],
-) -> tuple[list[dict[str, Any]], list[str]]:
-    """One send level per bound part, plus a warning for what gets flattened.
+    binding: Mapping[str, Any],
+    bar_beats: float,
+) -> list[dict[str, Any]]:
+    """Map the song's section-level FX intent onto one mixer send.
 
-    A dub delay throw is a send that moves between sections, and this cannot
-    write that: Live exposes clip envelopes for device-chain parameters only, and
-    a send lives on the mixer, so ``set_clip_parameter_envelope`` cannot reach
-    it. The song's own ``fx_amount`` curve is therefore averaged into a single
-    level, and the range it was averaged from is reported rather than dropped --
-    a section written for 0.30 and one written for 0.70 both end up at 0.50, and
-    that should not be discovered by ear.
+    Send envelopes use the same timing and range rules as device-parameter
+    envelopes. The target differs -- a send lives on the track mixer -- but the
+    musical source is still the per-section ``fx_amount`` curve.
     """
 
-    operations: list[dict[str, Any]] = []
-    warnings: list[str] = []
-    for binding in sends:
-        part = str(binding["part"])
-        if part not in track_index_of:
-            raise ValueError(
-                f"send targets no track: {part!r}; this plan has "
-                f"{', '.join(sorted(track_index_of))}"
-            )
-        low = float(binding.get("low", 0.0))
-        high = float(binding.get("high", 1.0))
-        if not 0.0 <= low <= 1.0 or not 0.0 <= high <= 1.0:
-            raise ValueError("send low/high must be between 0.0 and 1.0")
-        if high <= low:
-            raise ValueError("send high must be greater than low")
-
-        amounts = [
-            float(section.fx_amount)
-            for section in spec.arrangement
-            if section.fx_amount is not None
-        ]
-        if not amounts:
-            raise ValueError("no section carries fx_amount; nothing to send")
-        mean = sum(amounts) / len(amounts)
-        value = round(low + mean * (high - low), 6)
-        operations.append(
-            {
-                "op": "set_track_send",
-                "params": {
-                    "track_index": track_index_of[part],
-                    "send_index": int(binding["send_index"]),
-                    "value": value,
-                    "normalized": True,
-                },
-                "why": (
-                    f"{part} fx_amount averages {mean:.2f} over "
-                    f"{len(amounts)} sections"
-                ),
-            }
-        )
-        if max(amounts) - min(amounts) > 0.05:
-            warnings.append(
-                f"{part} send is one level for the whole song: fx_amount runs "
-                f"{min(amounts):.2f}-{max(amounts):.2f} and was averaged to "
-                f"{mean:.2f}. Live exposes clip envelopes for device parameters "
-                f"only, so a send cannot be automated per section from here"
-            )
-    return operations, warnings
+    return _envelope_steps(
+        spec,
+        {
+            "field": "fx_amount",
+            "low": binding.get("low", 0.0),
+            "high": binding.get("high", 1.0),
+        },
+        bar_beats,
+    )
 
 
 def parse_automation_binding(text: str) -> dict[str, Any]:
@@ -354,6 +311,15 @@ def build_arrangement_plan(
 
     warnings: list[str] = []
     matched: set[str] = set()
+    available_parts = {name for name, _label, _notes in layout}
+    unmatched_sends = sorted(
+        {str(binding.get("part")) for binding in sends} - available_parts
+    )
+    if unmatched_sends:
+        raise ValueError(
+            f"send targets no track: {unmatched_sends}; this plan has "
+            f"{', '.join(sorted(available_parts))}"
+        )
     for offset, (name, label, part_notes) in enumerate(layout):
         track_index = first_track_index + offset
         notes = _clip_notes(part_notes, song_beats)
@@ -399,6 +365,28 @@ def build_arrangement_plan(
                     ),
                 }
             )
+        for binding in sends:
+            if binding.get("part") != name:
+                continue
+            send_index = int(binding["send_index"])
+            if send_index < 0:
+                raise ValueError("send index cannot be negative")
+            steps = _send_envelope_steps(spec, binding, bar_beats)
+            operations.append(
+                {
+                    "op": "set_clip_send_envelope",
+                    "params": {
+                        "track_index": track_index,
+                        "clip_index": session_slot,
+                        "send_index": send_index,
+                        "steps": steps,
+                    },
+                    "why": (
+                        "section fx_amount drives this mixer send "
+                        f"({len(steps)} steps, one per populated section)"
+                    ),
+                }
+            )
         operations.append(
             {
                 "op": "copy_session_clip_to_arrangement",
@@ -411,17 +399,6 @@ def build_arrangement_plan(
                 "why": "place the part on the Arrangement timeline at bar 1",
             }
         )
-
-    # Sends go on once the tracks exist. They are a mixer setting, not a clip
-    # property, so they do not travel with a Session-to-Arrangement copy and can
-    # be written at any point after the track is there.
-    track_index_of = {
-        name: first_track_index + offset
-        for offset, (name, _label, _notes) in enumerate(layout)
-    }
-    send_operations, send_warnings = _send_operations(spec, sends, track_index_of)
-    operations.extend(send_operations)
-    warnings.extend(send_warnings)
 
     # Audio tracks come last, after every MIDI track exists, so their indices do
     # not shift the ones the clips were written against. These are references and
