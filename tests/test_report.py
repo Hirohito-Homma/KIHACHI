@@ -15,9 +15,11 @@ from kihachi_music_ai.reviewer import review_project
 from test_music_brain import EXAMPLE
 
 RATE = 8000
+TAKE_SECONDS = 18.0
+"""These tests are about what the page shows, not about how long a take is."""
 
 
-def write_take(path: Path, *, seconds: float = 70.0, gap: tuple[float, float] | None = None) -> None:
+def write_take(path: Path, *, seconds: float = TAKE_SECONDS, gap: tuple[float, float] | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     samples = array("h")
     for frame in range(int(seconds * RATE)):
@@ -87,7 +89,7 @@ class RankingTests(unittest.TestCase):
 class CandidateTests(unittest.TestCase):
     def test_a_take_reports_its_defects_and_where_they_are(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            project = make_project(Path(temp), "holed", gap=(60.0, 3.0))
+            project = make_project(Path(temp), "holed", gap=(12.0, 3.0))
 
             candidate = load_candidate(project)
 
@@ -96,7 +98,7 @@ class CandidateTests(unittest.TestCase):
             at, code, severity = candidate.defect_marks[0]
             self.assertEqual(code, "silent_gap")
             self.assertEqual(severity, "blocking")
-            self.assertAlmostEqual(at, 60.0, delta=1.0)
+            self.assertAlmostEqual(at, 12.0, delta=1.0)
 
     def test_section_marks_survive_a_take_that_was_never_scanned(self) -> None:
         """Length used to come only from the scan, so unscanned takes lost every mark."""
@@ -109,7 +111,7 @@ class CandidateTests(unittest.TestCase):
             candidate = load_candidate(project)
 
             self.assertFalse(candidate.scanned)
-            self.assertGreater(candidate.duration_sec, 60.0)
+            self.assertGreater(candidate.duration_sec, TAKE_SECONDS - 1.0)
             self.assertTrue(candidate.section_marks)
 
     def test_the_untrimmed_render_is_never_offered_for_listening(self) -> None:
@@ -118,7 +120,7 @@ class CandidateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             project = make_project(Path(temp), "song")
             audio = project / "audio"
-            write_take(audio / "ace-step-01.untrimmed.wav", seconds=74.0)
+            write_take(audio / "ace-step-01.untrimmed.wav", seconds=TAKE_SECONDS + 4.0)
 
             candidate = load_candidate(project)
 
@@ -132,26 +134,35 @@ class CandidateTests(unittest.TestCase):
 
 
 class PageTests(unittest.TestCase):
+    """Built once for the class: analysing a seventy-second take costs ~6 s, and
+    none of these tests change the project they read."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._temp = tempfile.TemporaryDirectory()
+        root = Path(cls._temp.name)
+        cls.first = make_project(root, "song")
+        cls.second = make_project(root, "song-rev01")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._temp.cleanup()
+
     def test_takes_in_sibling_directories_get_a_path_the_page_can_follow(self) -> None:
         """Rounds are written beside their source, so links have to walk upwards."""
 
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            first = make_project(root, "song")
-            second = make_project(root, "song-rev01")
+        import re
 
-            page = build_report(
-                [load_candidate(first), load_candidate(second)], base_dir=first
-            )
+        page = build_report(
+            [load_candidate(self.first), load_candidate(self.second)], base_dir=self.first
+        )
 
-            import re
-
-            sources = re.findall(r'<audio[^>]*src="([^"]+)"', page)
-            self.assertEqual(
-                sorted(sources),
-                ["../song-rev01/audio/ace-step-01.wav", "audio/ace-step-01.wav"],
-            )
-            self.assertFalse([src for src in sources if src.startswith("file://")])
+        sources = re.findall(r'<audio[^>]*src="([^"]+)"', page)
+        self.assertEqual(
+            sorted(sources),
+            ["../song-rev01/audio/ace-step-01.wav", "audio/ace-step-01.wav"],
+        )
+        self.assertFalse([src for src in sources if src.startswith("file://")])
 
     def test_the_page_says_nothing_was_adopted(self) -> None:
         page = build_report([fake("a", 60.0)], base_dir=Path("/tmp"))
@@ -161,13 +172,10 @@ class PageTests(unittest.TestCase):
     def test_audio_is_linked_not_embedded(self) -> None:
         """A take is 13 MB; three of them inside a page is not a page."""
 
-        with tempfile.TemporaryDirectory() as temp:
-            project = make_project(Path(temp), "song")
+        page = build_report([load_candidate(self.first)], base_dir=self.first)
 
-            page = build_report([load_candidate(project)], base_dir=project)
-
-            self.assertNotIn("data:audio", page)
-            self.assertLess(len(page.encode("utf-8")), 400_000)
+        self.assertNotIn("data:audio", page)
+        self.assertLess(len(page.encode("utf-8")), 400_000)
 
     def test_each_take_gets_an_instruction_field_bound_to_its_own_project(self) -> None:
         pages = build_report(

@@ -19,7 +19,9 @@ from __future__ import annotations
 
 import cmath
 import math
+import sys
 import wave
+from array import array
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +64,31 @@ not change quickly enough to need every window.
 """
 
 
+_TWIDDLES: dict[int, list[list[complex]]] = {}
+
+
+def _twiddles(count: int) -> list[list[complex]]:
+    """Roots of unity per stage, computed once and reused.
+
+    Recomputing ``exp(-2j*pi/size)`` inside the butterfly meant 200 windows of a
+    single take rebuilt the same few thousand constants 200 times.
+    """
+
+    cached = _TWIDDLES.get(count)
+    if cached is None:
+        cached = []
+        size = 2
+        while size <= count:
+            step = cmath.exp(-2j * math.pi / size)
+            factors = [1 + 0j]
+            for _ in range(size // 2 - 1):
+                factors.append(factors[-1] * step)
+            cached.append(factors)
+            size *= 2
+        _TWIDDLES[count] = cached
+    return cached
+
+
 def _fft(values: list[complex]) -> list[complex]:
     """Iterative radix-2 Cooley-Tukey. ``len(values)`` must be a power of two."""
 
@@ -75,18 +102,18 @@ def _fft(values: list[complex]) -> list[complex]:
         mirrored = int(f"{index:0{bits}b}"[::-1], 2) if bits else 0
         if mirrored > index:
             output[index], output[mirrored] = output[mirrored], output[index]
+    stages = _twiddles(count)
     size = 2
-    while size <= count:
-        step = cmath.exp(-2j * math.pi / size)
+    for factors in stages:
         half = size // 2
         for start in range(0, count, size):
-            factor = 1 + 0j
             for offset in range(half):
-                a = output[start + offset]
-                b = output[start + offset + half] * factor
-                output[start + offset] = a + b
-                output[start + offset + half] = a - b
-                factor *= step
+                index = start + offset
+                partner = index + half
+                a = output[index]
+                b = output[partner] * factors[offset]
+                output[index] = a + b
+                output[partner] = a - b
         size *= 2
     return output
 
@@ -119,6 +146,18 @@ def band_energies(audio_path: Path) -> dict[str, Any]:
 
         hop = max(WINDOW, frames // MAX_WINDOWS)
         window = _hann(WINDOW)
+        # Which band each bin belongs to, worked out once rather than by scanning
+        # the band list for all 1023 bins of all 200 windows.
+        band_of: list[int | None] = []
+        for bin_index in range(WINDOW // 2):
+            frequency = bin_index * rate / WINDOW
+            band_of.append(
+                next(
+                    (i for i, (_n, low, high) in enumerate(BANDS) if low <= frequency < high),
+                    None,
+                )
+            )
+        names = [name for name, _low, _high in BANDS]
         totals = {name: 0.0 for name, _low, _high in BANDS}
         grand = 0.0
         counted = 0
@@ -126,21 +165,25 @@ def band_energies(audio_path: Path) -> dict[str, Any]:
         while position + WINDOW <= frames:
             source.setpos(position)
             raw = source.readframes(WINDOW)
-            block: list[complex] = []
-            for index in range(WINDOW):
-                offset = index * channels * 2
-                # left channel only: the balance of a mix is not a stereo question
-                sample = int.from_bytes(raw[offset : offset + 2], "little", signed=True)
-                block.append(complex(sample / 32768.0 * window[index], 0.0))
+            # array() decodes the whole window in C; int.from_bytes per sample
+            # was most of the cost of measuring a spectrum.
+            decoded = array("h")
+            decoded.frombytes(raw[: WINDOW * channels * 2])
+            if sys.byteorder != "little":
+                decoded.byteswap()
+            # left channel only: the balance of a mix is not a stereo question
+            block = [
+                complex(decoded[index * channels] / 32768.0 * window[index], 0.0)
+                for index in range(WINDOW)
+            ]
             spectrum = _fft(block)
             for bin_index in range(1, WINDOW // 2):
-                frequency = bin_index * rate / WINDOW
-                power = abs(spectrum[bin_index]) ** 2
+                value = spectrum[bin_index]
+                power = value.real * value.real + value.imag * value.imag
                 grand += power
-                for name, low, high in BANDS:
-                    if low <= frequency < high:
-                        totals[name] += power
-                        break
+                band = band_of[bin_index]
+                if band is not None:
+                    totals[names[band]] += power
             counted += 1
             position += hop
 

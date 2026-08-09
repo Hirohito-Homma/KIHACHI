@@ -17,6 +17,13 @@ from kihachi_music_ai.revision import MIN_GAIN, RevisionLog, Round, describe, ru
 from test_music_brain import EXAMPLE
 
 RATE = 8000
+TAKE_SECONDS = 18.0
+"""Long enough to carry a hole and several sections' worth of level changes.
+
+Seventy seconds -- the SongSpec's own length -- cost about six seconds an
+analysis, and these tests analyse fifteen times between them. None of them
+assert on duration or on an absolute alignment score.
+"""
 
 
 def write_take(path: Path, *, seconds: float, gap: tuple[float, float] | None = None) -> None:
@@ -62,12 +69,12 @@ class LoopTests(unittest.TestCase):
         """Adoption is a listening decision; the score cannot hear."""
 
         with tempfile.TemporaryDirectory() as temp:
-            project = self._project(Path(temp), seconds=70.0, gap=(60.0, 3.0))
+            project = self._project(Path(temp), seconds=TAKE_SECONDS, gap=(12.0, 3.0))
             calls: list[Path] = []
 
             with contextlib.redirect_stdout(io.StringIO()):
                 log = run_revision_loop(
-                    project, self._renderer(calls, seconds=70.0), rounds=2
+                    project, self._renderer(calls, seconds=TAKE_SECONDS), rounds=2
                 )
 
             self.assertGreaterEqual(len(log.rounds), 2)
@@ -78,12 +85,12 @@ class LoopTests(unittest.TestCase):
 
     def test_the_source_project_is_never_overwritten(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            project = self._project(Path(temp), seconds=70.0, gap=(60.0, 3.0))
+            project = self._project(Path(temp), seconds=TAKE_SECONDS, gap=(12.0, 3.0))
             spec_before = (project / "song_spec.json").read_bytes()
             audio_before = (project / "audio" / "ace-step-01.wav").read_bytes()
 
             with contextlib.redirect_stdout(io.StringIO()):
-                run_revision_loop(project, self._renderer([], seconds=70.0), rounds=2)
+                run_revision_loop(project, self._renderer([], seconds=TAKE_SECONDS), rounds=2)
 
             self.assertEqual((project / "song_spec.json").read_bytes(), spec_before)
             self.assertEqual(
@@ -92,11 +99,11 @@ class LoopTests(unittest.TestCase):
 
     def test_each_round_writes_a_new_project_beside_the_last(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            project = self._project(Path(temp), seconds=70.0, gap=(60.0, 3.0))
+            project = self._project(Path(temp), seconds=TAKE_SECONDS, gap=(12.0, 3.0))
             calls: list[Path] = []
 
             with contextlib.redirect_stdout(io.StringIO()):
-                run_revision_loop(project, self._renderer(calls, seconds=70.0), rounds=2)
+                run_revision_loop(project, self._renderer(calls, seconds=TAKE_SECONDS), rounds=2)
 
             self.assertTrue(calls)
             self.assertEqual(calls[0].name, "song-rev01")
@@ -104,13 +111,13 @@ class LoopTests(unittest.TestCase):
 
     def test_an_existing_round_directory_stops_the_loop_rather_than_replacing_it(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            project = self._project(Path(temp), seconds=70.0, gap=(60.0, 3.0))
+            project = self._project(Path(temp), seconds=TAKE_SECONDS, gap=(12.0, 3.0))
             occupied = project.parent / "song-rev01"
             occupied.mkdir()
             (occupied / "keep.txt").write_text("mine", encoding="utf-8")
 
             with contextlib.redirect_stdout(io.StringIO()):
-                log = run_revision_loop(project, self._renderer([], seconds=70.0), rounds=2)
+                log = run_revision_loop(project, self._renderer([], seconds=TAKE_SECONDS), rounds=2)
 
             self.assertIn("already exists", log.stopped_because)
             self.assertEqual(len(log.rounds), 1)
@@ -120,12 +127,12 @@ class LoopTests(unittest.TestCase):
         """Seed noise moves this score by tens of points; a fraction is not a win."""
 
         with tempfile.TemporaryDirectory() as temp:
-            project = self._project(Path(temp), seconds=70.0)
+            project = self._project(Path(temp), seconds=TAKE_SECONDS)
             calls: list[Path] = []
 
             with contextlib.redirect_stdout(io.StringIO()):
                 log = run_revision_loop(
-                    project, self._renderer(calls, seconds=70.0), rounds=5
+                    project, self._renderer(calls, seconds=TAKE_SECONDS), rounds=5
                 )
 
             self.assertLess(len(calls), 5)
@@ -136,14 +143,14 @@ class LoopTests(unittest.TestCase):
 
     def test_rounds_must_be_positive(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            project = self._project(Path(temp), seconds=70.0)
+            project = self._project(Path(temp), seconds=TAKE_SECONDS)
             with self.assertRaises(ValueError):
-                run_revision_loop(project, self._renderer([], seconds=70.0), rounds=0)
+                run_revision_loop(project, self._renderer([], seconds=TAKE_SECONDS), rounds=0)
 
     def test_a_project_without_a_song_spec_is_refused(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(FileNotFoundError):
-                run_revision_loop(Path(temp), self._renderer([], seconds=70.0))
+                run_revision_loop(Path(temp), self._renderer([], seconds=TAKE_SECONDS))
 
 
 class RankingTests(unittest.TestCase):
