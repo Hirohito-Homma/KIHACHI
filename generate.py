@@ -41,7 +41,6 @@ from kihachi_music_ai.pipeline import compose_project  # noqa: E402
 from kihachi_music_ai.tail_guard import DEFAULT_TAIL_GUARD_BARS  # noqa: E402
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8001"
-DEFAULT_LIBRARY = Path("/Volumes/NO NAME/ACE-Step/generated")
 DEFAULT_PROJECTS = Path("/Volumes/NO NAME/ACE-Step/projects")
 
 
@@ -103,7 +102,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("brief", nargs="?", help="natural-language music brief")
     parser.add_argument("--project", type=Path, help="render an existing project instead")
     parser.add_argument("--name", help="output name; defaults to a timestamp")
-    parser.add_argument("--library", type=Path, default=DEFAULT_LIBRARY, help="where to file the result")
+    parser.add_argument(
+        "--library",
+        type=Path,
+        help=(
+            "put the listening copy somewhere else; by default it lands beside "
+            "the WAV, so one song stays one directory"
+        ),
+    )
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--seed", type=int, default=8)
     parser.add_argument("--no-lyrics", action="store_true", help="render instrumental")
@@ -171,7 +177,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"- {finding['severity']}: {finding['detail']}")
 
     if not args.keep_wav_only:
-        listening = _to_mp3(wav, args.library / f"{name}.mp3")
+        library = args.library or wav.parent
+        listening = _to_mp3(wav, library / f"{name}.mp3")
         if listening is None:
             print("- no encoder found; the WAV above is the only copy")
         else:
