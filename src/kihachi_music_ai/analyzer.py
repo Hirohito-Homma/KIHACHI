@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .defects import scan_material
 from .models import SongSpec
 from .theory import NOTE_TO_PC, chord_root
 
@@ -29,6 +30,8 @@ class AudioAnalysisManifest:
     audio_file: Path
     analysis_file: Path
     analysis: dict[str, Any]
+    defects_file: Path | None = None
+    defects: dict[str, Any] | None = None
 
 
 def analyze_project(
@@ -36,7 +39,23 @@ def analyze_project(
     audio_file: Path | None = None,
     *,
     overwrite: bool = False,
+    scan_defects: bool = True,
 ) -> AudioAnalysisManifest:
+    """Analyze a project's audio and scan it for defects.
+
+    Two passes over the same file answering different questions. The analysis
+    asks whether the audio followed the SongSpec; the scan asks whether the audio
+    is usable at all, without reference to any plan. They stay separate
+    artifacts because averaging them hides the failure that matters: the baseline
+    take scores 88.69 "aligned" while carrying a 2.28 s silent hole, and the
+    seed-42 take that scores 35.38 is defect-free.
+
+    The scan lives here rather than in the CLI so that every caller gets it.
+    It was wired into the command line first, which meant a programmatic
+    ``analyze_project`` silently skipped it -- and a batch rescore of twenty
+    stored renders reported no defects at all.
+    """
+
     project_dir = Path(project_dir)
     spec_path = project_dir / "song_spec.json"
     if not spec_path.is_file():
@@ -52,6 +71,9 @@ def analyze_project(
     analysis_path = project_dir / "audio_analysis.json"
     if analysis_path.exists() and not overwrite:
         raise FileExistsError(f"refusing to overwrite audio analysis: {analysis_path}")
+    defects_path = project_dir / "material_defects.json"
+    if scan_defects and defects_path.exists() and not overwrite:
+        raise FileExistsError(f"refusing to overwrite defect scan: {defects_path}")
 
     analysis = analyze_wave(audio_path, spec)
     try:
@@ -63,11 +85,21 @@ def analyze_project(
         analysis_path,
         json.dumps(analysis, ensure_ascii=False, indent=2) + "\n",
     )
+
+    defects = None
+    if scan_defects:
+        defects = scan_material(audio_path)
+        _atomic_write_text(
+            defects_path,
+            json.dumps(defects, ensure_ascii=False, indent=2) + "\n",
+        )
     return AudioAnalysisManifest(
         project_dir=project_dir,
         audio_file=audio_path,
         analysis_file=analysis_path,
         analysis=analysis,
+        defects_file=defects_path if scan_defects else None,
+        defects=defects,
     )
 
 

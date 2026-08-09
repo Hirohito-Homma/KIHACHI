@@ -308,15 +308,63 @@ class AnalyzeWiringTests(unittest.TestCase):
 
             self.assertIn("silent_gap(blocking)", out.getvalue())
 
-    def test_an_existing_scan_is_kept_unless_overwrite_is_asked_for(self) -> None:
+    def test_an_existing_scan_is_refused_rather_than_replaced(self) -> None:
+        """Same guard as every other artifact: say no, do not quietly proceed."""
+
         with tempfile.TemporaryDirectory() as temp:
             project = self._project(Path(temp))
             scan = project / "material_defects.json"
             scan.write_text('{"authored": true}\n', encoding="utf-8")
-            with contextlib.redirect_stdout(io.StringIO()):
-                main(["analyze", str(project)])
 
+            error = io.StringIO()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(error):
+                status = main(["analyze", str(project)])
+
+            self.assertEqual(status, 2)
+            self.assertIn("material_defects.json", error.getvalue())
             self.assertEqual(json.loads(scan.read_text(encoding="utf-8")), {"authored": True})
+
+    def test_overwrite_replaces_both_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(["analyze", str(project)]), 0)
+                self.assertEqual(main(["analyze", str(project), "--overwrite"]), 0)
+
+            payload = json.loads(
+                (project / "material_defects.json").read_text(encoding="utf-8")
+            )
+            self.assertIn("measurements", payload)
+
+    def test_the_library_scans_without_going_through_the_command_line(self) -> None:
+        """The whole point of moving it: callers other than the CLI get it too.
+
+        A batch rescore of twenty stored renders reported no defects at all
+        because analyze_project skipped the scan that only the CLI performed.
+        """
+
+        from kihachi_music_ai.analyzer import analyze_project
+
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+
+            manifest = analyze_project(project)
+
+            self.assertIsNotNone(manifest.defects)
+            self.assertEqual(manifest.defects_file, project / "material_defects.json")
+            self.assertTrue(manifest.defects_file.is_file())
+
+    def test_the_scan_can_be_turned_off_for_callers_that_do_not_want_it(self) -> None:
+        from kihachi_music_ai.analyzer import analyze_project
+
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+
+            manifest = analyze_project(project, scan_defects=False)
+
+            self.assertIsNone(manifest.defects)
+            self.assertIsNone(manifest.defects_file)
+            self.assertFalse((project / "material_defects.json").exists())
 
 
 class ReviewWiringTests(unittest.TestCase):

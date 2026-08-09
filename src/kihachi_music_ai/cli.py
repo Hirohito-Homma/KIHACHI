@@ -29,7 +29,6 @@ from .repaint_planner import (
 )
 from .ableton import parse_automation_binding, plan_project_arrangement
 from .arrangement import describe_arrangement
-from .defects import scan_material
 from .chunked import (
     DEFAULT_CHUNK_BARS,
     build_chunk_plan,
@@ -598,20 +597,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             sections = manifest.analysis["sections"]
             key = harmony["key"]
             comparison = manifest.analysis["song_spec_comparison"]
-            # A second, deliberately separate view of the same audio: conformance
-            # ("did it follow the plan") and defects ("is it usable") answer
-            # different questions, and mixing them is what made a take with a
-            # 2.28 s silent hole score a respectable 56.32.
-            defects_file = manifest.project_dir / "material_defects.json"
-            defects = None
-            if defects_file.exists() and not args.overwrite:
-                print(f"- keeping existing defect scan: {defects_file}")
-            else:
-                defects = scan_material(manifest.audio_file)
-                defects_file.write_text(
-                    json.dumps(defects, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8",
-                )
+            defects = manifest.defects
+            defects_file = manifest.defects_file
             print(f"Analyzed KIHACHI audio: {manifest.audio_file}")
             print(f"- result: {manifest.analysis_file}")
             print(f"- estimated BPM: {tempo['estimated_bpm']} (confidence {tempo['confidence']})")
