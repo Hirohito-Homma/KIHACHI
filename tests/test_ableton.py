@@ -18,7 +18,7 @@ from kihachi_music_ai.ableton import (
     plan_project_arrangement,
 )
 from kihachi_music_ai.cli import main
-from kihachi_music_ai.midi import read_midi
+from kihachi_music_ai.midi import MidiNote, read_midi
 from kihachi_music_ai.pipeline import compose_project
 from kihachi_music_ai.composer import compose_tracks
 from kihachi_music_ai.models import TRACK_NAMES
@@ -95,14 +95,71 @@ class ArrangementPlanTests(unittest.TestCase):
                 self.assertLessEqual(note["start_time"] + note["duration"], length + 1e-6)
                 self.assertTrue(0 <= note["velocity"] <= 127)
 
+    def test_live_note_onsets_are_unique(self) -> None:
+        for op in self.plan["operations"]:
+            if op["op"] != "create_midi_clip":
+                continue
+            notes = op["params"]["notes"]
+            onsets = {(note["pitch"], note["start_time"]) for note in notes}
+            self.assertEqual(len(notes), len(onsets), op["params"]["name"])
+
     def test_a_note_nudged_past_the_last_bar_is_pulled_back_not_dropped(self) -> None:
-        total = sum(
-            len(op["params"]["notes"])
-            for op in self.plan["operations"]
-            if op["op"] == "create_midi_clip"
+        song_beats = self.spec.song.total_bars * beats_per_bar(self.spec)
+        plan = build_arrangement_plan(
+            self.spec,
+            {"bass": (MidiNote(42, song_beats + 0.01, 0.3, 100),)},
+        )
+        clip = next(
+            op for op in plan["operations"] if op["op"] == "create_midi_clip"
         )
 
-        self.assertEqual(total, sum(len(notes) for notes in self.tracks.values()))
+        self.assertEqual(len(clip["params"]["notes"]), 1)
+        self.assertLess(clip["params"]["notes"][0]["start_time"], song_beats)
+
+    def test_same_pitch_and_start_keep_velocity_then_duration(self) -> None:
+        plan = build_arrangement_plan(
+            self.spec,
+            {
+                "bass": (
+                    MidiNote(42, 1.0, 0.125, 42),
+                    MidiNote(42, 1.0, 0.3, 100),
+                    MidiNote(42, 2.0, 0.2, 100),
+                    MidiNote(42, 2.0, 0.3, 100),
+                )
+            },
+        )
+        clip = next(
+            op for op in plan["operations"] if op["op"] == "create_midi_clip"
+        )
+
+        self.assertEqual(
+            clip["params"]["notes"],
+            [
+                {"pitch": 42, "start_time": 1.0, "duration": 0.3, "velocity": 100},
+                {"pitch": 42, "start_time": 2.0, "duration": 0.3, "velocity": 100},
+            ],
+        )
+        self.assertEqual(plan["tracks"][0]["notes"], 2)
+        self.assertTrue(
+            any("2 same-pitch/same-start" in item for item in plan["warnings"])
+        )
+
+    def test_same_pitch_overlap_ends_at_the_next_onset(self) -> None:
+        plan = build_arrangement_plan(
+            self.spec,
+            {
+                "bass": (
+                    MidiNote(42, 1.0, 1.0, 100),
+                    MidiNote(42, 1.5, 0.3, 90),
+                )
+            },
+        )
+        clip = next(
+            op for op in plan["operations"] if op["op"] == "create_midi_clip"
+        )
+
+        self.assertEqual(clip["params"]["notes"][0]["duration"], 0.5)
+        self.assertTrue(any("1 same-pitch overlap" in item for item in plan["warnings"]))
 
     def test_notes_are_ordered_in_time(self) -> None:
         for op in self.plan["operations"]:
