@@ -144,9 +144,14 @@ class PageTests(unittest.TestCase):
                 [load_candidate(first), load_candidate(second)], base_dir=first
             )
 
-            self.assertIn('src="../song-rev01/audio/ace-step-01.wav"', page)
-            self.assertIn('src="audio/ace-step-01.wav"', page)
-            self.assertNotIn("file://", page)
+            import re
+
+            sources = re.findall(r'<audio[^>]*src="([^"]+)"', page)
+            self.assertEqual(
+                sorted(sources),
+                ["../song-rev01/audio/ace-step-01.wav", "audio/ace-step-01.wav"],
+            )
+            self.assertFalse([src for src in sources if src.startswith("file://")])
 
     def test_the_page_says_nothing_was_adopted(self) -> None:
         page = build_report([fake("a", 60.0)], base_dir=Path("/tmp"))
@@ -163,6 +168,40 @@ class PageTests(unittest.TestCase):
 
             self.assertNotIn("data:audio", page)
             self.assertLess(len(page.encode("utf-8")), 400_000)
+
+    def test_each_take_gets_an_instruction_field_bound_to_its_own_project(self) -> None:
+        pages = build_report(
+            [fake("first", 60.0), fake("second", 50.0)], base_dir=Path("/tmp")
+        )
+
+        self.assertEqual(pages.count('<form class="instruct"'), 2)
+        self.assertIn('data-project="/tmp/first"', pages.replace("/private/tmp", "/tmp"))
+        self.assertIn('data-project="/tmp/second"', pages.replace("/private/tmp", "/tmp"))
+
+    def test_the_page_cannot_reach_the_machine_it_describes(self) -> None:
+        """It composes a command to copy. Running it stays a deliberate act."""
+
+        page = build_report([fake("a", 60.0)], base_dir=Path("/tmp"))
+
+        for reach in ("fetch(", "XMLHttpRequest", "WebSocket", "<form action", "method=\"post\""):
+            self.assertNotIn(reach, page)
+
+    def test_the_shell_quoting_rule_survives_the_template(self) -> None:
+        """Written inside the f-string this lost a backslash and broke the page.
+
+        The replacement has to reach the browser as `'\''` -- close the quote,
+        escape one, reopen -- or a pasted instruction containing an apostrophe
+        builds a command the shell reads wrong.
+        """
+
+        page = build_report([fake("a", 60.0)], base_dir=Path("/tmp"))
+
+        self.assertIn(r"""text.replace(/'/g, "'\\''")""", page)
+        # and the line break in the emitted command is an escape, not a real
+        # newline: a literal one inside a JS string literal is a syntax error,
+        # which is exactly how this broke the first time.
+        self.assertIn("'\\n# ", page)
+        self.assertNotIn("+\n      '\n", page)
 
     def test_a_take_name_cannot_inject_markup(self) -> None:
         page = build_report([fake("<script>alert(1)</script>", 50.0)], base_dir=Path("/tmp"))

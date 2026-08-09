@@ -288,6 +288,56 @@ def _relative(target: Path, base: Path) -> str:
         return target.resolve().as_uri()
 
 
+_SCRIPT = r"""<script>
+// Builds a command. It never runs one -- this page has no way to reach the
+// machine it describes, and that is the point: the takes are candidates and the
+// instruction is something you decide after listening.
+//
+// Kept out of the page template deliberately: written inside an f-string this
+// passed through two layers of escaping, which turned \n into a real newline
+// inside a JS string literal and quietly ate a backslash out of the shell
+// quoting. One layer, raw string, no escaping to reason about.
+function shellQuote(text) {
+  // POSIX single-quoting: everything inside '...' is literal, and a single quote
+  // is closed, escaped and reopened. Instructions here are prose and will carry
+  // spaces and punctuation a shell would otherwise read.
+  return "'" + text.replace(/'/g, "'\\''") + "'";
+}
+for (const form of document.querySelectorAll('.instruct')) {
+  const input = form.querySelector('input');
+  const out = form.querySelector('.command');
+  const copy = form.querySelector('.copy');
+  const project = form.dataset.project;
+  const render = () => {
+    const text = input.value.trim();
+    if (!text) { out.textContent = ''; copy.hidden = true; return; }
+    out.textContent =
+      'python3 -m kihachi_music_ai edit ' + shellQuote(project) + ' ' + shellQuote(text) +
+      '\n# 確認してから: python3 -m kihachi_music_ai apply-edit ' +
+      shellQuote(project) + ' ' + shellQuote(project + '-v2');
+    copy.hidden = false;
+    copy.textContent = 'copy';
+  };
+  input.addEventListener('input', render);
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(out.textContent);
+      copy.textContent = 'copied';
+    } catch (error) {
+      // file:// pages do not always get clipboard access; select it instead so
+      // the keyboard still works.
+      const range = document.createRange();
+      range.selectNodeContents(out);
+      const selection = getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      copy.textContent = 'press Cmd/Ctrl-C';
+    }
+  });
+}
+</script>"""
+
+
 def build_report(
     candidates: Sequence[Candidate],
     *,
@@ -332,6 +382,14 @@ def build_report(
   {player}
   {_waveform_svg(item)}
   <ul class="defects">{defects}</ul>
+  <form class="instruct" data-project="{html.escape(str(item.project_dir.resolve()))}"
+        onsubmit="return false">
+    <label>このテイクへの指示
+      <input type="text" placeholder="Dropのベースだけもっと変態的に" spellcheck="false">
+    </label>
+    <pre class="command" aria-live="polite"></pre>
+    <button type="button" class="copy" hidden>copy</button>
+  </form>
 </article>'''
         )
 
@@ -381,6 +439,18 @@ def build_report(
   li.blocking {{ color: var(--block); }}
   li.warning {{ color: var(--warn); }}
   li.clean, .muted {{ color: var(--muted); }}
+  .instruct {{ margin-top: .9rem; border-top: 1px solid var(--line); padding-top: .8rem; }}
+  .instruct label {{ display: block; font-size: .85rem; color: var(--muted); }}
+  .instruct input {{ display: block; width: 100%; margin-top: .3rem; padding: .45rem .6rem;
+                     font: inherit; color: var(--fg); background: transparent;
+                     border: 1px solid var(--line); border-radius: 6px; }}
+  pre.command {{ margin: .6rem 0 .4rem; padding: .6rem .7rem; overflow-x: auto;
+                 background: color-mix(in srgb, var(--fg) 6%, transparent);
+                 border-radius: 6px; font-size: .82rem; white-space: pre; }}
+  pre.command:empty {{ display: none; }}
+  .copy {{ font: inherit; font-size: .82rem; padding: .3rem .7rem; cursor: pointer;
+           color: var(--fg); background: transparent;
+           border: 1px solid var(--line); border-radius: 6px; }}
 </style>
 <h1>{html.escape(title)}</h1>
 <p class="lede">Ranked with takes that have no blocking defect first, then by how
@@ -389,4 +459,5 @@ good &mdash; changing only the seed has moved it by 33 points &mdash; so it
 orders candidates and nothing more. Nothing is adopted here; choose by listening.</p>
 {note}
 {"".join(rows)}
+{_SCRIPT}
 """
