@@ -515,6 +515,42 @@ python3 tools/build_genre_data.py Music_Genre_Master_Database_v0.2.xlsx
 
 **`meter` は使っていません。** v0.2で曖昧さのない単一拍子は `4/4`（476件）だけで、それは既定値と同じです。実装しても死にコードになるため、拍子が個別化されるまで見送ります。
 
+## 使いながら学習する（編集を既定値へ還元する）
+
+`edit` の指示は、既に**定量化された訂正**として記録されています。`applied_spec_edit.json` に `{"path": "mutation", "from": 0.88, "to": 1.0}` が、隣の `song_spec.json` にそのときのジャンルが残っている。同じ訂正が繰り返されるなら、それは編集ではなく**最初からそうであるべき既定値**です。
+
+```bash
+python3 -m kihachi_music_ai learn projects --out preferences.json
+python3 -m kihachi_music_ai compose '...' --preferences preferences.json
+```
+
+```
+- observations: 60
+- priors: 28  fingerprint: 9b5badfd20804959
+    dub                    fx_amount    n=4   offset +0.169
+    family:House           fx_amount    n=4   offset +0.169
+```
+
+これはコーパス収集で解けなかった問題への回答です。FMAとAcousticBrainzの両方で実測した結果、**ジャンルはテンポを説明しません**（分離度0.26、ジャンル内の広がり約35BPM）。公開音源をいくら集めても「このダブのブレイクダウンはどうあるべきか」は出てきません。本人の編集履歴なら出ます。ライセンスもオクターブ誤りもジャンル体系の不一致もありません。
+
+### 決定論を壊さないこと
+
+KIHACHIは「同じseedなら同じ曲」を保証し、repaintプランは `song_spec_sha256` に固定され、MIDIのバイト一致を回帰テストで縛っています。学習値が黙って効くと、この3つが同時に壊れます。
+
+そこで**明示的に渡したときだけ**適用します。`learn` が priors をバージョン付きファイルへコンパイルし、`--preferences` を付けたときに限り効く。「同じseed＋同じpreferences＝同じ曲」は保たれ、差分も巻き戻しもできます。指定しなければ出力は従来と1バイトも変わりません。
+
+### 縮小推定であって学習ではありません
+
+編集は数十件のオーダーです。この規模ではニューラルネットではなく**計数と縮小**が正しい推定です。
+
+```
+offset = mean_delta × n / (n + 4)
+```
+
+n=1なら平均の20%、n=9で69%しか動きません。**編集の大半はその曲固有の判断**であって恒久的な好みではないので、1件の訂正が規則に昇格しない設計にしています。反対向きの訂正は打ち消し合います。
+
+証拠が足りないジャンルは、DBの階層を**ジャンル → ファミリー → 全体**と遡ります。tech house単独で学習に足る編集数は集まりませんが、Houseファミリーなら集まります。1020ジャンルの階層がここで効きます。
+
 ## Liveの楽器割り当て
 
 `ableton-plan`は、新しく作るBass／Sub／Chords／Synth／Arpトラックへ

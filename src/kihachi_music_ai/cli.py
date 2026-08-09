@@ -44,6 +44,7 @@ from .edit import apply_edit_to_project, build_spec_edit
 from .lyrics import build_lyrics
 from .midi_review import review_project_midi
 from .models import TRACK_NAMES
+from .preferences import compile_preferences, harvest, load as load_preferences
 from .report import build_report, load_candidate, rank as rank_candidates
 from .revision import DEFAULT_ROUNDS, describe as describe_revisions, run_revision_loop
 from .reviewer import review_project
@@ -87,6 +88,14 @@ def build_parser() -> argparse.ArgumentParser:
     compose.add_argument("--output", type=Path, help="output directory")
     compose.add_argument("--seed", type=int, default=8, help="deterministic composition seed")
     compose.add_argument("--overwrite", action="store_true", help="replace only the five known artifacts")
+    compose.add_argument(
+        "--preferences",
+        type=Path,
+        help=(
+            "apply learned priors from a `learn` output. Off by default: the same "
+            "prompt and seed must keep producing the same song unless asked otherwise"
+        ),
+    )
 
     analyze = subparsers.add_parser("analyze", help="analyze generated WAV and compare it with SongSpec")
     analyze.add_argument("project", type=Path, help="directory containing song_spec.json")
@@ -168,6 +177,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--tail-guard-bars", type=float, default=DEFAULT_TAIL_GUARD_BARS
     )
     plan_chunks.add_argument("--overwrite", action="store_true", help="replace chunk_plan.json")
+
+    learn_command = subparsers.add_parser(
+        "learn",
+        help="compile the edits already applied under a projects directory into "
+             "a preferences file (reads only; never changes a project)",
+    )
+    learn_command.add_argument(
+        "projects", type=Path, help="directory holding the project folders"
+    )
+    learn_command.add_argument(
+        "--out", type=Path, default=Path("preferences.json"),
+        help="where to write the compiled priors",
+    )
+    learn_command.add_argument("--overwrite", action="store_true")
 
     lyrics_command = subparsers.add_parser(
         "lyrics",
@@ -700,6 +723,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.output,
                 seed=args.seed,
                 overwrite=args.overwrite,
+                preferences=load_preferences(args.preferences),
             )
             print(f"Generated KIHACHI project: {manifest.output_dir}")
             for path in manifest.files:
@@ -866,6 +890,37 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"{', '.join(chunk['sections'])}" + ("  (+tail guard)" if guard else "")
                 )
             print(f"- plan: {destination} (nothing rendered yet)")
+            return 0
+
+        if args.command == "learn":
+            observations = harvest(args.projects)
+            if not observations:
+                print(f"no applied edits found under {args.projects}")
+                print("- run apply-edit first; nothing is learned from unapplied plans")
+                return 1
+            prefs = compile_preferences(observations)
+            if args.out.exists() and not args.overwrite:
+                raise CommandError(
+                    f"refusing to overwrite preferences: {args.out} (use --overwrite)"
+                )
+            args.out.write_text(
+                json.dumps(prefs.to_dict(), ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            print(f"Learned from {args.projects}")
+            print(f"- observations: {len(observations)}")
+            print(f"- priors: {len(prefs.priors)}  fingerprint: {prefs.fingerprint}")
+            ranked = sorted(
+                (p for p in prefs.priors if p.genre != "*"),
+                key=lambda p: -abs(p.offset),
+            )
+            for prior in ranked[:6]:
+                print(
+                    f"    {prior.genre:22} {prior.path:26} "
+                    f"n={prior.samples:<3} offset {prior.offset:+.3f}"
+                )
+            print(f"- written: {args.out}")
+            print("- nothing applies it yet; pass --preferences to compose")
             return 0
 
         if args.command == "lyrics":
