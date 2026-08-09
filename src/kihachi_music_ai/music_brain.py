@@ -4,6 +4,7 @@ import re
 from typing import Sequence
 
 from .arrangement import build_arrangement
+from .genres import match_genres
 from .models import (
     CORE_TRACKS,
     EXTRA_TRACKS,
@@ -145,17 +146,35 @@ class MusicBrain:
         match = _BPM_RE.search(prompt)
         return float(match.group(1)) if match else 120.0
 
+    #: How many genres one prompt may carry. A long prompt can mention a style
+    #: in passing ("less housey than trance"), and every extra genre dilutes the
+    #: weights of the ones that were actually asked for.
+    MAX_GENRES = 4
+
     @staticmethod
     def _parse_genres(prompt: str) -> tuple[GenreWeight, ...]:
-        lower = prompt.lower()
+        """Genres named in the prompt, in prompt order, weighted.
+
+        Recognition comes from the shipped genre database (1020 names plus
+        aliases) rather than the three hand-written rules this used to hold.
+        Those three collapsed everything else to ``electronic``, which then
+        became ``edm`` at the AbletonGPT boundary -- bossa nova included.
+
+        The database slugs the original three to exactly their old names
+        (``Tech House`` -> ``tech_house``), so the swing, drum-pattern, dub-send
+        and lyric-vocabulary decisions keyed on those names are untouched, and
+        the seed prompt still yields the same 0.4/0.3/0.3 split.
+        """
         found: list[str] = []
-        if ("mutation" in lower and "funk" in lower) or "ミューテーションファンク" in prompt:
-            found.append("mutation_funk")
-        if re.search(r"(?<![a-z])dub(?![a-z])", lower) or "ダブ" in prompt:
-            found.append("dub")
-        if "tech house" in lower or "tech-house" in lower or "テックハウス" in prompt:
-            found.append("tech_house")
+        for match in match_genres(prompt):
+            if match.genre.slug not in found:
+                found.append(match.genre.slug)
+            if len(found) >= MusicBrain.MAX_GENRES:
+                break
         if not found:
+            # Still ``electronic`` rather than nothing: downstream expects at
+            # least one genre, and an unrecognised prompt is not evidence of a
+            # specific style.
             found.append("electronic")
         if found == ["mutation_funk", "dub", "tech_house"]:
             weights = (0.4, 0.3, 0.3)

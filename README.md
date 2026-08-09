@@ -479,6 +479,25 @@ ACE-Step did not answer within request_timeout=30s; raise it if the server is ru
 以前はこれが「response could not be decoded」と表示され、サーバのJSONを疑う方向へ
 誘導していました。
 
+## ジャンル認識（Music Genre Master Database）
+
+`MusicBrain` のジャンル認識は、同梱のジャンルデータベース（`src/kihachi_music_ai/data/genres.json`、1020ジャンル・37ファミリー）が担います。
+
+以前は `mutation_funk` / `dub` / `tech_house` の3つを手書きの規則で拾い、**それ以外を全て `electronic` に潰していました**。ボサノヴァもドラムンベースもシューゲイザーも同じ値になり、AbletonGPT境界で `edm` に変換され、909のドラムマシンキットが割り当てられていました。下流をいくら詳しくしても、入口で区別が消えているため回復できません。
+
+```bash
+python3 tools/build_genre_data.py Music_Genre_Master_Database_v0.2.xlsx
+```
+
+ワークブックを更新したらこれでJSONを再生成します（標準ライブラリのみ。表計算ライブラリは不要）。
+
+* **英語名・カタカナ別名の両方**を照合します。実プロンプトはジャンル名をラテン文字で書くことが多いですが、「ボサノヴァ」「テックハウス」も引けます。
+* **長い名前が優先**されます。`Tech House` は `House` を兼ねず、`Dubstep` は `Dub` になりません。
+* **ファミリーより具体ジャンルが優先**されます。「ダブ」は `Reggae / Dub / Ska` ではなく `dub` です（前者だとダブセンドの判定が壊れます）。
+* **日本語の語中一致を拒否**します。「ス**ラップ**ベース」の「ラップ」でHip-Hopを拾わないためで、日本語には語境界が無いため文字種の連続で判定しています。取りこぼしは許容し、誤検出を避ける方針です。
+
+既存の3ジャンルの挙動は完全に保存されています。DBの名前はスラグ化すると旧名と一致するため（`Tech House` → `tech_house`）、swing値・ドラムパターン・ダブセンド・歌詞語彙の判定はそのまま動きます。
+
 ## Liveの楽器割り当て
 
 `ableton-plan`は、新しく作るBass／Sub／Chords／Synth／Arpトラックへ

@@ -24,7 +24,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-kihachi_music_ai = ["schema/*.json"]
+kihachi_music_ai = ["schema/*.json", "data/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
