@@ -650,7 +650,9 @@ class AceStepClient:
             with self._open(request) as response:
                 decoded = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            raise AceStepError(f"ACE-Step HTTP error {exc.code}") from exc
+            raise AceStepError(
+                f"ACE-Step HTTP error {exc.code}{_error_detail(exc)}"
+            ) from exc
         except urllib.error.URLError as exc:
             raise AceStepError(f"ACE-Step connection failed: {exc.reason}") from exc
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -984,6 +986,32 @@ def _atomic_write_text(path: Path, content: str) -> None:
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
+
+
+def _error_detail(exc: urllib.error.HTTPError) -> str:
+    """The server's own message, when it sent one.
+
+    Without this a dropped model reads as a bare "HTTP error 500", and the
+    actual answer -- {"detail": "Model not initialized"} -- is sitting unread in
+    the response body. Never includes headers, only the decoded body.
+    """
+
+    try:
+        body = exc.read().decode("utf-8", errors="replace").strip()
+    except Exception:  # a body that cannot be read must not mask the status
+        return ""
+    if not body:
+        return ""
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        return f": {body[:200]}"
+    if isinstance(payload, Mapping):
+        for key in ("detail", "message", "error"):
+            value = payload.get(key)
+            if isinstance(value, str) and value:
+                return f": {value[:200]}"
+    return f": {body[:200]}"
 
 
 def _audio_extension(audio_format: str) -> str:

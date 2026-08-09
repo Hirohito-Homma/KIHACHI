@@ -301,6 +301,42 @@ class AceStepAdapterTests(unittest.TestCase):
             self.assertEqual(payload["repainting_end"], 69.818)
             self.assertIn("repaint bars 25:32", stdout.getvalue())
 
+    def test_a_server_error_carries_the_server_s_own_message(self) -> None:
+        """A dropped model read as a bare "HTTP error 500" for far too long."""
+
+        import urllib.error
+
+        class Failing:
+            def __call__(self, request, timeout=None):
+                raise urllib.error.HTTPError(
+                    request.full_url, 500, "Internal Server Error", {},
+                    io.BytesIO(b'{"detail": "Model not initialized"}'),
+                )
+
+        client = AceStepClient(AceStepConfig(request_timeout=3), opener=Failing())
+
+        with self.assertRaises(AceStepError) as caught:
+            client.get_lora_status()
+
+        self.assertIn("500", str(caught.exception))
+        self.assertIn("Model not initialized", str(caught.exception))
+
+    def test_a_body_that_is_not_json_still_reaches_the_caller(self) -> None:
+        import urllib.error
+
+        class Failing:
+            def __call__(self, request, timeout=None):
+                raise urllib.error.HTTPError(
+                    request.full_url, 502, "Bad Gateway", {}, io.BytesIO(b"upstream died")
+                )
+
+        client = AceStepClient(AceStepConfig(request_timeout=3), opener=Failing())
+
+        with self.assertRaises(AceStepError) as caught:
+            client.get_lora_status()
+
+        self.assertIn("upstream died", str(caught.exception))
+
     def test_waiting_reports_progress_to_the_caller(self) -> None:
         """A render takes minutes; a client that prints nothing looks hung."""
 
