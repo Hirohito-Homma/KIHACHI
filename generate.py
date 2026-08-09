@@ -13,6 +13,9 @@ Two choices are made for you, both for reasons the project measured:
   happily hand back MP3, but the analyzer and the defect scan read WAV through
   the stdlib `wave` module -- take MP3 out of the server and the material can
   never be checked again. The MP3 is made locally afterwards, from the WAV;
+Where composed projects land is ``KIHACHI_PROJECTS_DIR`` when it is set, the
+external drive when it is mounted, and ``output/`` otherwise.
+
 * tail guard is on. ACE-Step composes a complete song inside its buffer and
   finishes early, leaving the last bar silent. Asking for extra length and
   trimming back is what fixes it, and it is not optional in practice: the first
@@ -22,10 +25,12 @@ Two choices are made for you, both for reasons the project measured:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Mapping
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
@@ -41,7 +46,28 @@ from kihachi_music_ai.pipeline import compose_project  # noqa: E402
 from kihachi_music_ai.tail_guard import DEFAULT_TAIL_GUARD_BARS  # noqa: E402
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8001"
-DEFAULT_PROJECTS = Path("/Volumes/NO NAME/ACE-Step/projects")
+PROJECTS_ENV = "KIHACHI_PROJECTS_DIR"
+DRIVE_PROJECTS = Path("/Volumes/NO NAME/ACE-Step/projects")
+REPO_PROJECTS = Path("output")
+
+
+def _projects_root(environ: Mapping[str, str] | None = None) -> Path:
+    """Where a newly composed project goes.
+
+    ``KIHACHI_PROJECTS_DIR`` first, so nobody has to edit this file to work
+    somewhere else. The external drive is only a convenience for the machine
+    this was built on, and naming a specific volume as *the* default in a public
+    repository is wrong: it is a fact about one laptop, not about the project.
+    Falls back to ``output/`` in the working directory when the drive is not
+    mounted, so an unplugged disk changes where files land, never whether the
+    command works.
+    """
+
+    environ = os.environ if environ is None else environ
+    configured = environ.get(PROJECTS_ENV, "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    return DRIVE_PROJECTS if DRIVE_PROJECTS.parent.is_dir() else REPO_PROJECTS
 
 
 def _stamp() -> str:
@@ -101,6 +127,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="KIHACHI -> ACE-Step, in one command")
     parser.add_argument("brief", nargs="?", help="natural-language music brief")
     parser.add_argument("--project", type=Path, help="render an existing project instead")
+    parser.epilog = (
+        f"New projects go to ${PROJECTS_ENV} when set, else {DRIVE_PROJECTS} when "
+        f"that drive is mounted, else {REPO_PROJECTS}/."
+    )
     parser.add_argument("--name", help="output name; defaults to a timestamp")
     parser.add_argument(
         "--library",
@@ -127,9 +157,7 @@ def main(argv: list[str] | None = None) -> int:
         project = args.project
         print(f"Project: {project}")
     else:
-        project = DEFAULT_PROJECTS / name
-        if not project.parent.exists():
-            project = Path("output") / name
+        project = _projects_root() / name
         print(f"Composing: {project}")
         compose_project(args.brief, project, seed=args.seed)
 
