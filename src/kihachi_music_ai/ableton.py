@@ -101,6 +101,7 @@ def plan_project_arrangement(
     automation: Sequence[Mapping[str, Any]] = (),
     split_drums: bool = False,
     audio_tracks: Sequence[Mapping[str, Any]] = (),
+    sends: Sequence[Mapping[str, Any]] = (),
     overwrite: bool = False,
 ) -> ArrangementPlanManifest:
     """Read a project's SongSpec and written MIDI, write ``arrangement_plan.json``.
@@ -136,6 +137,7 @@ def plan_project_arrangement(
         automation=automation,
         split_drums=split_drums,
         audio_tracks=audio_tracks,
+        sends=sends,
     )
     destination = project_dir / "arrangement_plan.json"
     if destination.exists() and not overwrite:
@@ -144,6 +146,101 @@ def plan_project_arrangement(
         json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     return ArrangementPlanManifest(project_dir, tuple(files), destination, plan)
+
+
+def parse_send_binding(text: str) -> dict[str, Any]:
+    """``part:send_index[:low:high]`` from the command line.
+
+    Send 0 is return A, send 1 is return B -- which returns those are is a fact
+    about the Live set, not about the song, so the index has to come from
+    outside. ``get_mix_snapshot`` in AbletonGPT reports their names.
+    """
+
+    parts = text.split(":")
+    if len(parts) not in (2, 4):
+        raise ValueError(f"send binding {text!r} must be part:send_index[:low:high]")
+    part = parts[0]
+    if part not in TRACK_NAMES:
+        raise ValueError(f"unknown part {part!r}; expected one of {', '.join(TRACK_NAMES)}")
+    try:
+        send_index = int(parts[1])
+    except ValueError:
+        raise ValueError(f"send index must be an integer in {text!r}") from None
+    if send_index < 0:
+        raise ValueError(f"send index cannot be negative in {text!r}")
+    binding: dict[str, Any] = {"part": part, "send_index": send_index}
+    if len(parts) == 4:
+        try:
+            binding["low"], binding["high"] = float(parts[2]), float(parts[3])
+        except ValueError:
+            raise ValueError(f"low and high must be numbers in {text!r}") from None
+    return binding
+
+
+def _send_operations(
+    spec: SongSpec,
+    sends: Sequence[Mapping[str, Any]],
+    track_index_of: Mapping[str, int],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """One send level per bound part, plus a warning for what gets flattened.
+
+    A dub delay throw is a send that moves between sections, and this cannot
+    write that: Live exposes clip envelopes for device-chain parameters only, and
+    a send lives on the mixer, so ``set_clip_parameter_envelope`` cannot reach
+    it. The song's own ``fx_amount`` curve is therefore averaged into a single
+    level, and the range it was averaged from is reported rather than dropped --
+    a section written for 0.30 and one written for 0.70 both end up at 0.50, and
+    that should not be discovered by ear.
+    """
+
+    operations: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    for binding in sends:
+        part = str(binding["part"])
+        if part not in track_index_of:
+            raise ValueError(
+                f"send targets no track: {part!r}; this plan has "
+                f"{', '.join(sorted(track_index_of))}"
+            )
+        low = float(binding.get("low", 0.0))
+        high = float(binding.get("high", 1.0))
+        if not 0.0 <= low <= 1.0 or not 0.0 <= high <= 1.0:
+            raise ValueError("send low/high must be between 0.0 and 1.0")
+        if high <= low:
+            raise ValueError("send high must be greater than low")
+
+        amounts = [
+            float(section.fx_amount)
+            for section in spec.arrangement
+            if section.fx_amount is not None
+        ]
+        if not amounts:
+            raise ValueError("no section carries fx_amount; nothing to send")
+        mean = sum(amounts) / len(amounts)
+        value = round(low + mean * (high - low), 6)
+        operations.append(
+            {
+                "op": "set_track_send",
+                "params": {
+                    "track_index": track_index_of[part],
+                    "send_index": int(binding["send_index"]),
+                    "value": value,
+                    "normalized": True,
+                },
+                "why": (
+                    f"{part} fx_amount averages {mean:.2f} over "
+                    f"{len(amounts)} sections"
+                ),
+            }
+        )
+        if max(amounts) - min(amounts) > 0.05:
+            warnings.append(
+                f"{part} send is one level for the whole song: fx_amount runs "
+                f"{min(amounts):.2f}-{max(amounts):.2f} and was averaged to "
+                f"{mean:.2f}. Live exposes clip envelopes for device parameters "
+                f"only, so a send cannot be automated per section from here"
+            )
+    return operations, warnings
 
 
 def parse_automation_binding(text: str) -> dict[str, Any]:
@@ -198,6 +295,7 @@ def build_arrangement_plan(
     automation: Sequence[Mapping[str, Any]] = (),
     split_drums: bool = False,
     audio_tracks: Sequence[Mapping[str, Any]] = (),
+    sends: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Operations that lay this song out in Live, plus the structure they encode.
 
@@ -313,6 +411,17 @@ def build_arrangement_plan(
                 "why": "place the part on the Arrangement timeline at bar 1",
             }
         )
+
+    # Sends go on once the tracks exist. They are a mixer setting, not a clip
+    # property, so they do not travel with a Session-to-Arrangement copy and can
+    # be written at any point after the track is there.
+    track_index_of = {
+        name: first_track_index + offset
+        for offset, (name, _label, _notes) in enumerate(layout)
+    }
+    send_operations, send_warnings = _send_operations(spec, sends, track_index_of)
+    operations.extend(send_operations)
+    warnings.extend(send_warnings)
 
     # Audio tracks come last, after every MIDI track exists, so their indices do
     # not shift the ones the clips were written against. These are references and

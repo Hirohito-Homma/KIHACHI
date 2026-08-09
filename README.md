@@ -479,6 +479,29 @@ ACE-Step did not answer within request_timeout=30s; raise it if the server is ru
 以前はこれが「response could not be decoded」と表示され、サーバのJSONを疑う方向へ
 誘導していました。
 
+## センド（ダブのFXをリターンへ送る）
+
+```bash
+python3 -m kihachi_music_ai ableton-plan projects/my-song --send chords:1:0.1:0.6
+```
+
+`send_index` の0がリターンA、1がB。どのリターンかはLiveセット側の事実なので導出できません
+（AbletonGPTの`get_mix_snapshot`が名前を返します）。
+
+**送り量は曲全体で1つの値です。** ダブのディレイ・スローは本来セクションごとに送りを変える技法ですが、
+Liveがクリップエンベロープを公開しているのは**デバイスチェーン上のパラメータだけ**で、
+センドはミキサー側にあるため`set_clip_parameter_envelope`が届きません。
+
+そのためSongSpecの`fx_amount`は平均され、**平坦化した事実が警告として出ます**。
+
+```
+warning: chords send is one level for the whole song: fx_amount runs 0.30-0.70
+and was averaged to 0.49. Live exposes clip envelopes for device parameters only,
+so a send cannot be automated per section from here
+```
+
+0.30と0.70が同じ0.49になることを、耳で気づかせないためです。
+
 ## Revision Loop（測る→直す→また測る、を回す）
 
 `analyze`で測り、`review`で直す場所を決め、`stage-repaint`で新しいプロジェクトを作り、

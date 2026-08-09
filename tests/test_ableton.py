@@ -10,6 +10,7 @@ from pathlib import Path
 
 from kihachi_music_ai.ableton import (
     MAX_NOTES_PER_CLIP,
+    parse_send_binding,
     split_drum_notes,
     build_arrangement_plan,
     beats_per_bar,
@@ -518,3 +519,76 @@ class AudioTrackTests(unittest.TestCase):
         self.assertEqual(len(created), 1)
         self.assertEqual(created[0]["params"]["name"], "KIHACHI FX")
         self.assertNotIn("import_vocal_take", [op["op"] for op in plan["operations"]])
+
+
+class SendTests(unittest.TestCase):
+    """A dub delay throw is send automation; this can only set a level."""
+
+    def setUp(self) -> None:
+        self.spec = MusicBrain(seed=8).analyze(LONG_PROMPT)
+        self.tracks = compose_tracks(self.spec)
+
+    def _sends(self, plan):
+        return [op for op in plan["operations"] if op["op"] == "set_track_send"]
+
+    def test_a_send_targets_the_track_the_part_landed_on(self) -> None:
+        plan = build_arrangement_plan(
+            self.spec, self.tracks, first_track_index=4, sends=[{"part": "chords", "send_index": 1}]
+        )
+
+        chords = next(t for t in plan["tracks"] if t["part"] == "chords")
+        self.assertEqual(self._sends(plan)[0]["params"]["track_index"], chords["live_track_index"])
+        self.assertEqual(self._sends(plan)[0]["params"]["send_index"], 1)
+
+    def test_the_level_comes_from_the_song_and_respects_the_range(self) -> None:
+        plain = build_arrangement_plan(
+            self.spec, self.tracks, sends=[{"part": "chords", "send_index": 0}]
+        )
+        scaled = build_arrangement_plan(
+            self.spec,
+            self.tracks,
+            sends=[{"part": "chords", "send_index": 0, "low": 0.0, "high": 0.5}],
+        )
+
+        full = self._sends(plain)[0]["params"]["value"]
+        half = self._sends(scaled)[0]["params"]["value"]
+        self.assertAlmostEqual(half, full * 0.5, places=5)
+        self.assertTrue(0.0 < full <= 1.0)
+
+    def test_flattening_the_curve_is_reported_not_hidden(self) -> None:
+        """0.30 and 0.70 both become 0.49; that must not be found by ear."""
+
+        plan = build_arrangement_plan(
+            self.spec, self.tracks, sends=[{"part": "chords", "send_index": 1}]
+        )
+
+        flattened = [w for w in plan["warnings"] if "one level for the whole song" in w]
+        self.assertEqual(len(flattened), 1)
+        self.assertIn("fx_amount runs", flattened[0])
+
+    def test_a_send_to_a_part_that_is_not_in_the_plan_is_refused(self) -> None:
+        with self.assertRaises(ValueError) as caught:
+            build_arrangement_plan(
+                # this brief asks for no synth, so no such track exists
+                self.spec, self.tracks, sends=[{"part": "synth", "send_index": 0}]
+            )
+
+        self.assertIn("targets no track", str(caught.exception))
+
+    def test_a_bad_range_is_refused(self) -> None:
+        for bad in ({"low": 0.6, "high": 0.4}, {"low": -0.1, "high": 0.5}):
+            with self.assertRaises(ValueError):
+                build_arrangement_plan(
+                    self.spec,
+                    self.tracks,
+                    sends=[{"part": "chords", "send_index": 0, **bad}],
+                )
+
+    def test_binding_syntax(self) -> None:
+        self.assertEqual(
+            parse_send_binding("chords:1"), {"part": "chords", "send_index": 1}
+        )
+        self.assertEqual(parse_send_binding("bass:0:0.2:0.8")["high"], 0.8)
+        for bad in ("chords", "chords:x", "chords:-1", "guitar:0", "chords:0:0.2"):
+            with self.assertRaises(ValueError, msg=bad):
+                parse_send_binding(bad)

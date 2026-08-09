@@ -28,7 +28,11 @@ from .repaint_planner import (
     song_spec_sha256,
     stage_repaint_project,
 )
-from .ableton import parse_automation_binding, plan_project_arrangement
+from .ableton import (
+    parse_automation_binding,
+    parse_send_binding,
+    plan_project_arrangement,
+)
 from .arrangement import describe_arrangement
 from .chunked import (
     DEFAULT_CHUNK_BARS,
@@ -220,6 +224,18 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     ableton_plan.add_argument("--vocal-audio", type=Path, help="import a recorded vocal take")
+    ableton_plan.add_argument(
+        "--send",
+        action="append",
+        default=[],
+        metavar="BINDING",
+        help=(
+            "route a part to a return as part:send_index[:low:high], e.g. "
+            "chords:1:0.1:0.6 (repeatable). Send 0 is return A, 1 is return B; "
+            "get_mix_snapshot reports their names. The level is one value for "
+            "the whole song -- Live cannot automate a send from a clip envelope"
+        ),
+    )
     ableton_plan.add_argument(
         "--fx-track",
         action="store_true",
@@ -988,6 +1004,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 automation=[parse_automation_binding(text) for text in args.automate],
                 split_drums=args.split_drums,
                 audio_tracks=_audio_tracks(args),
+                sends=[parse_send_binding(text) for text in args.send],
                 overwrite=args.overwrite,
             )
             plan = manifest.plan
@@ -1013,6 +1030,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"    bar {section['start_bar']:>3}  {section['name']:<20} "
                     f"energy {section['energy']:.2f}  resting: {resting}"
                 )
+            for operation in plan["operations"]:
+                if operation["op"] == "set_track_send":
+                    params = operation["params"]
+                    print(
+                        f"- send: track {params['track_index']} → return "
+                        f"{chr(ord('A') + params['send_index'])} at "
+                        f"{params['value']:.3f}"
+                    )
             automated = [op for op in plan["operations"] if op["op"] == "set_clip_parameter_envelope"]
             for operation in automated:
                 params = operation["params"]
