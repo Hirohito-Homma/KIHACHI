@@ -39,6 +39,7 @@ from .edit import apply_edit_to_project, build_spec_edit
 from .lyrics import build_lyrics
 from .midi_review import review_project_midi
 from .models import TRACK_NAMES
+from .report import build_report, load_candidate, rank as rank_candidates
 from .revision import DEFAULT_ROUNDS, describe as describe_revisions, run_revision_loop
 from .reviewer import review_project
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS
@@ -232,6 +233,26 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="measure and report what the first round would repaint, rendering nothing",
     )
+
+    report = subparsers.add_parser(
+        "report",
+        help="write a page for comparing takes by ear (renders nothing, adopts nothing)",
+    )
+    report.add_argument("project", type=Path, help="a reviewed project")
+    report.add_argument(
+        "--also",
+        type=Path,
+        action="append",
+        default=[],
+        help="another reviewed project to compare against (repeatable)",
+    )
+    report.add_argument(
+        "--from-revision-log",
+        action="store_true",
+        help="include every take the project's revision_log.json recorded",
+    )
+    report.add_argument("--output", type=Path, help="page path; defaults to candidates.html")
+    report.add_argument("--overwrite", action="store_true")
 
     midi_review = subparsers.add_parser(
         "midi-review",
@@ -867,6 +888,46 @@ def main(argv: Sequence[str] | None = None) -> int:
             for line in describe_revisions(log):
                 print(line)
             print(f"- log: {log_file}")
+            return 0
+
+        if args.command == "report":
+            projects = [args.project, *args.also]
+            stopped = None
+            if args.from_revision_log:
+                log_file = args.project / "revision_log.json"
+                if not log_file.is_file():
+                    raise FileNotFoundError(f"no revision log: {log_file}")
+                log = json.loads(log_file.read_text(encoding="utf-8"))
+                stopped = log.get("stopped_because")
+                projects = [Path(row["project"]) for row in log["rounds"]]
+            seen: list[Path] = []
+            for path in projects:
+                if path not in seen:
+                    seen.append(path)
+            candidates = [load_candidate(path) for path in seen]
+            destination = args.output or (args.project / "candidates.html")
+            if destination.exists() and not args.overwrite:
+                raise FileExistsError(f"refusing to overwrite report: {destination}")
+            destination.write_text(
+                build_report(
+                    candidates,
+                    base_dir=destination.parent,
+                    title=f"KIHACHI candidates: {args.project.name}",
+                    stopped_because=stopped,
+                ),
+                encoding="utf-8",
+            )
+            print(f"Candidate report: {destination}")
+            for position, item in enumerate(rank_candidates(candidates), start=1):
+                if not item.scanned:
+                    defects = "not scanned"
+                else:
+                    defects = ", ".join(d["code"] for d in item.defects) or "clean"
+                print(
+                    f"  #{position} {item.alignment:6.2f} {item.grade:<14} "
+                    f"{defects:<26} {item.name}"
+                )
+            print("- nothing adopted; open the page and listen")
             return 0
 
         if args.command == "midi-review":
