@@ -147,3 +147,85 @@ class LookupTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NumericLinkTests(unittest.TestCase):
+    """The database's numbers, where they carry signal, reach the SongSpec."""
+
+    def _spec(self, prompt: str):
+        return MusicBrain(seed=8).analyze(prompt)
+
+    def test_a_stated_tempo_always_wins(self) -> None:
+        from kihachi_music_ai.genres import typical_bpm
+
+        # drum & bass would otherwise supply ~172
+        self.assertIsNotNone(typical_bpm([("drum_bass", 1.0)]))
+        self.assertEqual(self._spec("ドラムンベース。100 BPM、Am。").song.bpm, 100.0)
+
+    def test_a_narrow_genre_range_replaces_the_flat_default(self) -> None:
+        self.assertEqual(self._spec("ドラムンベース。Am。").song.bpm, 172.5)
+        self.assertEqual(self._spec("ダブ。Am。").song.bpm, 75.0)
+        self.assertEqual(self._spec("Tech House。Am。").song.bpm, 126.0)
+
+    def test_a_range_too_wide_to_mean_anything_is_declined(self) -> None:
+        from kihachi_music_ai.genres import find, typical_bpm
+
+        bossa = find("bossa_nova")
+        self.assertGreater(bossa.bpm_max - bossa.bpm_min, 40)
+        self.assertIsNone(typical_bpm([("bossa_nova", 1.0)]))
+        # ...so the song keeps the old default rather than a fabricated tempo
+        self.assertEqual(self._spec("ボサノヴァ。Am。").song.bpm, 120.0)
+
+    def test_a_zero_floor_is_not_treated_as_a_tempo(self) -> None:
+        from kihachi_music_ai.genres import find, typical_bpm
+
+        self.assertEqual(find("ambient").bpm_min, 0)
+        self.assertIsNone(typical_bpm([("ambient", 1.0)]))
+
+    def test_tempo_is_weighted_across_the_genres(self) -> None:
+        from kihachi_music_ai.genres import typical_bpm
+
+        one = typical_bpm([("dub", 1.0)])
+        both = typical_bpm([("dub", 0.5), ("tech_house", 0.5)])
+
+        self.assertIsNotNone(both)
+        self.assertGreater(both, one)
+
+    def test_an_unknown_genre_contributes_no_tempo(self) -> None:
+        from kihachi_music_ai.genres import typical_bpm
+
+        self.assertIsNone(typical_bpm([("electronic", 1.0)]))
+
+    def test_mood_tags_move_the_psychedelic_axis_off_its_constant(self) -> None:
+        from kihachi_music_ai.genres import mood_axes
+
+        _dark, psychedelic = mood_axes([("drum_bass", 1.0)])
+
+        self.assertIsNotNone(psychedelic)
+        self.assertNotEqual(self._spec("ドラムンベース。Am。").style.psychedelic, 0.28)
+
+    def test_one_light_genre_cannot_make_the_whole_song_psychedelic(self) -> None:
+        from kihachi_music_ai.genres import mood_axes
+
+        alone = mood_axes([("dub", 1.0)])[1]
+        diluted = mood_axes([("dub", 0.3), ("tech_house", 0.7)])[1]
+
+        if alone is not None and diluted is not None:
+            self.assertLess(diluted, alone)
+
+    def test_silence_on_an_axis_leaves_the_default_rather_than_neutral(self) -> None:
+        from kihachi_music_ai.genres import mood_axes
+
+        darkness, psychedelic = mood_axes([("electronic", 1.0)])
+
+        self.assertIsNone(darkness)
+        self.assertIsNone(psychedelic)
+        spec = self._spec("何も書いていない。Am。")
+        self.assertEqual(spec.style.darkness, 0.48)
+        self.assertEqual(spec.style.psychedelic, 0.28)
+
+    def test_the_prompt_still_overrides_both_axes(self) -> None:
+        spec = self._spec("ドラムンベース。サイケデリック。Am。")
+
+        self.assertEqual(spec.style.psychedelic, 0.82)
+        self.assertEqual(self._spec("ダブ。Am。").style.darkness, 0.72)

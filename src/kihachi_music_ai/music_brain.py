@@ -4,7 +4,7 @@ import re
 from typing import Sequence
 
 from .arrangement import build_arrangement
-from .genres import match_genres
+from .genres import match_genres, mood_axes, typical_bpm
 from .models import (
     CORE_TRACKS,
     EXTRA_TRACKS,
@@ -37,9 +37,10 @@ class MusicBrain:
         if not prompt:
             raise ValueError("prompt must not be empty")
 
-        bpm = self._parse_bpm(prompt)
         key, tonic, tonic_pc, mode = parse_key(prompt, default="C minor")
         genres = self._parse_genres(prompt)
+        weighted = [(item.name, item.weight) for item in genres]
+        bpm = self._parse_bpm(prompt, weighted)
         total_bars = self._total_bars(prompt, bpm)
         duration = total_bars * 4 * 60 / bpm
         lower = prompt.lower()
@@ -49,6 +50,7 @@ class MusicBrain:
         vocoder_requested = "vocoder" in lower or "ボコーダー" in prompt
         mutation_requested = "mutation" in lower or "変態" in prompt
         dub_requested = any(item.name == "dub" for item in genres)
+        db_darkness, db_psychedelic = mood_axes(weighted)
         instruments = self._instruments(prompt, lower, vocoder_requested)
 
         sections = self._sections(
@@ -76,8 +78,14 @@ class MusicBrain:
             ),
             style=StyleSpec(
                 genres=genres,
-                darkness=0.72 if dub_requested else 0.48,
-                psychedelic=0.82 if psychedelic_requested else 0.28,
+                # Prompt evidence first, then the genre's own mood tags, then the
+                # old constants. The constants were the same two numbers for
+                # every unrecognised style; the tags at least distinguish a
+                # nocturnal one from a sunny one.
+                darkness=0.72 if dub_requested else (db_darkness or 0.48),
+                psychedelic=(
+                    0.82 if psychedelic_requested else (db_psychedelic or 0.28)
+                ),
             ),
             groove=GrooveSpec(
                 swing=0.54 if any(item.name == "mutation_funk" for item in genres) else 0.5,
@@ -142,9 +150,18 @@ class MusicBrain:
         return CORE_TRACKS + tuple(name for name in EXTRA_TRACKS if name in extra)
 
     @staticmethod
-    def _parse_bpm(prompt: str) -> float:
+    def _parse_bpm(prompt: str, weighted: Sequence[tuple[str, float]] = ()) -> float:
+        """The prompt's tempo, else the genre's typical one, else 120.
+
+        A stated tempo always wins. The flat 120 that used to follow it was the
+        same answer for drum & bass and for dub, which the database can now
+        separate -- but only where its range is narrow enough to mean anything,
+        so most genres still land on 120 rather than on a fabricated number.
+        """
         match = _BPM_RE.search(prompt)
-        return float(match.group(1)) if match else 120.0
+        if match:
+            return float(match.group(1))
+        return typical_bpm(weighted) or 120.0
 
     #: How many genres one prompt may carry. A long prompt can mention a style
     #: in passing ("less housey than trance"), and every extra genre dilutes the

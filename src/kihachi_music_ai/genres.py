@@ -24,7 +24,7 @@ import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 _DATA = Path(__file__).resolve().parent / "data" / "genres.json"
 
@@ -185,6 +185,100 @@ def match_genres(prompt: str) -> tuple[GenreMatch, ...]:
         GenreMatch(genre=genre, matched=form, position=start)
         for start, _end, form, genre in kept
     )
+
+
+#: A database tempo range only says something when it is narrow. Measured on
+#: v0.2 the median range is 100 BPM wide, because most rows inherit their
+#: family's span -- "70 to 180" is not a tempo, it is an absence of one, and
+#: acting on its midpoint would dress a guess up as data. 162 of 1020 genres are
+#: individualised enough to clear this, and those are the ones worth using.
+MAX_INFORMATIVE_BPM_RANGE = 40.0
+
+
+def typical_bpm(weighted: Sequence[tuple[str, float]]) -> float | None:
+    """A tempo for these weighted genre slugs, or ``None`` if the data is mute.
+
+    The midpoint of each usable range, averaged by the genre's weight. Genres
+    whose range is too wide to mean anything (or whose ``bpm_min`` is 0, which
+    one row is) sit the vote out rather than dragging the result toward the
+    middle of nowhere.
+    """
+    total = 0.0
+    weight_used = 0.0
+    for slug, weight in weighted:
+        genre = find(slug)
+        if genre is None or not genre.bpm_min or not genre.bpm_max:
+            continue
+        if genre.bpm_max - genre.bpm_min > MAX_INFORMATIVE_BPM_RANGE:
+            continue
+        total += (genre.bpm_min + genre.bpm_max) / 2.0 * weight
+        weight_used += weight
+    if weight_used <= 0:
+        return None
+    return round(total / weight_used, 1)
+
+
+#: mood_tags that push the SongSpec's two timbre axes. Only tags whose musical
+#: direction is unambiguous are listed; the other ~60 (``narrative``,
+#: ``regional``, ``communal``...) describe context rather than timbre and are
+#: deliberately ignored rather than stretched to fit an axis.
+_DARK_TAGS = frozenset(
+    {"dark", "aggressive", "nocturnal", "melancholic", "raw", "extreme",
+     "militant", "menacing", "intense", "uncanny", "confrontational", "urgent"}
+)
+_BRIGHT_TAGS = frozenset(
+    {"sunny", "uplifting", "euphoric", "warm", "playful", "celebratory",
+     "festive", "accessible", "catchy", "serene", "calm", "romantic"}
+)
+_PSYCHEDELIC_TAGS = frozenset(
+    {"psychedelic", "hypnotic", "abstract", "dreamy", "transcendental",
+     "immersive", "cerebral", "weird", "futuristic", "atmospheric"}
+)
+
+
+def mood_axes(weighted: Sequence[tuple[str, float]]) -> tuple[float | None, float | None]:
+    """``(darkness, psychedelic)`` in 0..1 from mood tags, or ``None`` each.
+
+    ``None`` means the tags said nothing about that axis, which is different
+    from saying "neutral" -- the caller keeps its own default instead of being
+    pulled to 0.5 by silence.
+    """
+    dark_score = 0.0
+    dark_weight = 0.0
+    psy_score = 0.0
+    total_weight = 0.0
+    saw_psychedelic = False
+    for slug, weight in weighted:
+        genre = find(slug)
+        if genre is None:
+            continue
+        total_weight += weight
+        if not genre.mood_tags:
+            continue
+        tags = {tag.lower() for tag in genre.mood_tags}
+        dark = len(tags & _DARK_TAGS)
+        bright = len(tags & _BRIGHT_TAGS)
+        if dark or bright:
+            # An average of ratios: darkness is a direction each genre either
+            # has an opinion about or does not, so genres that stay silent are
+            # left out of the average rather than counted as neutral.
+            dark_score += (dark / (dark + bright)) * weight
+            dark_weight += weight
+        psychedelic = len(tags & _PSYCHEDELIC_TAGS)
+        if psychedelic:
+            saw_psychedelic = True
+            # Normalised by the *total* weight, not by the genres that carry
+            # the tags: this axis asks how much of the song is psychedelic, so
+            # one 0.3-weight dub cannot make the whole track 1.0. Saturating
+            # within a genre, because five such tags is not five times two.
+            psy_score += min(1.0, psychedelic / 3.0) * weight
+    darkness = round(dark_score / dark_weight, 3) if dark_weight else None
+    psyched = (
+        round(psy_score / total_weight, 3)
+        if saw_psychedelic and total_weight
+        else None
+    )
+    return darkness, psyched
 
 
 def find(slug: str) -> Genre | None:
