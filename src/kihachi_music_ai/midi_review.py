@@ -70,6 +70,54 @@ def review_project_midi(project_dir: Path) -> MidiReviewManifest:
     return MidiReviewManifest(project_dir, tuple(files), review_midi_tracks(spec, tracks))
 
 
+def groove_report(spec: SongSpec, tracks: Mapping[str, Sequence[MidiNote]]) -> dict[str, Any]:
+    """What the written notes do with time, against what the SongSpec asked for.
+
+    Exact, unlike the audio measurement. The composer delays eighth-note
+    offbeats by ``(swing - 0.5) * 0.35`` beats and jitters every note by
+    ``humanize``; both are single-digit milliseconds at 110 BPM, which the audio
+    analyzer cannot resolve on a real mix -- its onsets land some 35 ms from the
+    grid, so its offbeat figure is noise. Here the note starts are the data.
+    """
+
+    swing_positions: list[float] = []
+    straight_positions: list[float] = []
+    for name, notes in tracks.items():
+        for note in notes:
+            eighths = note.start_beats * 2.0
+            nearest = round(eighths)
+            deviation = (eighths - nearest) / 2.0
+            # The composer swings a position when round(start * 2) is odd, so
+            # sixteenth offbeats are not swung and must not be averaged in.
+            if abs(eighths - nearest) > 0.25:
+                continue
+            (swing_positions if nearest % 2 else straight_positions).append(deviation)
+
+    beat_ms = 60_000.0 / spec.song.bpm
+    expected_ms = max(0.0, spec.groove.swing - 0.5) * 0.35 * beat_ms
+    offbeat_ms = (
+        sum(swing_positions) / len(swing_positions) * beat_ms if swing_positions else None
+    )
+    # Only the straight positions measure humanize. Averaging the swung ones in
+    # would fold the swing displacement into the jitter figure and report 4.4 ms
+    # of "humanize" for a setting that produces 0.9.
+    jitter = straight_positions
+    return {
+        "requested_swing": spec.groove.swing,
+        "requested_humanize": spec.groove.humanize,
+        "expected_offbeat_delay_ms": round(expected_ms, 3),
+        "written_offbeat_delay_ms": round(offbeat_ms, 3) if offbeat_ms is not None else None,
+        "offbeat_error_ms": (
+            round(offbeat_ms - expected_ms, 3) if offbeat_ms is not None else None
+        ),
+        "straight_jitter_ms": (
+            round(sum(abs(v) for v in jitter) / len(jitter) * beat_ms, 3) if jitter else None
+        ),
+        "swung_notes": len(swing_positions),
+        "straight_notes": len(straight_positions),
+    }
+
+
 def review_midi_tracks(
     spec: SongSpec,
     tracks: Mapping[str, Sequence[MidiNote]],
@@ -78,6 +126,7 @@ def review_midi_tracks(
     key = _key_report(spec, tracks)
     sections = _section_report(spec, tracks)
     coverage = _coverage_report(spec, tracks)
+    groove = groove_report(spec, tracks)
     component_scores = {
         "harmony": harmony["score"],
         "key": key["score"],
@@ -98,6 +147,7 @@ def review_midi_tracks(
         "key": key,
         "sections": sections,
         "coverage": coverage,
+        "groove": groove,
         "alignment": {
             "score": total,
             "grade": (

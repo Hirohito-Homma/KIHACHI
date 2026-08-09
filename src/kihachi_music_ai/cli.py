@@ -578,6 +578,14 @@ def _print_midi_alignment(review: dict[str, object], project_dir: Path) -> None:
     key = review["key"]
     print(f"MIDI vs SongSpec: {project_dir}")
     print(f"- midi alignment score: {alignment['score']} ({alignment['grade']})")
+    groove = review.get("groove")
+    if groove is not None and groove["written_offbeat_delay_ms"] is not None:
+        print(
+            f"- groove: offbeats {groove['written_offbeat_delay_ms']} ms late "
+            f"(swing {groove['requested_swing']} asks {groove['expected_offbeat_delay_ms']}, "
+            f"off by {groove['offbeat_error_ms']:+.3f}); "
+            f"humanize jitter {groove['straight_jitter_ms']} ms"
+        )
     print(
         f"- harmony: bass-root match {harmony['bass_root_match_ratio']}, "
         f"chord-tone match {harmony['chord_tone_match_ratio']} "
