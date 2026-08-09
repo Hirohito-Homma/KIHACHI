@@ -628,9 +628,22 @@ def build_arrangement_plan(
             "eight per track; this arrangement has nine sections"
         ),
         "warnings": warnings,
+        # Counted from the operations rather than recomputed from the parts. The
+        # two are not the same number and drifted apart twice: --split-drums turns
+        # one composed part into three Live tracks, and an audio track without a
+        # source file adds another create_track. A safety declaration that is
+        # derived from anything other than what the plan actually does is a claim,
+        # not a guarantee.
         "safety": {
-            "creates_tracks": len(parts),
+            "creates_tracks": sum(
+                1 for operation in operations if operation["op"] == "create_track"
+            ),
             "modifies_existing_tracks": False,
+            # The above holds only if the first created track really lands here,
+            # which is a fact about the Live Set this module cannot see. Stating
+            # the assumption makes it checkable: AbletonGPT refuses to run a plan
+            # whose base index does not match the Set's track count.
+            "first_track_index": first_track_index,
             "deletes_nothing": True,
             "sets_tempo": True,
         },
