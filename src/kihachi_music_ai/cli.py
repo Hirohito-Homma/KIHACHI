@@ -39,6 +39,7 @@ from .edit import apply_edit_to_project, build_spec_edit
 from .lyrics import build_lyrics
 from .midi_review import review_project_midi
 from .models import TRACK_NAMES
+from .revision import DEFAULT_ROUNDS, describe as describe_revisions, run_revision_loop
 from .reviewer import review_project
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS
 
@@ -214,6 +215,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="add an empty audio track for FX; the devices on it are AbletonGPT's job",
     )
     ableton_plan.add_argument("--overwrite", action="store_true", help="replace arrangement_plan.json")
+
+    revise = subparsers.add_parser(
+        "revise",
+        help="measure, repaint, re-render and measure again, keeping every take",
+    )
+    revise.add_argument("project", type=Path, help="a project whose audio has been rendered")
+    revise.add_argument(
+        "--rounds", type=int, default=DEFAULT_ROUNDS, help="maximum repaint rounds"
+    )
+    _add_ace_connection_arguments(revise)
+    revise.add_argument("--wait-timeout", type=float, default=1800.0)
+    revise.add_argument("--poll-interval", type=float, default=5.0)
+    revise.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="measure and report what the first round would repaint, rendering nothing",
+    )
 
     midi_review = subparsers.add_parser(
         "midi-review",
@@ -777,6 +795,78 @@ def main(argv: Sequence[str] | None = None) -> int:
             for section in sheet.sections:
                 body = " / ".join(section.lines) if section.lines else "(no vocal)"
                 print(f"    {section.section_name:18} {section.tag:10} {body}")
+            return 0
+
+        if args.command == "revise":
+            if args.dry_run:
+                manifest = review_project(args.project, overwrite=True)
+                plan = manifest.review
+                print(f"Would revise: {args.project}")
+                print(
+                    f"- alignment {plan['alignment']['score']} ({plan['alignment']['grade']})"
+                )
+                selection = json.loads(
+                    manifest.repaint_plan_file.read_text(encoding="utf-8")
+                )["selection"]
+                print(f"- first round would repaint: {selection}")
+                print("- nothing rendered (--dry-run)")
+                return 0
+
+            client = _ace_client(args)
+
+            def render(project: Path, source_audio: Path) -> None:
+                spec = load_project_spec(project)
+                plan = load_repaint_plan(project / "repaint_plan.json")
+                selection = plan["selection"]
+                settings = plan["ace_step_options"]
+                guard = float(settings.get("tail_guard_bars", 0.0))
+                if selection.get("section_name"):
+                    window = resolve_repaint_window(
+                        spec,
+                        section_name=str(selection["section_name"]),
+                        tail_guard_bars=guard,
+                    )
+                else:
+                    window = resolve_repaint_window(
+                        spec,
+                        bar_range=f"{int(selection['start_bar'])}:{int(selection['end_bar'])}",
+                        tail_guard_bars=guard,
+                    )
+                render_with_ace_step(
+                    project,
+                    client,
+                    AceStepOptions(
+                        audio_format="wav",
+                        task_type="repaint",
+                        repainting_start=window.start_sec,
+                        repainting_end=window.end_sec,
+                        tail_guard_bars=guard,
+                    ),
+                    source_audio=source_audio,
+                    repaint_selection=window,
+                    poll_interval=args.poll_interval,
+                    wait_timeout=args.wait_timeout,
+                )
+
+            def announce(round_) -> None:
+                defects = ", ".join(round_.defect_codes) or "clean"
+                print(
+                    f"  [{round_.index}] {round_.alignment:6.2f} {round_.grade:<14} "
+                    f"{defects:<26} {round_.project_dir.name}"
+                )
+
+            print(f"Revising: {args.project} (up to {args.rounds} rounds)")
+            log = run_revision_loop(
+                args.project, render, rounds=args.rounds, on_round=announce
+            )
+            log_file = args.project / "revision_log.json"
+            log_file.write_text(
+                json.dumps(log.to_dict(), ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            for line in describe_revisions(log):
+                print(line)
+            print(f"- log: {log_file}")
             return 0
 
         if args.command == "midi-review":

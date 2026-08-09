@@ -393,6 +393,33 @@ python3 -m kihachi_music_ai ace-step prepare \
 
 確認後に実際の生成へ使う場合は、`ace-step render`にも同じ`--revision-file`を明示します。生成結果JSONには適用したrevisionのSHA-256とrequestファイル名が記録されます。
 
+## Revision Loop（測る→直す→また測る、を回す）
+
+`analyze`で測り、`review`で直す場所を決め、`stage-repaint`で新しいプロジェクトを作り、
+`render`で埋める。この4手を1ラウンドとして自動で回します。
+
+```bash
+python3 -m kihachi_music_ai revise projects/my-song --rounds 3 --base-url http://127.0.0.1:8001
+```
+
+まず何をするか見るだけなら、生成せずに確認できます。
+
+```bash
+python3 -m kihachi_music_ai revise projects/my-song --dry-run
+```
+
+**候補は自動採用しません。** 各ラウンドは隣に新しいプロジェクトを書き、元のプロジェクトには
+一切触れません。最後に順位付きで並べて終わります。順位は「blockingな欠陥がないもの」が先、
+その中で整合度順です。整合度88.69の`aligned`なテイクに2.28秒の無音が空いていた例があるため、
+穴の空いたテイクは点数では勝てません。
+
+採用を機械が決めない理由は、整合度スコアが**SongSpec通りかを測るだけで、良し悪しを聴けない**
+ことにあります。同じ設定でseedを変えるだけでこのスコアは33点動きました。
+
+停止条件は3つ。直す場所が無くなる、ラウンド上限、または整合度の伸びが1.00点未満です。
+最後の閾値が0でないのは、seedのばらつきがそれより桁違いに大きく、
+0.1点の改善は結果の顔をしたノイズだからです。
+
 ## v0.1の境界
 
 - Music Brainはルールベースで、BPM、キー、ジャンル、質感、演奏指示を決定的に解釈します。
