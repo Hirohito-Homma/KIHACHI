@@ -45,6 +45,74 @@ class MusicBrainTests(unittest.TestCase):
             MusicBrain().analyze("  ")
 
 
+class RefusalTests(unittest.TestCase):
+    """A refused trait used to be read as a request for it."""
+
+    def test_a_refused_technique_is_not_the_technique_chosen(self) -> None:
+        spec = MusicBrain().analyze("Tech House。スラップじゃなくて指弾きで。")
+
+        self.assertEqual(spec.bass.technique, "fingered")
+
+    def test_refusing_slap_lands_on_every_value_slap_would_have_raised(self) -> None:
+        refused = MusicBrain().analyze("Tech House。スラップじゃなくて指弾きで。")
+        silent = MusicBrain().analyze("Tech House。")
+
+        self.assertEqual(refused.bass.syncopation, silent.bass.syncopation)
+        self.assertEqual(refused.bass.ghost_note_probability, silent.bass.ghost_note_probability)
+        self.assertEqual(
+            refused.bass.octave_jump_probability, silent.bass.octave_jump_probability
+        )
+        self.assertEqual(refused.groove.syncopation, silent.groove.syncopation)
+
+    def test_a_refused_part_is_not_written(self) -> None:
+        spec = MusicBrain().analyze("Tech House。アルペジオは無しで。")
+
+        self.assertIsNone(spec.instruments)
+
+    def test_a_refused_vocoder_leaves_the_song_instrumental(self) -> None:
+        spec = MusicBrain().analyze("Tech House。vocoderなしで。")
+
+        self.assertFalse(spec.vocal.enabled)
+        self.assertFalse(spec.vocal.vocoder)
+
+
+class DegreeTests(unittest.TestCase):
+    """"少し" and "かなり" now land somewhere, and a plain mention lands where it did."""
+
+    def test_a_plain_mention_still_gives_the_old_constant(self) -> None:
+        spec = MusicBrain().analyze("Tech House。サイケに。")
+
+        self.assertEqual(spec.style.psychedelic, 0.82)
+
+    def test_hedging_lands_below_a_plain_mention(self) -> None:
+        hedged = MusicBrain().analyze("Tech House。少しサイケ。")
+        plain = MusicBrain().analyze("Tech House。サイケに。")
+        silent = MusicBrain().analyze("Tech House。")
+
+        self.assertLess(hedged.style.psychedelic, plain.style.psychedelic)
+        self.assertGreater(hedged.style.psychedelic, silent.style.psychedelic)
+
+    def test_insisting_lands_above_it(self) -> None:
+        insisted = MusicBrain().analyze("Tech House。かなりサイケ。")
+        plain = MusicBrain().analyze("Tech House。サイケに。")
+
+        self.assertGreater(insisted.style.psychedelic, plain.style.psychedelic)
+        self.assertLessEqual(insisted.style.psychedelic, 1.0)
+
+    def test_degree_does_not_leak_into_an_unmodified_brief(self) -> None:
+        """The pinned brief hedges nothing, so this whole layer is a no-op on it."""
+
+        spec = MusicBrain(seed=8).analyze(EXAMPLE)
+
+        self.assertEqual(spec.bass.mutation, 0.78)
+        self.assertEqual(spec.bass.syncopation, 0.86)
+        self.assertEqual(spec.groove.syncopation, 0.82)
+        self.assertEqual(spec.style.psychedelic, 0.82)
+        self.assertEqual(spec.style.darkness, 0.72)
+        self.assertEqual(spec.drums.dub_space, 0.62)
+        self.assertEqual(spec.chords.dub_delay, 0.74)
+
+
 if __name__ == "__main__":
     unittest.main()
 

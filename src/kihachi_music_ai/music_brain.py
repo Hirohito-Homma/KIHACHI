@@ -5,6 +5,7 @@ from typing import Sequence
 
 from .arrangement import build_arrangement
 from .genres import match_genres, mood_axes, typical_bpm
+from .intent import Traits, blend, read as read_intent
 from .preferences import EMPTY as NO_PREFERENCES, Preferences, clamp
 from .models import (
     CORE_TRACKS,
@@ -47,15 +48,25 @@ class MusicBrain:
         bpm = self._parse_bpm(prompt, weighted)
         total_bars = self._total_bars(prompt, bpm)
         duration = total_bars * 4 * 60 / bpm
-        lower = prompt.lower()
-        psychedelic_requested = "サイケ" in prompt or "psychedelic" in lower
-        minimal_requested = "ミニマル" in prompt or "minimal" in lower
-        slap_requested = "スラップ" in prompt or "slap" in lower
-        vocoder_requested = "vocoder" in lower or "ボコーダー" in prompt
-        mutation_requested = "mutation" in lower or "変態" in prompt
-        dub_requested = any(item.name == "dub" for item in genres)
+        # What the brief actually asks for, refusals and degrees included. Each
+        # ``strength`` is 0.0 when unmentioned or refused, 1.0 when plainly
+        # stated -- and 1.0 blends to exactly the constant this used to
+        # hardcode, so a brief that hedges nothing produces the song it always
+        # produced.
+        traits = read_intent(prompt)
+        psychedelic = traits.strength_of("psychedelic")
+        minimal_requested = traits.asked_for("minimal")
+        slap = traits.strength_of("slap")
+        slap_requested = slap > 0
+        vocoder_requested = traits.asked_for("vocoder")
+        mutation = traits.strength_of("mutation")
+        mutation_requested = mutation > 0
+        # Dub is a genre, so the genre database decides it, not the wording --
+        # but a brief that refuses dub outright still overrules the match.
+        dub_requested = any(item.name == "dub" for item in genres) and not traits.refused("dub")
+        dub = 1.0 if dub_requested else 0.0
         db_darkness, db_psychedelic = mood_axes(weighted)
-        instruments = self._instruments(prompt, lower, vocoder_requested)
+        instruments = self._instruments(traits, vocoder_requested)
         # Learned offsets, if any were supplied. ``tune`` is the identity when
         # the preferences are empty, which is the default.
         slugs = [item.name for item in genres]
@@ -66,7 +77,7 @@ class MusicBrain:
         sections = self._sections(
             total_bars,
             minimal_requested=minimal_requested,
-            psychedelic_requested=psychedelic_requested,
+            psychedelic_requested=psychedelic > 0,
             parts=instruments or CORE_TRACKS,
         )
         progression = progression_for_key(tonic_pc, mode, prefer_flats="b" in tonic)
@@ -92,16 +103,12 @@ class MusicBrain:
                 # old constants. The constants were the same two numbers for
                 # every unrecognised style; the tags at least distinguish a
                 # nocturnal one from a sunny one.
-                darkness=0.72 if dub_requested else (db_darkness or 0.48),
-                psychedelic=(
-                    0.82 if psychedelic_requested else (db_psychedelic or 0.28)
-                ),
+                darkness=blend(db_darkness or 0.48, 0.72, dub),
+                psychedelic=blend(db_psychedelic or 0.28, 0.82, psychedelic),
             ),
             groove=GrooveSpec(
                 swing=0.54 if any(item.name == "mutation_funk" for item in genres) else 0.5,
-                syncopation=tune(
-                    "groove.syncopation", 0.82 if slap_requested else 0.58
-                ),
+                syncopation=tune("groove.syncopation", blend(0.58, 0.82, slap)),
                 humanize=0.18,
             ),
             arrangement=sections,
@@ -109,25 +116,25 @@ class MusicBrain:
             bass=BassSpec(
                 role="dominant",
                 technique="slap" if slap_requested else "fingered",
-                syncopation=tune("bass.syncopation", 0.86 if slap_requested else 0.58),
-                mutation=tune("bass.mutation", 0.78 if mutation_requested else 0.35),
+                syncopation=tune("bass.syncopation", blend(0.58, 0.86, slap)),
+                mutation=tune("bass.mutation", blend(0.35, 0.78, mutation)),
                 octave_jump_probability=tune(
-                    "bass.octave_jump_probability", 0.45 if slap_requested else 0.18
+                    "bass.octave_jump_probability", blend(0.18, 0.45, slap)
                 ),
                 ghost_note_probability=tune(
-                    "bass.ghost_note_probability", 0.34 if slap_requested else 0.12
+                    "bass.ghost_note_probability", blend(0.12, 0.34, slap)
                 ),
             ),
             drums=DrumSpec(
                 pattern="syncopated_tech_house" if "tech_house" in {item.name for item in genres} else "four_on_floor",
                 kick_density=0.72,
                 hat_density=0.78,
-                dub_space=tune("drums.dub_space", 0.62 if dub_requested else 0.2),
+                dub_space=tune("drums.dub_space", blend(0.2, 0.62, dub)),
             ),
             chords=ChordSpec(
                 instrument="dub_chord_stab" if dub_requested else "synth_chord",
                 articulation="short_offbeat_stabs",
-                dub_delay=tune("chords.dub_delay", 0.74 if dub_requested else 0.18),
+                dub_delay=tune("chords.dub_delay", blend(0.18, 0.74, dub)),
             ),
             vocal=VocalSpec(
                 enabled=vocoder_requested,
@@ -141,27 +148,18 @@ class MusicBrain:
         )
 
     @staticmethod
-    def _instruments(prompt: str, lower: str, vocoder_requested: bool) -> tuple[str, ...] | None:
+    def _instruments(traits: Traits, vocoder_requested: bool) -> tuple[str, ...] | None:
         """Which parts the brief asks for, beyond the core three.
 
         Returns ``None`` when it asks for nothing extra, so a plain brief still
         produces a SongSpec that serializes exactly as it did before these parts
         existed -- and keeps the SHA-256 repaint plans are pinned to.
+
+        A part is either written or it is not, so degree does not apply here --
+        but refusal does. ``"アルペジオは無しで"`` used to add the arp track.
         """
 
-        extra: list[str] = []
-        if any(word in lower for word in ("sub bass", "sub-bass", "subbass", "808")) or any(
-            word in prompt for word in ("サブベース", "サブ・ベース")
-        ):
-            extra.append("sub")
-        if any(word in lower for word in ("synth", "stab", "lead")) or any(
-            word in prompt for word in ("シンセ", "スタブ", "リード")
-        ):
-            extra.append("synth")
-        if any(word in lower for word in ("arp", "sequence", "sequencer")) or any(
-            word in prompt for word in ("アルペジ", "シーケンス")
-        ):
-            extra.append("arp")
+        extra = [name for name in ("sub", "synth", "arp") if traits.asked_for(name)]
         if vocoder_requested:
             extra.append("vocoder")
         if not extra:
