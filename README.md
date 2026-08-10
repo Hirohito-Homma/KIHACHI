@@ -9,7 +9,7 @@ Music Brain
     ↓
 SongSpec
     ├── MIDI Composer → bass.mid / drums.mid / chords.mid
-    └── Prompt Compiler → prompt.txt
+    └── Prompt Compiler → prompt.txt / prompt.json
 ```
 
 AbletonGPTとAbleton Liveには接続しません。コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。
@@ -45,6 +45,7 @@ bass.mid
 drums.mid
 chords.mid
 prompt.txt
+prompt.json
 ```
 
 出力先を指定する場合:
@@ -479,6 +480,69 @@ ACE-Step did not answer within request_timeout=30s; raise it if the server is ru
 以前はこれが「response could not be decoded」と表示され、サーバのJSONを疑う方向へ
 誘導していました。
 
+## 指示の解釈（否定と強度を読む）
+
+`MusicBrain` はプロンプトに対して**5つの真偽判定**を行い、その答えごとに2つの定数のどちらかを選んでいました。ここには性質の違う2つの欠陥がありました。
+
+**否定が要求として読まれていました。**
+
+```
+"スラップじゃなくて指弾きで"  →  スラップ という部分文字列を含む  →  slap = True
+```
+
+`bass.technique` は `slap`、`bass.syncopation` は 0.86、`octave_jump` は 0.45、`ghost` は 0.34。**要求と正反対の4つの値**が書き込まれます。`"サイケじゃない"` は `style.psychedelic` を最大の 0.82 にしました。これは機能不足ではなく、明確に述べられた拒否をその逆として実行していたという**正しさの欠陥**です。
+
+**強度に着地点がありませんでした。** `少しサイケ` も `かなりサイケ` も 0.82 です。真の側に 0.82 しか無いからです。しかもその語彙は**既にリポジトリの中にありました** — `edit.py` の `少し` / `かなり` は最初から効いていて、ただし**曲を直すときだけ**でした。同じ日本語が、打ったコマンドの名前によって通じたり通じなかったりしていたことになります。
+
+`intent.py` はプロンプトを `Trait(name, polarity, strength)` へ分解します。
+
+```
+"スラップじゃなくて指弾きで。少しサイケ。"
+    slap         polarity -1
+    psychedelic  polarity +1  strength 0.5
+```
+
+| 入力 | 変更前 | 変更後 |
+|---|---|---|
+| `スラップじゃなくて指弾きで` | technique **slap** | technique `fingered` |
+| `少しサイケ` | psychedelic 0.82 | **0.55** |
+| `かなりサイケ` | psychedelic 0.82 | **1.0** |
+| `アルペジオは無しで` | arpトラックを**追加** | 追加しない |
+
+**否定は言語ごとに向きが違います。** 日本語は直前の言及に、英語は直後の言及に結びつけます。列挙は接続語だけで繋がっているときに限って広げます。
+
+```
+"スラップとサイケはなし"          → 両方とも拒否（と で繋がっている）
+"ミニマルにしてサイケは無し"      → サイケだけ拒否（にして は接続語ではない）
+"スラップじゃなくて指弾き。サイケに。"  → 節を越えない
+```
+
+**拒否は「低い極」に着地し、その先へは行きません。** ここで扱う特性はどれも、拒否された側の値＝言及が無いときの値です。それを下回る値を作るのは解釈ではなく捏造になります。否定が買うのは新しい値ではなく、**反対の値に着地しなくなること**です。
+
+### 既存の曲が1ビットも動かない理由
+
+`preferences` と同じ規律です。**中立を恒等写像にする**。
+
+強度 1.0（＝素の言及）を `blend(low, high, 1.0) == high` と定義し、この `high` は従来ハードコードされていた定数そのものにしてあります。したがって強度語も否定語も含まないプロンプト — `example_output` の全てがそうです — は、以前と完全に同じSongSpecを出します。`song_spec_sha256` に固定された repaint 計画も、MIDIのバイト列も動きません。
+
+### 凍っていた定数を解凍する
+
+読み取れても着地点が定数しか無ければ意味がありません。`drums.kick_density` 0.72、`groove.humanize` 0.18、`harmonic_rhythm_bars` 1、`bass.role`、`chords.articulation` は**1020ジャンル全てで同一**でした。
+
+| ジャンル | kick | humanize | harmonic rhythm | pattern |
+|---|---|---|---|---|
+| ダブ | 0.38 | 0.30 | 2小節 | `one_drop` |
+| ドラムンベース | 0.50 | 0.10 | 4小節 | `breakbeat` |
+| ボサノヴァ | 0.45 | 0.38 | 1小節 | `samba` |
+| アンビエント | 0.18 | 0.35 | 4小節 | `sparse_pulse` |
+| テクノ | 0.85 | 0.06 | 2小節 | `four_on_floor` |
+
+**既定値は中立ではありませんでした。** `derive.py` の `FAMILY_PROFILES` の先頭行（R&B / Soul / Funk）は今日の定数そのものです。これは辻褄合わせではなく、**全ジャンルがひとつのジャンルの数値を受け取っていた**という事実を書き出したものです。
+
+データベースは名前・別名・BPM帯・拍子・mood tags・地域しか持っていません。密度もarticulationも入っていない。そこで `mood_tags` から密度を導いて「データから出した」と言うことはせず、`ableton.py` の `LIVE_GENRE_BY_FAMILY` と同じく**手書きのファミリー単位テーブル**にしています。テーブルに無いファミリーは推測を受け取らず、**従来の定数のまま**です。
+
+**`drums.hat_density` は解凍していません。** `composer.py` が 0.3 の閾値で8分/16分の2値に量子化しているため、0.4 と 0.9 は同じMIDIを生みます。ここで動かしても変わるのはプロンプトの文言だけで、制御しているように見えて制御していない状態になります。composer側の連続化は別の変更です。
+
 ## ジャンル認識（Music Genre Master Database）
 
 `MusicBrain` のジャンル認識は、同梱のジャンルデータベース（`src/kihachi_music_ai/data/genres.json`、1020ジャンル・37ファミリー）が担います。
@@ -655,6 +719,15 @@ blockingな欠陥のないテイクが先、その中で整合度順です。
 - Music Brainはルールベースで、BPM、キー、ジャンル、質感、演奏指示を決定的に解釈します。
 - MIDIはSMF Format 0、480 PPQです。DrumsはGeneral MIDIのChannel 10を使います。
 - `prompt.txt` は音声生成器へ渡す中立的なテキストです。ACE-Step 1.5 RESTアダプターが、この内容とSongSpecのBPM・キー・尺を公式API形式へ変換します。
+- `prompt.json` は同じプロンプトを機械可読にしたものです。BPM・キー・拍子・尺・進行・セクション・パートと、コンパイル元SongSpecの `song_spec_sha256` を持ちます。生成器固有のパラメータ（`inference_steps` など）は入っていません — それらは `ace_step_request.json` の担当です。レンダラーがまだ繋がっていない段階でも、この1ファイルで曲の設計を渡せます。
+- `prompt.json` は手で編集して読み戻せます。プロンプト本文を書き換えて渡すと、SongSpecから再コンパイルせずそのまま使われます:
+
+```bash
+uv run kihachi ace-step prepare projects/my-song --from-brief prompt.json
+uv run kihachi ace-step render  projects/my-song --from-brief prompt.json
+```
+
+  SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。`render` の場合、テールガードの切り戻し先はブリーフ自身の `total_bars`・`bpm`・`time_signature` から求めた長さです（SongSpec側のグリッドに切り戻すと、尺を書き換えたブリーフはまさにその部分を失います）。どのブリーフでレンダーしたかは `ace_step_result.json` の `render_brief`（パス・SHA-256・SongSpecとの一致）に残ります。
 - Audio-to-MIDI、stem分離、複数候補の音楽的な自動採用、Ableton Live展開、LLM接続は次段階です。ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
 
 ## ACE-Step 1.5アダプター
@@ -755,6 +828,25 @@ python3 -m kihachi_music_ai ace-step render \
 repaint範囲が最終小節に届く場合は、マスク自体もguard領域まで伸ばします（モデルはマスク終端で終止を書くため）。範囲が曲中で終わる場合、guardは範囲に影響しません。`--tail-guard-bars`はWAV専用で、0〜8小節の範囲です。結果JSONの`tail_guard`ブロックに、要求尺・曲尺・トリム前後のSHA-256・実測の`delivered_music_end_sec`が残ります。
 
 `review`は既定でtail guard 2小節を計画へ入れます（`--tail-guard-bars 0`で無効）。また、セクション全体ではなく問題小節だけを狙う**bar-level候補**も出します。最終小節がセクション目標より0.25以上落ちていれば、その連続範囲を最低4小節まで広げた候補（例: bars 29:32）を`bar_level_candidates`へ記録し、セクション平均が目標付近（誤差0.05以内）なら`recommended_selector`を`bars`にします。`--prefer-bar-level`を付けると、その狭い範囲が実際の`selection`になります。
+
+## チャンク分割レンダー
+
+9セクションの編成を1つのプロンプトで通すと、曲の3分の1を過ぎたあたりで自分の計画を無視し始めます（計画境界の再現率 1.0 → 0.25、セクションエネルギー相関 0.75 → 0.34）。そこで曲をセクション単位のチャンクに区切り、**各チャンクを自分のセクションだけを述べたプロンプトでレンダー**します。最初のパスが全長のベッドを敷き、以降は直前のレンダーを参照元とする自分の範囲のrepaintです。
+
+```bash
+uv run kihachi ace-step plan-chunks projects/my-song --target-chunk-bars 32
+uv run kihachi ace-step render-chunks projects/my-song --base-url http://127.0.0.1:8001
+```
+
+`chunk_plan.json`は手で編集する前提のファイルです（チャンク幅、repaint強度、クロスフェードは実際に回したくなるつまみです）。読み込み時に**全小節がちょうど1回ずつ描かれること**を検証し、隙間・重なり・順序の乱れ・曲末に届かない計画を、どこで途切れているかを示して拒否します。隙間はベッドがそのまま残る区間になり、レンダーログ上は成功と見分けが付かないためです。
+
+チャンクは1つあたりCPUで数分かかります。途中で失敗した場合、完了済みのチャンクは`chunks/`に残り、`chunk_render_log.json`には`execution_state: incomplete`と何番まで終わったかが記録されます。
+
+```bash
+uv run kihachi ace-step render-chunks projects/my-song --resume
+```
+
+`--resume`は完了済みのチャンク（音声と結果JSONが揃っているもの）を再利用し、残りだけをレンダーします。再利用したステップはログに`reused_from_previous_run`として残ります。音声だけあって結果JSONが無いステップは、途中で切れたダウンロードの可能性があるため再レンダーします。
 
 ## KIHACHI LoRA
 

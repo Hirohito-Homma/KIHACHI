@@ -28,9 +28,10 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .composer import compose_tracks
+from .intent import LARGE_WORDS, SMALL_WORDS, contains as _contains, matches as _matches
 from .midi import MidiNote, write_midi
 from .models import DENSITY_FIELDS, TRACK_NAMES, SectionSpec, SongSpec
-from .prompt_compiler import compile_audio_prompt
+from .prompt_compiler import compile_audio_prompt, render_brief
 
 EDIT_VERSION = "0.1"
 DEFAULT_MAGNITUDE = 0.2
@@ -71,8 +72,11 @@ QUALITY_WORDS: dict[str, tuple[str, ...]] = {
 
 INCREASE_WORDS = ("もっと", "更に", "さらに", "上げ", "増やし", "強く", "more", "increase", "raise", "up")
 DECREASE_WORDS = ("抑え", "減ら", "弱く", "下げ", "less", "reduce", "lower", "down", "薄く", "控え")
-SMALL_WORDS = ("少し", "ちょっと", "やや", "slightly", "a bit", "軽く")
-LARGE_WORDS = ("かなり", "大幅", "ずっと", "much", "far", "way", "大胆")
+# ``SMALL_WORDS`` / ``LARGE_WORDS`` now live in :mod:`.intent` and are imported
+# above, unchanged. They are the same words a *brief* uses, and keeping two
+# copies meant "少し" could mean one thing when asking for a song and another
+# when correcting it. The magnitudes below stay here: how far an edit moves is
+# an edit's business.
 
 # "後半" / "前半" select a span of the arrangement rather than one section.
 LATER_HALF_WORDS = ("後半", "second half", "later half", "終盤")
@@ -359,6 +363,7 @@ def apply_edit_to_project(
         "drums.mid",
         "chords.mid",
         "prompt.txt",
+        "prompt.json",
         "applied_spec_edit.json",
         "edit_report.json",
     )
@@ -373,6 +378,13 @@ def apply_edit_to_project(
                 key=updated.song.key,
             )
         (stage / "prompt.txt").write_text(compile_audio_prompt(updated), encoding="utf-8")
+        # Rewritten, not carried over: ``prompt.json`` states the SHA-256 of the
+        # spec it was compiled from, so a copied one would claim to describe the
+        # song before the edit.
+        (stage / "prompt.json").write_text(
+            json.dumps(render_brief(updated), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
         applied = dict(edit)
         applied["execution_state"] = "applied"
         (stage / "applied_spec_edit.json").write_text(
@@ -396,23 +408,8 @@ def apply_edit_to_project(
     )
 
 
-def _matches(lowered: str, words: Sequence[str]) -> bool:
-    return any(_contains(lowered, word) for word in words)
-
-
-def _contains(lowered: str, word: str) -> bool:
-    """Substring match, but an ASCII word has to start a word.
-
-    Japanese has no word boundaries, so substring is the only option there. A
-    bare ASCII substring would match inside unrelated words ("up" in "group"),
-    while requiring a boundary at *both* ends would miss ordinary inflection
-    ("dense" in "densely"), so only the start is anchored.
-    """
-
-    folded = word.casefold()
-    if folded.isascii():
-        return re.search(rf"(?<![a-z0-9]){re.escape(folded)}", lowered) is not None
-    return folded in lowered
+# ``_matches`` / ``_contains`` are imported from :mod:`.intent`; the brief and
+# the correction now agree on what counts as a mention.
 
 
 def _without_section_names(lowered: str, spec: SongSpec) -> str:

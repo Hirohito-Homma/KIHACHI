@@ -137,7 +137,56 @@ def load_chunk_plan(path: Path) -> dict[str, Any]:
     for chunk in chunks[1:]:
         if chunk.get("task_type") != "repaint":
             raise ValueError("every chunk after the first must be a repaint")
+    validate_chunk_coverage(payload)
     return payload
+
+
+def validate_chunk_coverage(plan: Mapping[str, Any]) -> None:
+    """Every bar of the song is repainted exactly once, in order.
+
+    The plan is a JSON file people are meant to edit -- chunk sizes and repaint
+    strengths are exactly the knobs worth turning by hand. What an edit can
+    silently produce is a gap: a range of bars the bed laid down and no chunk
+    ever repainted, which comes back as the one stretch of the song that
+    ignored its own arrangement. That is the failure this whole module exists
+    to prevent, and it looked identical to success in the render log.
+
+    Overlaps are refused for the same reason in reverse: the later chunk
+    repaints part of the earlier one's work, so a section renders under a
+    prompt describing its neighbour.
+    """
+
+    chunks = plan["chunks"]
+    total_bars = plan.get("total_bars")
+    cursor = 1
+    for position, chunk in enumerate(chunks, start=1):
+        if int(chunk.get("index", position)) != position:
+            raise ValueError(
+                f"chunk {position} is numbered {chunk.get('index')}; chunks must be "
+                "numbered in the order they render"
+            )
+        selection = chunk.get("selection")
+        if not isinstance(selection, dict):
+            raise ValueError(f"chunk {position} has no selection")
+        try:
+            start_bar = int(selection["start_bar"])
+            end_bar = int(selection["end_bar"])
+        except (KeyError, TypeError, ValueError):
+            raise ValueError(f"chunk {position} has no start_bar/end_bar") from None
+        if end_bar < start_bar:
+            raise ValueError(f"chunk {position} ends before it starts")
+        if start_bar != cursor:
+            gap = "gap" if start_bar > cursor else "overlap"
+            raise ValueError(
+                f"chunk {position} starts at bar {start_bar} but bar {cursor} is "
+                f"where the previous chunk ended: {gap} in the plan"
+            )
+        cursor = end_bar + 1
+    if total_bars is not None and cursor - 1 != int(total_bars):
+        raise ValueError(
+            f"the plan covers {cursor - 1} bars but the song is {int(total_bars)}; "
+            "every bar has to be rendered by exactly one chunk"
+        )
 
 
 def render_chunk_plan(
@@ -150,11 +199,19 @@ def render_chunk_plan(
     poll_interval: float = 3.0,
     wait_timeout: float = 1500.0,
     overwrite: bool = False,
+    resume: bool = False,
+    plan_file: Path | None = None,
 ) -> ChunkRenderManifest:
     """Render every chunk in order, each one from the previous render.
 
     Each step keeps its own audio and result under ``chunks/`` so the chain can
-    be audited; the project's ``audio/ace-step-01.wav`` is the final pass.
+    be audited; the project's ``audio/ace-step-01.<format>`` is the final pass.
+
+    ``resume`` reuses the chunks that already finished instead of rendering
+    them again. On this hardware a chunk is minutes of CPU inference, so a
+    failure on the fourth of five used to throw away everything that had
+    succeeded -- and the completed audio was sitting right there under
+    ``chunks/``, fully described by its own result file.
     """
 
     project_dir = Path(project_dir)
@@ -164,87 +221,188 @@ def render_chunk_plan(
     spec = SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
     if plan.get("song_spec_sha256") != song_spec_sha256(spec):
         raise ValueError("chunk plan SongSpec does not match this project")
+    validate_chunk_coverage(plan)
 
+    template = base_options or AceStepOptions()
+    # Every chunk's options are built now, before anything is submitted. They
+    # can fail validation -- a tail guard with a non-WAV format does -- and
+    # finding that out on the last chunk means discarding every render before
+    # it. On CPU that is an hour to learn about a flag.
+    prepared = [
+        _chunk_options(template, chunk, plan, chunk["ace_step_options"], _is_bed(chunk))
+        for chunk in plan["chunks"]
+    ]
+
+    extension = "wav" if template.audio_format == "wav32" else template.audio_format
     log_file = project_dir / "chunk_render_log.json"
-    final_audio = project_dir / "audio" / "ace-step-01.wav"
-    for path in (log_file, final_audio):
-        if path.exists() and not overwrite:
-            raise FileExistsError(f"refusing to overwrite chunk render artifact: {path}")
+    final_audio = project_dir / "audio" / f"ace-step-01.{extension}"
+    if not resume:
+        for path in (log_file, final_audio):
+            if path.exists() and not overwrite:
+                raise FileExistsError(f"refusing to overwrite chunk render artifact: {path}")
 
     chunks_dir = project_dir / "chunks"
     chunks_dir.mkdir(parents=True, exist_ok=True)
-    template = base_options or AceStepOptions()
     steps: list[dict[str, Any]] = []
     source_audio: Path | None = None
 
-    for chunk in plan["chunks"]:
-        step_dir = chunks_dir / f"{int(chunk['index']):02d}-{'-'.join(chunk['sections'])[:40]}"
-        if step_dir.exists() and not overwrite:
-            raise FileExistsError(f"refusing to overwrite chunk step: {step_dir}")
-        step_dir.mkdir(parents=True, exist_ok=True)
-        spec.write_json(step_dir / "song_spec.json")
+    try:
+        for chunk, options in zip(plan["chunks"], prepared):
+            step_dir = chunks_dir / f"{int(chunk['index']):02d}-{'-'.join(chunk['sections'])[:40]}"
+            selection = chunk["selection"]
+            is_first = _is_bed(chunk)
 
-        selection = chunk["selection"]
-        settings = chunk["ace_step_options"]
-        is_first = chunk["task_type"] == "text2music"
-        window: AceStepRepaintWindow | None = None
-        options = _chunk_options(template, chunk, plan, settings, is_first)
-        if not is_first:
-            window = resolve_repaint_window(
-                spec,
-                bar_range=f"{int(selection['start_bar'])}:{int(selection['end_bar'])}",
-                tail_guard_bars=float(plan.get("tail_guard_bars", 0.0)),
+            finished = _finished_render(step_dir, extension) if resume else None
+            if finished is not None:
+                steps.append(
+                    _step_record(
+                        chunk, selection, project_dir, source_audio, finished, reused=True
+                    )
+                )
+                source_audio = finished
+                continue
+
+            if step_dir.exists() and not (overwrite or resume):
+                raise FileExistsError(f"refusing to overwrite chunk step: {step_dir}")
+            step_dir.mkdir(parents=True, exist_ok=True)
+            spec.write_json(step_dir / "song_spec.json")
+
+            window: AceStepRepaintWindow | None = None
+            if not is_first:
+                window = resolve_repaint_window(
+                    spec,
+                    bar_range=f"{int(selection['start_bar'])}:{int(selection['end_bar'])}",
+                    tail_guard_bars=float(plan.get("tail_guard_bars", 0.0)),
+                )
+
+            manifest = render_with_ace_step(
+                step_dir,
+                client,
+                options,
+                lora=lora,
+                source_audio=source_audio,
+                repaint_selection=window,
+                overwrite=overwrite or resume,
+                poll_interval=poll_interval,
+                wait_timeout=wait_timeout,
             )
-
-        manifest = render_with_ace_step(
-            step_dir,
-            client,
-            options,
-            lora=lora,
-            source_audio=source_audio,
-            repaint_selection=window,
-            overwrite=overwrite,
-            poll_interval=poll_interval,
-            wait_timeout=wait_timeout,
-        )
-        rendered = manifest.audio_files[0]
-        steps.append(
-            {
-                "index": chunk["index"],
-                "sections": chunk["sections"],
-                "task_type": chunk["task_type"],
-                "bars": [selection["start_bar"], selection["end_bar"]],
-                "seconds": [selection["start_sec"], selection["end_sec"]],
-                "task_id": manifest.task_id,
-                "source_audio_sha256": _file_sha256(source_audio) if source_audio else None,
-                "rendered_audio_sha256": _file_sha256(rendered),
-                "rendered_audio": str(rendered.relative_to(project_dir)),
-            }
-        )
-        source_audio = rendered
+            rendered = manifest.audio_files[0]
+            steps.append(
+                _step_record(
+                    chunk,
+                    selection,
+                    project_dir,
+                    source_audio,
+                    rendered,
+                    task_id=manifest.task_id,
+                )
+            )
+            source_audio = rendered
+    except Exception:
+        # Record what did land before re-raising. Without this a failure on the
+        # last chunk leaves no account of the four renders that worked, and
+        # ``--resume`` has to rediscover them from the directory.
+        if steps:
+            _atomic_write_text(
+                log_file,
+                json.dumps(
+                    _log_document(project_dir, plan, steps, final_audio=None),
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+            )
+        raise
 
     assert source_audio is not None
     final_audio.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source_audio, final_audio)
 
-    document = {
-        "chunk_plan_version": CHUNK_PLAN_VERSION,
-        "execution_state": "rendered",
-        "project": project_dir.name,
-        "song_spec_sha256": plan["song_spec_sha256"],
-        "chunks_rendered": len(steps),
-        "final_audio": str(final_audio.relative_to(project_dir)),
-        "final_audio_sha256": _file_sha256(final_audio),
-        "steps": steps,
-    }
-    _atomic_write_text(log_file, json.dumps(document, ensure_ascii=False, indent=2) + "\n")
+    _atomic_write_text(
+        log_file,
+        json.dumps(
+            _log_document(project_dir, plan, steps, final_audio=final_audio),
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
     return ChunkRenderManifest(
         project_dir=project_dir,
-        plan_file=project_dir / "chunk_plan.json",
+        plan_file=Path(plan_file) if plan_file is not None else project_dir / "chunk_plan.json",
         log_file=log_file,
         audio_file=final_audio,
         steps=tuple(steps),
     )
+
+
+def _is_bed(chunk: Mapping[str, Any]) -> bool:
+    return chunk["task_type"] == "text2music"
+
+
+def _finished_render(step_dir: Path, extension: str) -> Path | None:
+    """The audio a previous run left here, if that run got all the way through.
+
+    Both files have to be present: the result document is written after the
+    download, so audio without it means the step was interrupted mid-way and
+    the file may be a partial download.
+    """
+
+    audio = step_dir / "audio" / f"ace-step-01.{extension}"
+    result = step_dir / "ace_step_result.json"
+    if audio.is_file() and audio.stat().st_size > 0 and result.is_file():
+        return audio
+    return None
+
+
+def _step_record(
+    chunk: Mapping[str, Any],
+    selection: Mapping[str, Any],
+    project_dir: Path,
+    source_audio: Path | None,
+    rendered: Path,
+    *,
+    task_id: str | None = None,
+    reused: bool = False,
+) -> dict[str, Any]:
+    record = {
+        "index": chunk["index"],
+        "sections": chunk["sections"],
+        "task_type": chunk["task_type"],
+        "bars": [selection["start_bar"], selection["end_bar"]],
+        "seconds": [selection["start_sec"], selection["end_sec"]],
+        "task_id": task_id,
+        "source_audio_sha256": _file_sha256(source_audio) if source_audio else None,
+        "rendered_audio_sha256": _file_sha256(rendered),
+        "rendered_audio": str(rendered.relative_to(project_dir)),
+    }
+    if reused:
+        # Named in the log, because "this audio was not produced by this run" is
+        # exactly what someone auditing a chain of renders needs to know.
+        record["reused_from_previous_run"] = True
+    return record
+
+
+def _log_document(
+    project_dir: Path,
+    plan: Mapping[str, Any],
+    steps: Sequence[dict[str, Any]],
+    *,
+    final_audio: Path | None,
+) -> dict[str, Any]:
+    document: dict[str, Any] = {
+        "chunk_plan_version": CHUNK_PLAN_VERSION,
+        "execution_state": "rendered" if final_audio is not None else "incomplete",
+        "project": project_dir.name,
+        "song_spec_sha256": plan["song_spec_sha256"],
+        "chunks_planned": len(plan["chunks"]),
+        "chunks_rendered": len(steps),
+        "steps": list(steps),
+    }
+    if final_audio is not None:
+        document["final_audio"] = str(final_audio.relative_to(project_dir))
+        document["final_audio_sha256"] = _file_sha256(final_audio)
+    return document
 
 
 def song_spec_sha256(spec: SongSpec) -> str:
@@ -283,7 +441,15 @@ def _chunk_options(
         ),
         repaint_wav_crossfade_sec=float(settings.get("repaint_wav_crossfade_sec", 0.25)),
         chunk_mask_mode=str(settings.get("chunk_mask_mode", "explicit")),
-        tail_guard_bars=float(selection.get("tail_guard_sec", 0.0) and plan["tail_guard_bars"]),
+        # Only the chunk whose window was extended into the guard region asks
+        # for the guard; the others end mid-song and have nothing to protect.
+        # This was an `and` expression relying on 0.0 being falsy, which also
+        # raised KeyError on a plan that stated no tail_guard_bars at all.
+        tail_guard_bars=(
+            float(plan.get("tail_guard_bars", 0.0))
+            if float(selection.get("tail_guard_sec", 0.0))
+            else 0.0
+        ),
     )
 
 

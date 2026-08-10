@@ -16,7 +16,11 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from ..models import SongSpec
-from ..prompt_compiler import compile_audio_prompt
+from ..prompt_compiler import (
+    brief_grid_duration,
+    compile_audio_prompt,
+    load_render_brief,
+)
 from ..tail_guard import (
     DEFAULT_TAIL_FADE_SEC,
     TrimManifest,
@@ -211,6 +215,78 @@ class AceStepGenerationRequest:
             inference_steps=options.inference_steps,
             use_random_seed=False,
             seed=spec.seed,
+            batch_size=options.batch_size,
+            sample_mode=False,
+            use_format=False,
+            use_cot_caption=False,
+            use_cot_language=False,
+            task_type=options.task_type,
+            audio_cover_strength=(
+                options.audio_cover_strength
+                if options.task_type in {"cover", "repaint"}
+                else None
+            ),
+            cover_noise_strength=(
+                options.cover_noise_strength
+                if options.task_type in {"cover", "repaint"}
+                else None
+            ),
+            repainting_start=(options.repainting_start if options.task_type == "repaint" else None),
+            repainting_end=(options.repainting_end if options.task_type == "repaint" else None),
+            repaint_mode=(options.repaint_mode if options.task_type == "repaint" else None),
+            repaint_strength=(options.repaint_strength if options.task_type == "repaint" else None),
+            repaint_latent_crossfade_frames=(
+                options.repaint_latent_crossfade_frames
+                if options.task_type == "repaint"
+                else None
+            ),
+            repaint_wav_crossfade_sec=(
+                options.repaint_wav_crossfade_sec if options.task_type == "repaint" else None
+            ),
+            chunk_mask_mode=(options.chunk_mask_mode if options.task_type == "repaint" else None),
+            model=options.model,
+        )
+
+    @classmethod
+    def from_render_brief(
+        cls,
+        brief: dict[str, Any],
+        options: AceStepOptions | None = None,
+    ) -> AceStepGenerationRequest:
+        """Build a request from a ``prompt.json`` rather than from a SongSpec.
+
+        The same fields as :meth:`from_song_spec`, read from the brief instead
+        of recompiled: the prompt is taken as written. That is the point -- a
+        brief edited by hand renders as edited, where going through the SongSpec
+        would silently recompile the prompt and discard the edit.
+
+        The duration already carries whatever tail guard was applied when the
+        brief was written, so ``tail_guard_bars`` is not applied again here;
+        applying it twice is how a song acquires a tail nobody asked for.
+        """
+
+        options = options or AceStepOptions()
+        song = brief["song"]
+        prompt = str(brief["prompt"]).strip()
+        revision = options.revision.strip()
+        if revision:
+            prompt = (
+                "Revision constraints (highest priority):\n"
+                f"{revision}\n\nBase song design:\n{prompt}"
+            )
+        return cls(
+            prompt=prompt,
+            lyrics=options.lyrics,
+            thinking=options.thinking,
+            vocal_language="en",
+            audio_format=options.audio_format,
+            bpm=int(round(float(song["bpm"]))),
+            key_scale=str(song["key"]),
+            time_signature=str(song["time_signature"]).split("/", 1)[0],
+            audio_duration=round(float(song["duration_sec"]), 3),
+            inference_steps=options.inference_steps,
+            use_random_seed=False,
+            seed=int(brief["seed"]),
             batch_size=options.batch_size,
             sample_mode=False,
             use_format=False,
@@ -801,10 +877,26 @@ def prepare_ace_step_request(
     options: AceStepOptions | None = None,
     *,
     overwrite: bool = False,
+    brief: Path | None = None,
 ) -> tuple[Path, AceStepGenerationRequest]:
+    """Write the request, from the project's SongSpec or from a render brief.
+
+    ``brief`` points at a ``prompt.json``. It exists because the prompt is the
+    part a person most wants to edit, and recompiling from the SongSpec throws
+    that edit away: the two paths differ only in where the prompt, tempo, key,
+    meter, duration and seed come from.
+    """
+
     project_dir = Path(project_dir)
     options = options or AceStepOptions()
-    request = AceStepGenerationRequest.from_song_spec(load_project_spec(project_dir), options)
+    if brief is not None:
+        request = AceStepGenerationRequest.from_render_brief(
+            load_render_brief(Path(brief)), options
+        )
+    else:
+        request = AceStepGenerationRequest.from_song_spec(
+            load_project_spec(project_dir), options
+        )
     if options.task_type == "cover":
         filename = (
             "ace_step_cover_revision_request.json"
@@ -842,7 +934,14 @@ def render_with_ace_step(
     poll_interval: float = 2.0,
     wait_timeout: float = 600.0,
     on_poll: Callable[[AceStepTaskResult, float], None] | None = None,
+    brief: Path | None = None,
 ) -> AceStepRenderManifest:
+    """Render the project, from its SongSpec or from a ``prompt.json``.
+
+    ``brief`` sends the brief's prompt, tempo, key, meter, duration and seed
+    exactly as written, the same way ``prepare_ace_step_request`` does.
+    """
+
     project_dir = Path(project_dir)
     options = options or AceStepOptions()
     if repaint_selection is not None:
@@ -875,7 +974,9 @@ def render_with_ace_step(
         names = ", ".join(str(path) for path in protected)
         raise FileExistsError(f"refusing to overwrite ACE-Step render artifacts: {names}")
 
-    request_path, request = prepare_ace_step_request(project_dir, options, overwrite=overwrite)
+    request_path, request = prepare_ace_step_request(
+        project_dir, options, overwrite=overwrite, brief=brief
+    )
     lora_status = client.configure_lora(lora) if lora is not None else None
     task = client.submit(
         request,
@@ -891,7 +992,22 @@ def render_with_ace_step(
     if len(result.outputs) > len(expected_audio):
         raise AceStepError("ACE-Step returned more audio files than requested")
     spec = load_project_spec(project_dir)
-    grid_duration = round(spec.song.target_duration_sec, 3)
+    brief_document = load_render_brief(brief) if brief is not None else None
+    if brief_document is None:
+        grid_duration = round(spec.song.target_duration_sec, 3)
+    else:
+        # Where the *brief's* song ends, not where the project's spec ends. A
+        # brief with an edited duration trimmed back to the spec's grid would
+        # lose exactly the audio it asked for.
+        grid_duration = brief_grid_duration(brief_document)
+        if grid_duration is None:
+            if trims_audio:
+                raise ValueError(
+                    "this brief does not state total_bars, bpm and time_signature, "
+                    "so there is no song grid to trim the tail back to; render it "
+                    "without --tail-guard-bars"
+                )
+            grid_duration = round(float(brief_document["song"]["duration_sec"]), 3)
     audio_files: list[Path] = []
     trims: list[TrimManifest] = []
     for index, output in enumerate(result.outputs):
@@ -929,10 +1045,25 @@ def render_with_ace_step(
             for output in result.outputs
         ],
     }
+    if brief_document is not None:
+        # Which prompt produced this audio is the first question anyone asks of
+        # a render, and with --from-brief the answer is no longer "the prompt
+        # this project's spec compiles to".
+        result_document["render_brief"] = {
+            "path": str(Path(brief).resolve()),
+            "sha256": hashlib.sha256(
+                Path(brief).read_bytes()
+            ).hexdigest(),
+            "song_spec_sha256": brief_document.get("song_spec_sha256"),
+            "matches_project_spec": brief_document.get("song_spec_sha256")
+            == hashlib.sha256(spec.to_json().encode("utf-8")).hexdigest(),
+        }
     if trims_audio:
         result_document["tail_guard"] = {
             "guard_bars": guard_bars,
-            "guard_sec": guard_seconds(spec, guard_bars),
+            "guard_sec": round(request.audio_duration - grid_duration, 3)
+            if brief_document is not None
+            else guard_seconds(spec, guard_bars),
             "requested_duration_sec": request.audio_duration,
             "song_grid_duration_sec": grid_duration,
             "trim_fade_out_sec": DEFAULT_TAIL_FADE_SEC,
