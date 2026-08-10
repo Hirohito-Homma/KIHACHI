@@ -43,12 +43,18 @@ from .chunked import (
 from .edit import apply_edit_to_project, build_spec_edit
 from .lyrics import build_lyrics
 from .midi_review import review_project_midi
-from .models import TRACK_NAMES
+from .models import TRACK_NAMES, SongSpec
 from .preferences import compile_preferences, harvest, load as load_preferences
+from .prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
 from .report import build_report, load_candidate, rank as rank_candidates
 from .revision import DEFAULT_ROUNDS, describe as describe_revisions, run_revision_loop
 from .reviewer import review_project
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS
+from .web import (
+    DEFAULT_HOST as WEB_DEFAULT_HOST,
+    DEFAULT_PORT as WEB_DEFAULT_PORT,
+    serve as serve_briefs,
+)
 
 
 def _audio_tracks(args: argparse.Namespace) -> list[dict[str, object]]:
@@ -96,6 +102,12 @@ def build_parser() -> argparse.ArgumentParser:
             "prompt and seed must keep producing the same song unless asked otherwise"
         ),
     )
+
+    serve = subparsers.add_parser(
+        "serve", help="open the brief screen in a local browser tab (writes nothing)"
+    )
+    serve.add_argument("--host", default=WEB_DEFAULT_HOST, help="interface to bind")
+    serve.add_argument("--port", type=int, default=WEB_DEFAULT_PORT, help="port to bind")
 
     analyze = subparsers.add_parser("analyze", help="analyze generated WAV and compare it with SongSpec")
     analyze.add_argument("project", type=Path, help="directory containing song_spec.json")
@@ -313,6 +325,15 @@ def build_parser() -> argparse.ArgumentParser:
     ace_commands = ace_step.add_subparsers(dest="ace_command", required=True)
     prepare = ace_commands.add_parser("prepare", help="write ace_step_request.json without network access")
     _add_ace_generation_arguments(prepare)
+    prepare.add_argument(
+        "--from-brief",
+        type=Path,
+        metavar="PROMPT_JSON",
+        help=(
+            "build the request from a prompt.json instead of the project's "
+            "song_spec.json, taking its prompt exactly as written"
+        ),
+    )
 
     stage_repaint = ace_commands.add_parser(
         "stage-repaint",
@@ -682,6 +703,49 @@ def _verify_planned_window(
             raise ValueError(f"repaint plan {name} does not match its SongSpec section")
 
 
+def _warn_if_brief_is_stale(brief_path: Path, project_dir: Path) -> None:
+    """Say so when the brief no longer describes the spec sitting next to it.
+
+    Not an error: editing the prompt by hand is the reason ``--from-brief``
+    exists, and a hand-edited brief will never match. But a brief left over
+    from before a ``kihachi edit`` looks identical to an intentional one, and
+    the difference is a whole render.
+    """
+
+    spec_path = project_dir / "song_spec.json"
+    if not spec_path.is_file():
+        return
+    try:
+        brief = load_render_brief(brief_path)
+        spec = SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if not brief_matches_spec(brief, spec):
+        print(
+            "- note: this brief was not compiled from the song_spec.json in "
+            "this project (song_spec_sha256 differs). Rendering it as written."
+        )
+        return
+    # The digest ties the brief to the spec it was *compiled from*, so editing
+    # the prompt leaves it matching. That is the edit people actually make, so
+    # it needs its own check rather than being read as "unchanged".
+    edited = [
+        name
+        for name, differs in (
+            ("prompt", str(brief["prompt"]).strip() != compile_audio_prompt(spec).strip()),
+            (
+                "duration",
+                abs(float(brief["song"]["duration_sec"]) - spec.song.target_duration_sec)
+                > 1e-6,
+            ),
+            ("seed", int(brief["seed"]) != spec.seed),
+        )
+        if differs
+    ]
+    if edited:
+        print(f"- note: brief differs from the spec's own ({', '.join(edited)}); using the brief.")
+
+
 def _print_repaint_window(window: AceStepRepaintWindow | None) -> None:
     if window is None:
         return
@@ -717,6 +781,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
+        if args.command == "serve":
+            serve_briefs(args.host, args.port)
+            return 0
         if args.command == "compose":
             manifest = compose_project(
                 args.prompt,
@@ -1198,12 +1265,19 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         if args.ace_command == "prepare":
             options, repaint_window = _ace_options_and_window(args)
+            brief_path = args.from_brief
+            if brief_path is not None and not brief_path.is_absolute():
+                brief_path = args.project / brief_path
             request_path, _request = prepare_ace_step_request(
                 args.project,
                 options,
                 overwrite=args.overwrite,
+                brief=brief_path,
             )
             print(f"Prepared ACE-Step request: {request_path}")
+            if brief_path is not None:
+                print(f"- from render brief: {brief_path}")
+                _warn_if_brief_is_stale(brief_path, args.project)
             _print_repaint_window(repaint_window)
             return 0
 

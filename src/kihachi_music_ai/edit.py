@@ -31,7 +31,7 @@ from .composer import compose_tracks
 from .intent import LARGE_WORDS, SMALL_WORDS, contains as _contains, matches as _matches
 from .midi import MidiNote, write_midi
 from .models import DENSITY_FIELDS, TRACK_NAMES, SectionSpec, SongSpec
-from .prompt_compiler import compile_audio_prompt
+from .prompt_compiler import compile_audio_prompt, render_brief
 
 EDIT_VERSION = "0.1"
 DEFAULT_MAGNITUDE = 0.2
@@ -363,6 +363,7 @@ def apply_edit_to_project(
         "drums.mid",
         "chords.mid",
         "prompt.txt",
+        "prompt.json",
         "applied_spec_edit.json",
         "edit_report.json",
     )
@@ -377,6 +378,13 @@ def apply_edit_to_project(
                 key=updated.song.key,
             )
         (stage / "prompt.txt").write_text(compile_audio_prompt(updated), encoding="utf-8")
+        # Rewritten, not carried over: ``prompt.json`` states the SHA-256 of the
+        # spec it was compiled from, so a copied one would claim to describe the
+        # song before the edit.
+        (stage / "prompt.json").write_text(
+            json.dumps(render_brief(updated), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
         applied = dict(edit)
         applied["execution_state"] = "applied"
         (stage / "applied_spec_edit.json").write_text(

@@ -9,7 +9,7 @@ Music Brain
     ↓
 SongSpec
     ├── MIDI Composer → bass.mid / drums.mid / chords.mid
-    └── Prompt Compiler → prompt.txt
+    └── Prompt Compiler → prompt.txt / prompt.json
 ```
 
 AbletonGPTとAbleton Liveには接続しません。コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。
@@ -45,6 +45,7 @@ bass.mid
 drums.mid
 chords.mid
 prompt.txt
+prompt.json
 ```
 
 出力先を指定する場合:
@@ -718,6 +719,14 @@ blockingな欠陥のないテイクが先、その中で整合度順です。
 - Music Brainはルールベースで、BPM、キー、ジャンル、質感、演奏指示を決定的に解釈します。
 - MIDIはSMF Format 0、480 PPQです。DrumsはGeneral MIDIのChannel 10を使います。
 - `prompt.txt` は音声生成器へ渡す中立的なテキストです。ACE-Step 1.5 RESTアダプターが、この内容とSongSpecのBPM・キー・尺を公式API形式へ変換します。
+- `prompt.json` は同じプロンプトを機械可読にしたものです。BPM・キー・拍子・尺・進行・セクション・パートと、コンパイル元SongSpecの `song_spec_sha256` を持ちます。生成器固有のパラメータ（`inference_steps` など）は入っていません — それらは `ace_step_request.json` の担当です。レンダラーがまだ繋がっていない段階でも、この1ファイルで曲の設計を渡せます。
+- `prompt.json` は手で編集して読み戻せます。プロンプト本文を書き換えて渡すと、SongSpecから再コンパイルせずそのまま使われます:
+
+```bash
+uv run kihachi ace-step prepare projects/my-song --from-brief prompt.json
+```
+
+  SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。
 - Audio-to-MIDI、stem分離、複数候補の音楽的な自動採用、Ableton Live展開、LLM接続は次段階です。ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
 
 ## ACE-Step 1.5アダプター

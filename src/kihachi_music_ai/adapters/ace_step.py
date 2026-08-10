@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from ..models import SongSpec
-from ..prompt_compiler import compile_audio_prompt
+from ..prompt_compiler import compile_audio_prompt, load_render_brief
 from ..tail_guard import (
     DEFAULT_TAIL_FADE_SEC,
     TrimManifest,
@@ -211,6 +211,78 @@ class AceStepGenerationRequest:
             inference_steps=options.inference_steps,
             use_random_seed=False,
             seed=spec.seed,
+            batch_size=options.batch_size,
+            sample_mode=False,
+            use_format=False,
+            use_cot_caption=False,
+            use_cot_language=False,
+            task_type=options.task_type,
+            audio_cover_strength=(
+                options.audio_cover_strength
+                if options.task_type in {"cover", "repaint"}
+                else None
+            ),
+            cover_noise_strength=(
+                options.cover_noise_strength
+                if options.task_type in {"cover", "repaint"}
+                else None
+            ),
+            repainting_start=(options.repainting_start if options.task_type == "repaint" else None),
+            repainting_end=(options.repainting_end if options.task_type == "repaint" else None),
+            repaint_mode=(options.repaint_mode if options.task_type == "repaint" else None),
+            repaint_strength=(options.repaint_strength if options.task_type == "repaint" else None),
+            repaint_latent_crossfade_frames=(
+                options.repaint_latent_crossfade_frames
+                if options.task_type == "repaint"
+                else None
+            ),
+            repaint_wav_crossfade_sec=(
+                options.repaint_wav_crossfade_sec if options.task_type == "repaint" else None
+            ),
+            chunk_mask_mode=(options.chunk_mask_mode if options.task_type == "repaint" else None),
+            model=options.model,
+        )
+
+    @classmethod
+    def from_render_brief(
+        cls,
+        brief: dict[str, Any],
+        options: AceStepOptions | None = None,
+    ) -> AceStepGenerationRequest:
+        """Build a request from a ``prompt.json`` rather than from a SongSpec.
+
+        The same fields as :meth:`from_song_spec`, read from the brief instead
+        of recompiled: the prompt is taken as written. That is the point -- a
+        brief edited by hand renders as edited, where going through the SongSpec
+        would silently recompile the prompt and discard the edit.
+
+        The duration already carries whatever tail guard was applied when the
+        brief was written, so ``tail_guard_bars`` is not applied again here;
+        applying it twice is how a song acquires a tail nobody asked for.
+        """
+
+        options = options or AceStepOptions()
+        song = brief["song"]
+        prompt = str(brief["prompt"]).strip()
+        revision = options.revision.strip()
+        if revision:
+            prompt = (
+                "Revision constraints (highest priority):\n"
+                f"{revision}\n\nBase song design:\n{prompt}"
+            )
+        return cls(
+            prompt=prompt,
+            lyrics=options.lyrics,
+            thinking=options.thinking,
+            vocal_language="en",
+            audio_format=options.audio_format,
+            bpm=int(round(float(song["bpm"]))),
+            key_scale=str(song["key"]),
+            time_signature=str(song["time_signature"]).split("/", 1)[0],
+            audio_duration=round(float(song["duration_sec"]), 3),
+            inference_steps=options.inference_steps,
+            use_random_seed=False,
+            seed=int(brief["seed"]),
             batch_size=options.batch_size,
             sample_mode=False,
             use_format=False,
@@ -801,10 +873,26 @@ def prepare_ace_step_request(
     options: AceStepOptions | None = None,
     *,
     overwrite: bool = False,
+    brief: Path | None = None,
 ) -> tuple[Path, AceStepGenerationRequest]:
+    """Write the request, from the project's SongSpec or from a render brief.
+
+    ``brief`` points at a ``prompt.json``. It exists because the prompt is the
+    part a person most wants to edit, and recompiling from the SongSpec throws
+    that edit away: the two paths differ only in where the prompt, tempo, key,
+    meter, duration and seed come from.
+    """
+
     project_dir = Path(project_dir)
     options = options or AceStepOptions()
-    request = AceStepGenerationRequest.from_song_spec(load_project_spec(project_dir), options)
+    if brief is not None:
+        request = AceStepGenerationRequest.from_render_brief(
+            load_render_brief(Path(brief)), options
+        )
+    else:
+        request = AceStepGenerationRequest.from_song_spec(
+            load_project_spec(project_dir), options
+        )
     if options.task_type == "cover":
         filename = (
             "ace_step_cover_revision_request.json"

@@ -16,13 +16,137 @@ Pure and stdlib-only.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Sequence
 
 from .models import TRACK_NAMES, SectionSpec, SongSpec
+from .theory import beats_per_bar
 
 # Per-section detail is the longest part of the prompt and a long arrangement
 # can crowd out everything else, so each section states at most this many traits.
 MAX_SECTION_TRAITS = 3
+
+
+RENDER_BRIEF_VERSION = "0.1"
+
+
+def render_brief(spec: SongSpec, *, tail_guard_bars: float = 0.0) -> dict[str, object]:
+    """The prompt plus everything a renderer needs, as plain JSON data.
+
+    ``prompt.txt`` is the text and nothing else, and the only structured form of
+    it was ``ace_step_request.json`` -- which is ACE-Step's request body,
+    carrying its knobs (``inference_steps``, ``batch_size``, ``sample_mode``)
+    and written by the adapter. With no ACE-Step server to talk to, that is the
+    wrong shape to be the only one: it makes a generic question ("what is this
+    song, in machine-readable form?") depend on one vendor's API.
+
+    So this is the vendor-neutral middle. Every field is read straight off the
+    SongSpec, no renderer options appear, and ``song_spec_sha256`` ties the file
+    back to the exact spec it was compiled from -- the same digest the repaint
+    plans pin to, so a prompt and a spec can always be checked against each
+    other.
+    """
+
+    from hashlib import sha256
+
+    from .tail_guard import guarded_duration
+
+    payload = spec.to_json()
+    duration = (
+        guarded_duration(spec, tail_guard_bars)
+        if tail_guard_bars
+        else round(spec.song.target_duration_sec, 3)
+    )
+    return {
+        "version": RENDER_BRIEF_VERSION,
+        "source_prompt": spec.source_prompt,
+        "prompt": compile_audio_prompt(spec).strip(),
+        "seed": spec.seed,
+        "song": {
+            "title": spec.song.title,
+            "bpm": spec.song.bpm,
+            "key": spec.song.key,
+            "tonic": spec.song.tonic,
+            "mode": spec.song.mode,
+            "time_signature": spec.song.time_signature,
+            "total_bars": spec.song.total_bars,
+            "duration_sec": duration,
+        },
+        "genres": [
+            {"name": item.name, "weight": item.weight} for item in spec.style.genres
+        ],
+        "harmony": {
+            "progression": list(spec.harmony.progression),
+            "harmonic_rhythm_bars": spec.harmony.harmonic_rhythm_bars,
+        },
+        "sections": [
+            {
+                "name": section.name,
+                "start_bar": section.start_bar + 1,
+                "length_bars": section.length_bars,
+                "energy": section.energy,
+            }
+            for section in spec.arrangement
+        ],
+        "parts": list(spec.parts()),
+        "song_spec_sha256": sha256(payload.encode("utf-8")).hexdigest(),
+    }
+
+
+#: What a brief must state before anything can render it. Everything else in
+#: the file is context for a human or a later tool.
+REQUIRED_BRIEF_FIELDS = ("version", "prompt", "seed", "song")
+REQUIRED_BRIEF_SONG_FIELDS = ("bpm", "key", "time_signature", "duration_sec")
+
+
+def load_render_brief(path: Path) -> dict[str, object]:
+    """Read a ``prompt.json`` back, refusing one that cannot be rendered.
+
+    The file is meant to be edited by hand -- that is most of why it exists
+    while there is no renderer to send it to. So the checks here are about
+    whether a renderer could act on it, not about whether it matches what
+    KIHACHI would have written: a brief whose prompt has been rewritten is the
+    normal case, not an error.
+
+    What is *not* checked is ``song_spec_sha256``. It is carried so a caller can
+    notice the brief no longer describes the spec next to it; refusing on that
+    basis would make the file read-only in practice.
+    """
+
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("a render brief must be a JSON object")
+    missing = [name for name in REQUIRED_BRIEF_FIELDS if name not in data]
+    if missing:
+        raise ValueError(f"render brief is missing {', '.join(missing)}")
+    if data["version"] != RENDER_BRIEF_VERSION:
+        raise ValueError(
+            f"unsupported render brief version: {data['version']!r} "
+            f"(this build reads {RENDER_BRIEF_VERSION})"
+        )
+    if not str(data["prompt"]).strip():
+        raise ValueError("render brief prompt must not be empty")
+    song = data["song"]
+    if not isinstance(song, dict):
+        raise ValueError("render brief song must be an object")
+    missing = [name for name in REQUIRED_BRIEF_SONG_FIELDS if name not in song]
+    if missing:
+        raise ValueError(f"render brief song is missing {', '.join(missing)}")
+    # ``beats_per_bar`` is the one field with a shape rather than a type, and a
+    # renderer that receives "4" where it expects "4/4" fails much later.
+    beats_per_bar(str(song["time_signature"]))
+    return data
+
+
+def brief_matches_spec(brief: dict[str, object], spec: SongSpec) -> bool:
+    """Whether ``brief`` was compiled from exactly this spec."""
+
+    from hashlib import sha256
+
+    return brief.get("song_spec_sha256") == sha256(
+        spec.to_json().encode("utf-8")
+    ).hexdigest()
 
 
 def band(value: float, labels: Sequence[str]) -> str:

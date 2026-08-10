@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -13,7 +14,7 @@ from .midi import write_midi
 from .models import SongSpec
 from .music_brain import MusicBrain
 from .preferences import Preferences
-from .prompt_compiler import compile_audio_prompt
+from .prompt_compiler import compile_audio_prompt, render_brief
 
 ARTIFACT_NAMES = (
     "song_spec.json",
@@ -21,10 +22,11 @@ ARTIFACT_NAMES = (
     "drums.mid",
     "chords.mid",
     "prompt.txt",
+    "prompt.json",
     "lyrics.txt",
 )
 """What a core-three song writes. Kept as a constant because the overwrite guard
-names these five files; a song with extra parts adds to it, never removes."""
+names these files; a song with extra parts adds to it, never removes."""
 
 
 def artifact_names(spec: SongSpec) -> tuple[str, ...]:
@@ -75,6 +77,11 @@ def compose_project(
                 key=spec.song.key,
             )
         (stage / "prompt.txt").write_text(compile_audio_prompt(spec), encoding="utf-8")
+        # The same prompt, structured, for any renderer -- including none yet.
+        (stage / "prompt.json").write_text(
+            json.dumps(render_brief(spec), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
         (stage / "lyrics.txt").write_text(compile_lyrics(spec), encoding="utf-8")
 
         destination.mkdir(parents=True, exist_ok=True)

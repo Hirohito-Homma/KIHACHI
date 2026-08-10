@@ -31,8 +31,9 @@ STAGED_DESIGN_ARTIFACTS = (
     "prompt.txt",
 )
 # Copied when present. Projects composed before the lyrics module have no sheet,
-# and staging one of those must still work.
-OPTIONAL_DESIGN_ARTIFACTS = ("lyrics.txt",)
+# and projects composed before ``prompt.json`` have no structured brief; staging
+# either of those must still work.
+OPTIONAL_DESIGN_ARTIFACTS = ("lyrics.txt", "prompt.json")
 
 
 @dataclass(frozen=True)
