@@ -7,12 +7,32 @@ from kihachi_music_ai.music_brain import MusicBrain
 
 
 class ProfileSelectionTests(unittest.TestCase):
-    def test_the_heaviest_genre_decides(self) -> None:
-        dub_led = profile_for([("dub", 0.6), ("tech_house", 0.4)])
-        house_led = profile_for([("dub", 0.4), ("tech_house", 0.6)])
+    def test_the_heaviest_genre_decides_the_family(self) -> None:
+        dub_led = profile_for([("dub", 0.6), ("deep_house", 0.4)])
+        house_led = profile_for([("dub", 0.4), ("deep_house", 0.6)])
 
         self.assertEqual(dub_led.drum_pattern, "one_drop")
         self.assertEqual(house_led.drum_pattern, "four_on_floor")
+
+    def test_a_genres_own_opinion_wins_over_its_familys(self) -> None:
+        # Tech house sits in the House family, whose pattern is four-on-the-floor.
+        self.assertEqual(profile_for([("tech_house", 1.0)]).drum_pattern,
+                         "syncopated_tech_house")
+
+    def test_a_genres_own_opinion_is_heard_even_when_it_does_not_lead(self) -> None:
+        # This is the seed prompt's shape, and it is why the tech house pattern
+        # survived moving out of ``MusicBrain`` and into ``GENRE_PROFILES``.
+        profile = profile_for([("dub", 0.6), ("tech_house", 0.4)])
+
+        self.assertEqual(profile.drum_pattern, "syncopated_tech_house")
+        # ...and the leading genre still decides everything it did not claim.
+        self.assertEqual(profile.kick_density, FAMILY_PROFILES["Reggae / Dub / Ska"].kick_density)
+
+    def test_the_heaviest_genre_settles_a_disagreement_between_two_opinions(self) -> None:
+        heavier = profile_for([("mutation_funk", 0.6), ("tech_house", 0.4)])
+
+        self.assertEqual(heavier.swing, 0.54)
+        self.assertEqual(heavier.drum_pattern, "syncopated_tech_house")
 
     def test_a_family_with_no_row_has_no_opinion(self) -> None:
         self.assertEqual(profile_for([("electronic", 1.0)]), Profile())

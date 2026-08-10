@@ -3,25 +3,21 @@ from __future__ import annotations
 import random
 from dataclasses import replace
 
+from .groove_tables import KICK, bass_role, chord_articulation, drum_pattern, hat_positions
 from .midi import PPQ, MidiNote
 from .models import SectionSpec, SongSpec
 from .mutation import Step, build_pattern, mutation_series
-from .theory import chord_pitches, chord_root, midi_pitch
+from .theory import beats_per_bar, chord_pitches, chord_root, midi_pitch
 
 # Groove-ordered slots: the earlier a position appears, the more load-bearing it
 # is, so raising a part's density adds inessential notes rather than reshuffling
 # the pattern. Positions are quarter-note beats inside one 4/4 bar.
 BASS_POSITIONS = (0.0, 1.5, 2.75, 0.75, 3.5, 2.0, 3.25, 1.0, 0.25, 2.25)
-KICK_POSITIONS = (0.0, 2.0, 1.5, 3.25, 2.5, 0.75)
-CHORD_POSITIONS = (1.5, 0.75, 2.75, 3.5, 2.25)
 # Stabs answer the chords rather than doubling them, so they sit in the gaps the
 # chord slots leave: 0.5 and 2.5 are the strongest offbeats not already taken.
 SYNTH_POSITIONS = (2.5, 0.5, 3.25, 1.25, 3.75)
-BACKBEAT_POSITIONS = (1.0, 3.0)
 
 BASS_STEPS = (2, 8)
-KICK_STEPS = (1, 5)
-CHORD_STEPS = (1, 4)
 SYNTH_STEPS = (1, 4)
 
 # Registers, in octaves. Each part gets its own so a six-part arrangement does
@@ -130,21 +126,86 @@ def _monophonic(notes: list[MidiNote]) -> list[MidiNote]:
     return trimmed
 
 
+def _separate_repeats(notes: list[MidiNote]) -> list[MidiNote]:
+    """Stop each note before the *same pitch* sounds again.
+
+    ``_monophonic`` says one note at a time and is right for a bass line. A
+    chord part is polyphonic and must not be flattened that way -- but two
+    notes of the same pitch overlapping is not polyphony, it is the one thing a
+    MIDI file cannot express: the format has no way to say which note-off
+    closes which note-on, so any reader (Live included) pairs them
+    first-in-first-out and hands back lengths nobody wrote.
+
+    Only sustains can do this, so nothing that was already short is touched.
+    """
+
+    trimmed: list[MidiNote] = []
+    by_pitch: dict[int, list[MidiNote]] = {}
+    for note in notes:
+        by_pitch.setdefault(note.pitch, []).append(note)
+    for group in by_pitch.values():
+        group.sort(key=lambda note: note.start_beats)
+        for index, note in enumerate(group):
+            duration = note.duration_beats
+            if index + 1 < len(group):
+                room = group[index + 1].start_beats - note.start_beats - MONOPHONIC_GAP_BEATS
+                duration = min(duration, room)
+            if duration < MONOPHONIC_GAP_BEATS:
+                continue
+            trimmed.append(replace(note, duration_beats=duration))
+    trimmed.sort(key=lambda note: (note.start_beats, note.pitch))
+    return trimmed
+
+
+def _in_bar(positions: tuple[float, ...], bar_beats: float) -> tuple[float, ...]:
+    """Drop slots that fall outside a bar of this length.
+
+    Every position table here is written in 4/4, because that is what this
+    project writes. A bar of 3/4 is three beats long, so a slot at 3.5 is not a
+    late offbeat -- it is the next bar, and writing it there would overlap the
+    downbeat that follows.
+    """
+
+    kept = tuple(position for position in positions if position < bar_beats)
+    # Never return nothing: a pattern with no slots writes a silent part, which
+    # is a worse answer than a downbeat.
+    return kept or (0.0,)
+
+
+def _backbeats(groove, bar_beats: float) -> tuple[float, ...]:
+    """The groove's snare slots that still fit the bar. May be empty."""
+
+    return tuple(position for position in groove.backbeat_positions if position < bar_beats)
+
+
 def compose_bass(spec: SongSpec) -> tuple[MidiNote, ...]:
+    """The bass line, playing the part ``spec.bass.role`` gives it.
+
+    The role used to reach only the audio prompt, so a bass marked
+    ``supporting`` was written exactly as loud and as busy as one marked
+    ``dominant``.
+    """
+
     notes: list[MidiNote] = []
     progression = spec.harmony.progression
+    role = bass_role(spec.bass.role)
+    bar_beats = beats_per_bar(spec.song.time_signature)
     for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
         if not section.plays("bass"):
             continue
         rng = _section_rng(spec, "bass", index)
-        density = _clamp(section.density("bass") * (0.55 + 0.55 * spec.bass.syncopation))
+        density = _clamp(
+            section.density("bass")
+            * (0.55 + 0.55 * spec.bass.syncopation)
+            * role.density_scale
+        )
         base = build_pattern(
-            BASS_POSITIONS,
+            _in_bar(BASS_POSITIONS, bar_beats),
             density=density,
             minimum=BASS_STEPS[0],
             maximum=BASS_STEPS[1],
             duration=0.3,
-            velocity=_velocity_for(102, section),
+            velocity=_velocity_for(role.velocity, section),
             anchors=(0.0,),
         )
         generations = mutation_series(
@@ -154,7 +215,10 @@ def compose_bass(spec: SongSpec) -> tuple[MidiNote, ...]:
             rng=rng,
             syncopation=spec.bass.syncopation,
             ghost_probability=spec.bass.ghost_note_probability,
-            octave_jump_probability=spec.bass.octave_jump_probability,
+            octave_jump_probability=_clamp(
+                spec.bass.octave_jump_probability * role.octave_jump_scale
+            ),
+            bar_beats=bar_beats,
             space=_clamp(0.35 * (1.0 - section.energy)),
             minimum_steps=BASS_STEPS[0],
         )
@@ -163,7 +227,7 @@ def compose_bass(spec: SongSpec) -> tuple[MidiNote, ...]:
             chord = progression[(bar // spec.harmony.harmonic_rhythm_bars) % len(progression)]
             base_pitch = midi_pitch(chord_root(chord), 2)
             for step in pattern:
-                start = _groove(bar * 4.0 + step.position, spec, rng)
+                start = _groove(bar * bar_beats + step.position, spec, rng)
                 notes.append(
                     MidiNote(
                         max(0, min(127, base_pitch + step.octave)),
@@ -176,7 +240,17 @@ def compose_bass(spec: SongSpec) -> tuple[MidiNote, ...]:
 
 
 def compose_drums(spec: SongSpec) -> tuple[MidiNote, ...]:
+    """The groove ``spec.drums.pattern`` names, mutated section by section.
+
+    The pattern name used to reach only the audio prompt, so every genre played
+    the same four-on-the-floor here whatever the SongSpec said. What the name
+    means in notes now lives in :mod:`.groove_tables`; what happens to those notes --
+    density, mutation, dub space, humanize -- is unchanged and stays here.
+    """
+
     notes: list[MidiNote] = []
+    groove = drum_pattern(spec.drums.pattern)
+    bar_beats = beats_per_bar(spec.song.time_signature)
     for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
         if not section.plays("drums"):
             continue
@@ -186,13 +260,13 @@ def compose_drums(spec: SongSpec) -> tuple[MidiNote, ...]:
         # deliberate change to drum_density quantized away to no change at all.
         kick_density = _clamp(spec.drums.kick_density * section.density("drums"))
         base = build_pattern(
-            KICK_POSITIONS,
+            _in_bar(groove.kick_positions, bar_beats),
             density=kick_density,
-            minimum=KICK_STEPS[0],
-            maximum=KICK_STEPS[1],
+            minimum=groove.kick_steps[0],
+            maximum=groove.kick_steps[1],
             duration=0.16,
             velocity=_velocity_for(108, section),
-            anchors=(0.0,),
+            anchors=groove.kick_anchors,
         )
         generations = mutation_series(
             base,
@@ -203,38 +277,47 @@ def compose_drums(spec: SongSpec) -> tuple[MidiNote, ...]:
             ghost_probability=0.0,
             octave_jump_probability=0.0,
             # Dub leaves holes in the kick; that is the point of the genre.
+            bar_beats=bar_beats,
             space=_clamp(spec.drums.dub_space * (1.0 - section.energy)),
-            minimum_steps=KICK_STEPS[0],
+            minimum_steps=groove.kick_steps[0],
         )
-        hat_step = 0.5 if spec.drums.hat_density * section.density("drums") >= 0.3 else 1.0
+        hats = hat_positions(
+            groove,
+            _clamp(spec.drums.hat_density * section.density("drums")),
+            bar_beats,
+        )
         for offset, pattern in enumerate(generations):
-            bar_start = (start_bar + offset) * 4.0
+            bar_start = (start_bar + offset) * bar_beats
             for step in pattern:
                 notes.append(
-                    MidiNote(36, _groove(bar_start + step.position, spec, rng), 0.16, step.velocity, 9)
+                    MidiNote(KICK, _groove(bar_start + step.position, spec, rng), 0.16, step.velocity, 9)
                 )
-            for position in BACKBEAT_POSITIONS:
+            for position in _backbeats(groove, bar_beats):
                 notes.append(
                     MidiNote(
-                        39,
+                        groove.backbeat_pitch,
                         _groove(bar_start + position, spec, rng),
                         0.14,
                         _velocity_for(98, section),
                         9,
                     )
                 )
-            position = 0.5
-            hat_index = 0
-            while position < 4.0:
+            for hat_index, position in enumerate(hats):
                 velocity = _velocity_for(72 if hat_index % 2 == 0 else 61, section)
-                notes.append(MidiNote(42, _groove(bar_start + position, spec, rng), 0.09, velocity, 9))
-                position += hat_step
-                hat_index += 1
-            if section.energy >= 0.5:
                 notes.append(
                     MidiNote(
-                        46,
-                        _groove(bar_start + 3.75, spec, rng),
+                        groove.hat_pitch,
+                        _groove(bar_start + position, spec, rng),
+                        0.09,
+                        velocity,
+                        9,
+                    )
+                )
+            if groove.accent_position is not None and section.energy >= 0.5:
+                notes.append(
+                    MidiNote(
+                        groove.accent_pitch,
+                        _groove(bar_start + groove.accent_position, spec, rng),
                         0.18,
                         _velocity_for(78, section),
                         9,
@@ -244,19 +327,28 @@ def compose_drums(spec: SongSpec) -> tuple[MidiNote, ...]:
 
 
 def compose_chords(spec: SongSpec) -> tuple[MidiNote, ...]:
+    """The chords, played the way ``spec.chords.articulation`` names.
+
+    Like the drum pattern, the articulation used to reach only the audio
+    prompt: a sustained pad and a clipped stab were both written as a 0.2-beat
+    hit on the same offbeat slots. :mod:`.groove_tables` says what each name means.
+    """
+
     notes: list[MidiNote] = []
     progression = spec.harmony.progression
+    played = chord_articulation(spec.chords.articulation)
+    bar_beats = beats_per_bar(spec.song.time_signature)
     for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
         if not section.plays("chords"):
             continue
         rng = _section_rng(spec, "chords", index)
         base = build_pattern(
-            CHORD_POSITIONS,
+            _in_bar(played.positions, bar_beats),
             density=_clamp(section.density("chords")),
-            minimum=CHORD_STEPS[0],
-            maximum=CHORD_STEPS[1],
-            duration=0.28 if section.minimal else 0.2,
-            velocity=_velocity_for(82, section),
+            minimum=played.steps[0],
+            maximum=played.steps[1],
+            duration=played.minimal_duration if section.minimal else played.duration,
+            velocity=_velocity_for(round(82 * played.velocity_scale), section),
             anchors=(),
         )
         generations = mutation_series(
@@ -268,24 +360,25 @@ def compose_chords(spec: SongSpec) -> tuple[MidiNote, ...]:
             ghost_probability=0.0,
             octave_jump_probability=0.0,
             # Long delay tails need room, so a dubby chord part stays sparse.
+            bar_beats=bar_beats,
             space=_clamp(spec.chords.dub_delay * (1.0 - section.energy)),
-            minimum_steps=CHORD_STEPS[0],
+            minimum_steps=played.steps[0],
         )
         for offset, pattern in enumerate(generations):
             bar = start_bar + offset
             chord = progression[(bar // spec.harmony.harmonic_rhythm_bars) % len(progression)]
             for step in pattern:
-                start = _groove(bar * 4.0 + step.position, spec, rng)
+                start = _groove(bar * bar_beats + step.position, spec, rng)
                 for voice, pitch in enumerate(chord_pitches(chord, octave=3)):
                     notes.append(
                         MidiNote(
                             max(0, min(127, pitch + step.octave)),
                             start,
                             step.duration,
-                            max(1, step.velocity - voice * 4),
+                            max(1, step.velocity - voice * played.voice_falloff),
                         )
                     )
-    return tuple(notes)
+    return tuple(_separate_repeats(notes))
 
 
 def compose_tracks(spec: SongSpec) -> dict[str, tuple[MidiNote, ...]]:
@@ -303,12 +396,13 @@ def compose_synth(spec: SongSpec) -> tuple[MidiNote, ...]:
 
     notes: list[MidiNote] = []
     progression = spec.harmony.progression
+    bar_beats = beats_per_bar(spec.song.time_signature)
     for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
         if not section.plays("synth"):
             continue
         rng = _section_rng(spec, "synth", index)
         base = build_pattern(
-            SYNTH_POSITIONS,
+            _in_bar(SYNTH_POSITIONS, bar_beats),
             density=_clamp(section.density("synth")),
             minimum=SYNTH_STEPS[0],
             maximum=SYNTH_STEPS[1],
@@ -324,6 +418,7 @@ def compose_synth(spec: SongSpec) -> tuple[MidiNote, ...]:
             syncopation=spec.groove.syncopation,
             ghost_probability=0.0,
             octave_jump_probability=0.0,
+            bar_beats=bar_beats,
             space=_clamp(0.4 * (1.0 - section.energy)),
             minimum_steps=SYNTH_STEPS[0],
         )
@@ -331,12 +426,18 @@ def compose_synth(spec: SongSpec) -> tuple[MidiNote, ...]:
             bar = start_bar + offset
             chord = progression[(bar // spec.harmony.harmonic_rhythm_bars) % len(progression)]
             for step in pattern:
-                start = _groove(bar * 4.0 + step.position, spec, rng)
+                start = _groove(bar * bar_beats + step.position, spec, rng)
                 # First inversion. The vocoder carrier sits in the same octave in
-                # root position, and two parts playing the identical three notes
-                # is not two parts -- it is one, louder.
-                root, third, fifth = chord_pitches(chord, octave=SYNTH_OCTAVE)
-                for voice, pitch in enumerate((third, fifth, root + 12)):
+                # root position, and two parts playing the identical notes is
+                # not two parts -- it is one, louder.
+                #
+                # Sevenths and power chords mean this is no longer always three
+                # notes: rotating the tuple states the inversion for any size,
+                # where unpacking root/third/fifth raised ValueError the moment
+                # a genre asked for a maj7.
+                tones = chord_pitches(chord, octave=SYNTH_OCTAVE)
+                inverted = tones[1:] + (tones[0] + 12,)
+                for voice, pitch in enumerate(inverted):
                     notes.append(
                         MidiNote(
                             max(0, min(127, pitch + step.octave)),
@@ -360,7 +461,8 @@ def compose_arp(spec: SongSpec) -> tuple[MidiNote, ...]:
 
     notes: list[MidiNote] = []
     progression = spec.harmony.progression
-    steps_per_bar = int(round(4.0 / ARP_GRID))
+    bar_beats = beats_per_bar(spec.song.time_signature)
+    steps_per_bar = int(round(bar_beats / ARP_GRID))
     # Weakest sixteenths first, so thinning removes filler before structure.
     rest_order = tuple(
         sorted(range(steps_per_bar), key=lambda step: (step % 4 == 0, step % 2 == 0, step))
@@ -382,7 +484,7 @@ def compose_arp(spec: SongSpec) -> tuple[MidiNote, ...]:
                 if step in resting:
                     continue
                 pitch = contour[step % len(contour)]
-                start = _groove(bar * 4.0 + step * ARP_GRID, spec, rng)
+                start = _groove(bar * bar_beats + step * ARP_GRID, spec, rng)
                 accent = 12 if step % 4 == 0 else 0
                 notes.append(
                     MidiNote(
@@ -410,14 +512,15 @@ def compose_vocoder(spec: SongSpec) -> tuple[MidiNote, ...]:
 
     notes: list[MidiNote] = []
     progression = spec.harmony.progression
+    bar_beats = beats_per_bar(spec.song.time_signature)
     for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
         if not section.plays("vocoder"):
             continue
         rng = _section_rng(spec, "vocoder", index)
         for bar in range(start_bar, end_bar):
             chord = progression[(bar // spec.harmony.harmonic_rhythm_bars) % len(progression)]
-            start = _groove(bar * 4.0, spec, rng)
-            length = 4.0 - (start - bar * 4.0) - MONOPHONIC_GAP_BEATS
+            start = _groove(bar * bar_beats, spec, rng)
+            length = bar_beats - (start - bar * bar_beats) - MONOPHONIC_GAP_BEATS
             for voice, pitch in enumerate(chord_pitches(chord, octave=VOCODER_OCTAVE)):
                 notes.append(
                     MidiNote(
@@ -443,6 +546,7 @@ def compose_sub(spec: SongSpec) -> tuple[MidiNote, ...]:
     notes: list[MidiNote] = []
     progression = spec.harmony.progression
     rhythm_bars = spec.harmony.harmonic_rhythm_bars
+    bar_beats = beats_per_bar(spec.song.time_signature)
     for index, (section, start_bar, end_bar) in enumerate(_sections_in_bars(spec)):
         if not section.plays("sub"):
             continue
@@ -453,8 +557,10 @@ def compose_sub(spec: SongSpec) -> tuple[MidiNote, ...]:
             # Hold until the harmony moves or the section ends, whichever is first.
             span_end = min(end_bar, ((bar // rhythm_bars) + 1) * rhythm_bars)
             span_end = max(span_end, bar + 1)
-            start = _groove(bar * 4.0, spec, rng)
-            length = (span_end - bar) * 4.0 - (start - bar * 4.0) - MONOPHONIC_GAP_BEATS
+            start = _groove(bar * bar_beats, spec, rng)
+            length = (
+                (span_end - bar) * bar_beats - (start - bar * bar_beats) - MONOPHONIC_GAP_BEATS
+            )
             notes.append(
                 MidiNote(
                     max(0, min(127, midi_pitch(chord_root(chord), SUB_OCTAVE))),

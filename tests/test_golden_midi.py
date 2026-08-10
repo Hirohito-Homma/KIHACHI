@@ -39,7 +39,13 @@ GOLDEN_SPEC = (
 #: it is never incidental.
 GOLDEN_MIDI_SHA256 = {
     "bass": "44332f694c87fc4cd2c92b40ae9ef53b5d717ba4980a7425387dd489989e4451",
-    "drums": "0693fba7ae34da9bfaf1a8f7e455ce6256ec61377bbb9aaf86c26a7eea5da9df",
+    # Deliberately re-pinned when the hat grid stopped being a switch.
+    # ``hat_density * section density`` was thresholded at 0.3 to choose eighths
+    # or quarters, so this song's four sections -- 0.195, 0.343, 0.515, 0.686 --
+    # got 4, 7, 7 and 7 hats a bar: the drop and the groove were identical
+    # despite twice the drum density. Thinning continuously gives 5, 5, 6 and 6,
+    # which is the whole point of the field. Bass and chords are untouched.
+    "drums": "c85e93d82c507624fef6d5d0af924929ccb618ff3353e1a65a7587d756bf9c25",
     "chords": "64901570dd48134f36d775a9d92576fd20c1335c26719d167cdca74f9fda3fac",
 }
 

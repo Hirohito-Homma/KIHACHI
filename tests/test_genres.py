@@ -118,10 +118,15 @@ class LiveBucketTests(unittest.TestCase):
 
     def test_every_mapped_family_exists_in_the_database(self) -> None:
         from kihachi_music_ai.ableton import LIVE_GENRE_BY_FAMILY
+        from kihachi_music_ai.genres import unknown_families
 
-        families = {g.parent for g in load_database() if g.parent}
+        self.assertEqual(unknown_families(LIVE_GENRE_BY_FAMILY), ())
 
-        self.assertEqual(set(LIVE_GENRE_BY_FAMILY) - families, set())
+    def test_a_family_named_outright_reaches_its_bucket(self) -> None:
+        # A top-level row's ``parent`` column is empty, so reading it directly
+        # sent the plainest possible prompt to the ``pop`` default.
+        self.assertEqual(self._bucket("ディスコ"), "rnb")
+        self.assertEqual(self._bucket("Breakbeat"), "edm")
 
     def test_every_mapped_bucket_is_one_abletongpt_accepts(self) -> None:
         from kihachi_music_ai.ableton import LIVE_GENRE_BY_FAMILY, LIVE_GENRE_KEYWORDS
@@ -129,6 +134,53 @@ class LiveBucketTests(unittest.TestCase):
         self.assertEqual(
             set(LIVE_GENRE_BY_FAMILY.values()) - set(LIVE_GENRE_KEYWORDS), set()
         )
+
+
+class VocabularyTests(unittest.TestCase):
+    """One vocabulary, spelled by the database, wherever a genre is named.
+
+    Every table below repeats a database string as a dict key. A rename in
+    ``genres.json`` would not break any of them loudly -- the lookup would
+    simply start missing and the caller would keep its default forever. These
+    tests are what makes that rename loud.
+    """
+
+    def test_the_family_list_comes_from_the_database(self) -> None:
+        from kihachi_music_ai.genres import families
+
+        self.assertEqual(len(families()), 37)
+        self.assertIn("Reggae / Dub / Ska", families())
+
+    def test_a_top_level_row_is_its_own_family(self) -> None:
+        from kihachi_music_ai.genres import family_of
+
+        self.assertEqual(family_of("tech_house"), "House")
+        self.assertEqual(family_of("house"), "House")
+        self.assertIsNone(family_of("electronic"))
+
+    def test_every_profiled_family_exists_in_the_database(self) -> None:
+        from kihachi_music_ai.derive import FAMILY_PROFILES
+        from kihachi_music_ai.genres import unknown_families
+
+        self.assertEqual(unknown_families(FAMILY_PROFILES), ())
+
+    def test_every_per_genre_profile_names_a_real_genre(self) -> None:
+        from kihachi_music_ai.derive import GENRE_PROFILES
+
+        for slug in GENRE_PROFILES:
+            with self.subTest(slug=slug):
+                self.assertIsNotNone(find(slug))
+
+    def test_every_lyric_vocabulary_names_a_real_genre(self) -> None:
+        from kihachi_music_ai.lyrics import GENRE_WORDS
+
+        for slug in GENRE_WORDS:
+            with self.subTest(slug=slug):
+                # "electronic" is KIHACHI's own no-match marker rather than a
+                # database row, and is the one name allowed not to be one.
+                if slug == "electronic":
+                    continue
+                self.assertIsNotNone(find(slug))
 
 
 class LookupTests(unittest.TestCase):

@@ -16,7 +16,7 @@ from .defects import scan_material
 from .loudness import integrated_loudness
 from .spectrum import band_energies
 from .models import SongSpec
-from .theory import NOTE_TO_PC, chord_root
+from .theory import NOTE_TO_PC, chord_is_minor, chord_root
 
 ANALYSIS_VERSION = "0.3"
 PITCH_CLASS_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
@@ -477,8 +477,16 @@ def _chords_equivalent(observed: str | None, expected: str) -> bool:
         return False
     observed_root = chord_root(observed)
     expected_root = chord_root(expected)
-    observed_minor = observed[len(observed_root) :].startswith("m")
-    expected_minor = expected[len(expected_root) :].startswith("m")
+    # Compared as triads, because the estimator above only ever emits major or
+    # minor: a bar written as ``Am7`` and heard as ``Am`` is the estimator
+    # reaching its resolution, not the render departing from the plan. A power
+    # chord has no third to compare and reads as major here for the same
+    # reason.
+    #
+    # Not ``startswith("m")``: that reads ``maj7`` as a minor chord, and the
+    # progression shapes write major sevenths now.
+    observed_minor = chord_is_minor(observed)
+    expected_minor = chord_is_minor(expected)
     return NOTE_TO_PC[observed_root] == NOTE_TO_PC[expected_root] and observed_minor == expected_minor
 
 

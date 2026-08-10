@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .genres import find as find_genre
+from .genres import family_of
 from .midi import MidiNote, read_midi
 from .models import TRACK_NAMES, SongSpec
 
@@ -132,6 +132,12 @@ much more visible. ``drum_bass`` matches no keyword, and used to arrive here as
 accident. Naming the genre properly removed the accident, so drum & bass would
 have become ``pop``. Families restore the intent deliberately instead.
 
+The lookup goes through :func:`.genres.family_of`, which answers a top-level row
+with its own name. Reading the ``parent`` column directly meant a prompt that
+named a family outright -- "Disco", "Ambient" -- missed this table entirely and
+fell through to ``pop``, which is the one case where the family was stated
+plainly.
+
 Families with no honest home among the seven (Classical, Latin, Brazilian,
 African, the regional traditions, Soundtrack) are deliberately absent and fall
 through to ``pop``, because inventing a mapping would be worse than admitting
@@ -158,9 +164,9 @@ def _live_instrument_genre(spec: SongSpec) -> str:
                 matched = True
                 break
         if not matched:
-            entry = find_genre(item.name)
-            family = LIVE_GENRE_BY_FAMILY.get(entry.parent) if entry else None
-            scores[family or "pop"] += item.weight
+            family = family_of(item.name)
+            bucket = LIVE_GENRE_BY_FAMILY.get(family) if family else None
+            scores[bucket or "pop"] += item.weight
     return max(scores, key=lambda genre: scores[genre])
 
 

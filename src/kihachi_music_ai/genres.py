@@ -289,6 +289,43 @@ def find(slug: str) -> Genre | None:
     return None
 
 
+@lru_cache(maxsize=1)
+def families() -> frozenset[str]:
+    """Every family name in the database, exactly as the database spells them.
+
+    Two hand-written tables elsewhere -- :data:`.derive.FAMILY_PROFILES` and
+    :data:`.ableton.LIVE_GENRE_BY_FAMILY` -- are keyed on these strings. Before
+    this existed each table simply repeated the spelling and hoped, and a
+    renamed family would have made every lookup miss silently: no error, just
+    the caller's default from then on. :func:`unknown_families` is what those
+    tables are checked against.
+    """
+    names = set()
+    for genre in load_database():
+        names.add(genre.parent if genre.parent else genre.name)
+    return frozenset(names)
+
+
+def family_of(slug: str) -> str | None:
+    """The family ``slug`` belongs to, or ``None`` when the slug is unknown.
+
+    A top-level row *is* a family, so it answers with its own name rather than
+    with the ``None`` its ``parent`` column holds. Reading ``parent`` directly
+    is what made a prompt naming a family outright ("Disco", "Pop") fall
+    through every family table to the default -- the one shape of prompt where
+    the family is stated most plainly.
+    """
+    genre = find(slug)
+    if genre is None:
+        return None
+    return genre.parent if genre.parent else genre.name
+
+
+def unknown_families(names: Sequence[str]) -> tuple[str, ...]:
+    """Those of ``names`` that no longer name a family, sorted."""
+    return tuple(sorted(set(names) - families()))
+
+
 def describe(slug: str) -> dict[str, Any]:
     """Everything known about a slug, for reports and debugging."""
     genre = find(slug)

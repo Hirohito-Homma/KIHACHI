@@ -27,10 +27,10 @@ Pure and stdlib-only.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields as dataclass_fields, replace
 from typing import Sequence
 
-from .genres import find as find_genre
+from .genres import family_of
 
 
 @dataclass(frozen=True)
@@ -43,58 +43,102 @@ class Profile:
     bass_role: str | None = None
     articulation: str | None = None
     drum_pattern: str | None = None
+    swing: float | None = None
+    progression: str | None = None
+    hat_density: float | None = None
+
+    def overlaid_with(self, other: Profile) -> Profile:
+        """``other``'s opinions on top of this one's; silence changes nothing."""
+
+        stated = {
+            field.name: getattr(other, field.name)
+            for field in dataclass_fields(other)
+            if getattr(other, field.name) is not None
+        }
+        return replace(self, **stated)
 
 
 #: Only ``supporting`` / ``present`` / ``dominant`` carry weight in the audio
 #: prompt (``prompt_compiler._role_weight``); anything else silently reads as
 #: 0.5, so the table stays inside that vocabulary.
+#:
+#: Three families deliberately state no ``progression`` and keep the default
+#: i-VI-III-VII: R&B / Soul / Funk because it *is* the default (see above),
+#: Reggae / Dub / Ska because that shape is already what a one-drop vamp does,
+#: and IDM because the family has no harmonic consensus to state.
 FAMILY_PROFILES: dict[str, Profile] = {
     # The incumbent. These are the numbers every genre used to get.
     "R&B / Soul / Funk": Profile(0.72, 0.18, 1, "dominant", "short_offbeat_stabs"),
-    "House": Profile(0.78, 0.12, 1, "present", "short_offbeat_stabs", "four_on_floor"),
-    "Disco": Profile(0.8, 0.2, 1, "dominant", "muted_upstrokes", "four_on_floor"),
-    "Techno": Profile(0.85, 0.06, 2, "supporting", "hypnotic_stabs", "four_on_floor"),
-    "Trance": Profile(0.8, 0.08, 2, "supporting", "sustained_chords", "four_on_floor"),
-    "EDM / Future Bass": Profile(0.8, 0.1, 2, "supporting", "sustained_chords", "four_on_floor"),
-    "Hardcore Electronic": Profile(0.9, 0.04, 2, "supporting", "stab_hits", "four_on_floor"),
-    "Reggae / Dub / Ska": Profile(0.38, 0.3, 2, "dominant", "offbeat_skank", "one_drop"),
-    "Jungle / Drum & Bass": Profile(0.5, 0.1, 4, "dominant", "sparse_stabs", "breakbeat"),
-    "Breakbeat / Breaks": Profile(0.6, 0.14, 2, "dominant", "chopped_stabs", "breakbeat"),
-    "UK Garage / Bass": Profile(0.6, 0.16, 1, "dominant", "clipped_stabs", "two_step"),
-    "Hip-Hop / Rap": Profile(0.55, 0.22, 2, "dominant", "laid_back_stabs", "boom_bap"),
-    "Ambient / Downtempo": Profile(0.18, 0.35, 4, "supporting", "sustained_pads", "sparse_pulse"),
-    "IDM / Experimental Electronic": Profile(0.42, 0.24, 2, "present", "fragmented_stabs", "broken_grid"),
-    "Jazz": Profile(0.3, 0.45, 1, "present", "comped_chords", "swung_ride"),
-    "Blues": Profile(0.35, 0.42, 1, "present", "comped_chords", "shuffle"),
-    "Brazilian": Profile(0.45, 0.38, 1, "present", "syncopated_comping", "samba"),
-    "Latin": Profile(0.5, 0.34, 1, "present", "montuno", "clave"),
-    "Rock": Profile(0.5, 0.3, 2, "supporting", "sustained_power_chords", "backbeat"),
-    "Punk / Hardcore": Profile(0.65, 0.28, 2, "supporting", "driving_downstrokes", "backbeat"),
-    "Metal": Profile(0.7, 0.12, 2, "supporting", "palm_muted_chugs", "double_kick"),
-    "Country / Americana": Profile(0.45, 0.3, 2, "present", "strummed_chords", "train_beat"),
-    "Folk": Profile(0.3, 0.4, 2, "present", "strummed_chords", "sparse_pulse"),
+    "House": Profile(0.78, 0.12, 1, "present", "short_offbeat_stabs", "four_on_floor", progression="minor_seven_vamp", hat_density=0.85),
+    "Disco": Profile(0.8, 0.2, 1, "dominant", "muted_upstrokes", "four_on_floor", progression="minor_seven_vamp", hat_density=0.8),
+    "Techno": Profile(0.85, 0.06, 2, "supporting", "hypnotic_stabs", "four_on_floor", progression="modal_vamp", hat_density=0.92),
+    "Trance": Profile(0.8, 0.08, 2, "supporting", "sustained_chords", "four_on_floor", progression="modal_vamp", hat_density=0.9),
+    "EDM / Future Bass": Profile(0.8, 0.1, 2, "supporting", "sustained_chords", "four_on_floor", progression="modal_vamp", hat_density=0.85),
+    "Hardcore Electronic": Profile(0.9, 0.04, 2, "supporting", "stab_hits", "four_on_floor", progression="modal_vamp", hat_density=0.95),
+    "Reggae / Dub / Ska": Profile(0.38, 0.3, 2, "dominant", "offbeat_skank", "one_drop", hat_density=0.45),
+    "Jungle / Drum & Bass": Profile(0.5, 0.1, 4, "dominant", "sparse_stabs", "breakbeat", progression="minor_seven_vamp", hat_density=0.9),
+    "Breakbeat / Breaks": Profile(0.6, 0.14, 2, "dominant", "chopped_stabs", "breakbeat", progression="minor_seven_vamp", hat_density=0.85),
+    "UK Garage / Bass": Profile(0.6, 0.16, 1, "dominant", "clipped_stabs", "two_step", progression="minor_seven_vamp", hat_density=0.8),
+    "Hip-Hop / Rap": Profile(0.55, 0.22, 2, "dominant", "laid_back_stabs", "boom_bap", progression="hip_hop_loop", hat_density=0.6),
+    "Ambient / Downtempo": Profile(0.18, 0.35, 4, "supporting", "sustained_pads", "sparse_pulse", progression="modal_vamp", hat_density=0.15),
+    "IDM / Experimental Electronic": Profile(0.42, 0.24, 2, "present", "fragmented_stabs", "broken_grid", hat_density=0.7),
+    "Jazz": Profile(0.3, 0.45, 1, "present", "comped_chords", "swung_ride", progression="ii_v_i", hat_density=0.85),
+    "Blues": Profile(0.35, 0.42, 1, "present", "comped_chords", "shuffle", progression="blues_shuffle", hat_density=0.6),
+    "Brazilian": Profile(0.45, 0.38, 1, "present", "syncopated_comping", "samba", progression="bossa", hat_density=0.9),
+    "Latin": Profile(0.5, 0.34, 1, "present", "montuno", "clave", progression="montuno_latin", hat_density=0.8),
+    "Rock": Profile(0.5, 0.3, 2, "supporting", "sustained_power_chords", "backbeat", progression="one_four_five", hat_density=0.55),
+    "Punk / Hardcore": Profile(0.65, 0.28, 2, "supporting", "driving_downstrokes", "backbeat", progression="power_riff", hat_density=0.7),
+    "Metal": Profile(0.7, 0.12, 2, "supporting", "palm_muted_chugs", "double_kick", progression="power_riff", hat_density=0.8),
+    "Country / Americana": Profile(0.45, 0.3, 2, "present", "strummed_chords", "train_beat", progression="one_four_five", hat_density=0.65),
+    "Folk": Profile(0.3, 0.4, 2, "present", "strummed_chords", "sparse_pulse", progression="one_four_five", hat_density=0.3),
 }
 
 
-def profile_for(genres: Sequence[tuple[str, float]]) -> Profile:
-    """The profile of the heaviest genre whose family has one.
+GENRE_PROFILES: dict[str, Profile] = {
+    # Two numbers used to sit in ``MusicBrain.analyze`` as ``if`` statements on
+    # these exact slugs. They are facts about a genre, not about the brief, so
+    # they belong beside the other genre numbers -- and stating them here is
+    # what makes "which genre decides what" a single question with a single
+    # place to look. Both are single-genre opinions their family does not hold:
+    # not every R&B / Soul / Funk record swings, and tech house's pattern is
+    # more specific than House's four-on-the-floor.
+    "mutation_funk": Profile(swing=0.54),
+    "tech_house": Profile(drum_pattern="syncopated_tech_house"),
+}
+"""Opinions attached to one genre rather than to its whole family.
 
-    Not a blend across genres. Averaging a one-drop with a four-on-the-floor
-    produces a kick density belonging to neither, and the fields here are not
-    all numbers -- there is no halfway articulation. The dominant genre decides
-    and the rest colour the song through the parts that *are* continuous
-    (tempo, mood, the trait blends in :mod:`.intent`).
+Kept deliberately short. A per-genre row is a claim that 1019 other genres do
+not share the number, and the family table is where a claim about a *kind* of
+music belongs.
+"""
+
+
+def profile_for(genres: Sequence[tuple[str, float]]) -> Profile:
+    """The heaviest genre's family numbers, with per-genre opinions on top.
+
+    The family part is not a blend across genres. Averaging a one-drop with a
+    four-on-the-floor produces a kick density belonging to neither, and the
+    fields here are not all numbers -- there is no halfway articulation. The
+    dominant genre decides and the rest colour the song through the parts that
+    *are* continuous (tempo, mood, the trait blends in :mod:`.intent`).
+
+    :data:`GENRE_PROFILES` then overlays, heaviest last so the dominant genre
+    wins a disagreement. Any genre in the brief may speak here, not only the
+    dominant one: that is how "Mutation Funk, Dub, Tech House" gets tech
+    house's drum pattern while funk leads.
     """
 
+    profile = Profile()
     for name, _weight in sorted(genres, key=lambda item: -item[1]):
-        entry = find_genre(name)
-        family = entry.parent if entry else None
-        if family is None and entry is not None and entry.level == "genre":
-            # A top-level row is its own family.
-            family = entry.name
+        family = family_of(name)
         if family and family in FAMILY_PROFILES:
-            return FAMILY_PROFILES[family]
-    return Profile()
+            profile = FAMILY_PROFILES[family]
+            break
+    for name, _weight in sorted(genres, key=lambda item: item[1]):
+        stated = GENRE_PROFILES.get(name)
+        if stated is not None:
+            profile = profile.overlaid_with(stated)
+    return profile
 
 
 def pick(value: float | None, fallback: float) -> float:
