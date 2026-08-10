@@ -135,6 +135,9 @@ class MusicBrain:
                 character="dark robotic phrases" if vocoder_requested else "none",
             ),
             instruments=instruments,
+            # Only when priors actually took part. Empty preferences leave the
+            # field out, and the SongSpec bytes unchanged.
+            preferences_fingerprint=self.preferences.fingerprint or None,
         )
 
     @staticmethod

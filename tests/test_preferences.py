@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from kihachi_music_ai.models import SongSpec
 from kihachi_music_ai.music_brain import MusicBrain
 from kihachi_music_ai.preferences import (
     EMPTY,
@@ -200,6 +201,30 @@ class DeterminismTests(unittest.TestCase):
 
     def test_load_of_nothing_is_the_empty_set(self) -> None:
         self.assertEqual(load(None), EMPTY)
+
+
+class ProvenanceTests(unittest.TestCase):
+    """A tuned song has to say what tuned it, or the seed no longer identifies it."""
+
+    def test_an_untuned_song_does_not_mention_preferences_at_all(self) -> None:
+        payload = MusicBrain(seed=8).analyze(PROMPT).to_dict()
+
+        self.assertNotIn("preferences_fingerprint", payload)
+
+    def test_a_tuned_song_records_the_fingerprint_that_moved_it(self) -> None:
+        prefs = compile_preferences(_obs(9))
+        payload = MusicBrain(seed=8, preferences=prefs).analyze(PROMPT).to_dict()
+
+        self.assertEqual(payload["preferences_fingerprint"], prefs.fingerprint)
+
+    def test_the_fingerprint_survives_a_round_trip_through_json(self) -> None:
+        prefs = compile_preferences(_obs(9))
+        spec = MusicBrain(seed=8, preferences=prefs).analyze(PROMPT)
+
+        restored = SongSpec.from_json(spec.to_json())
+
+        self.assertEqual(restored.preferences_fingerprint, prefs.fingerprint)
+        self.assertEqual(restored.to_dict(), spec.to_dict())
 
 
 if __name__ == "__main__":
