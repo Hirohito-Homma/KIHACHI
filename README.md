@@ -724,9 +724,10 @@ blockingな欠陥のないテイクが先、その中で整合度順です。
 
 ```bash
 uv run kihachi ace-step prepare projects/my-song --from-brief prompt.json
+uv run kihachi ace-step render  projects/my-song --from-brief prompt.json
 ```
 
-  SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。
+  SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。`render` の場合、テールガードの切り戻し先はブリーフ自身の `total_bars`・`bpm`・`time_signature` から求めた長さです（SongSpec側のグリッドに切り戻すと、尺を書き換えたブリーフはまさにその部分を失います）。どのブリーフでレンダーしたかは `ace_step_result.json` の `render_brief`（パス・SHA-256・SongSpecとの一致）に残ります。
 - Audio-to-MIDI、stem分離、複数候補の音楽的な自動採用、Ableton Live展開、LLM接続は次段階です。ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
 
 ## ACE-Step 1.5アダプター

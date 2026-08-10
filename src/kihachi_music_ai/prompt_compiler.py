@@ -139,6 +139,34 @@ def load_render_brief(path: Path) -> dict[str, object]:
     return data
 
 
+def brief_grid_duration(brief: dict[str, object]) -> float | None:
+    """Seconds of *music* in a brief, as against the seconds it asks to render.
+
+    The two differ whenever a tail guard was applied: ``duration_sec`` is the
+    request, and the grid is where the song actually ends. The tail trimmer
+    needs the grid, and reading it off the project's SongSpec would be wrong for
+    a brief whose duration was edited -- it would cut the audio the brief asked
+    for back to a length the brief never mentioned.
+
+    So it is derived from the brief's own bars, tempo and meter. ``None`` when
+    the brief does not carry all three, which is possible for a hand-written
+    one: the caller then has nothing to trim to and should say so.
+    """
+
+    song = brief.get("song")
+    if not isinstance(song, dict):
+        return None
+    try:
+        bars = int(song["total_bars"])
+        bpm = float(song["bpm"])
+        beats = beats_per_bar(str(song["time_signature"]))
+    except (KeyError, TypeError, ValueError):
+        return None
+    if bars <= 0 or bpm <= 0:
+        return None
+    return round(bars * beats * 60.0 / bpm, 3)
+
+
 def brief_matches_spec(brief: dict[str, object], spec: SongSpec) -> bool:
     """Whether ``brief`` was compiled from exactly this spec."""
 

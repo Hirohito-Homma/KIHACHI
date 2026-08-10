@@ -195,5 +195,74 @@ class AceStepFromBriefTests(unittest.TestCase):
             self.assertIn("must survive", written["prompt"])
 
 
+class RenderFromBriefTests(unittest.TestCase):
+    """`render` has to send the brief too, or --from-brief stops at prepare."""
+
+    def test_the_edited_prompt_is_what_gets_submitted(self) -> None:
+        from test_ace_step import ScriptedOpener, wrapped
+
+        from kihachi_music_ai.adapters.ace_step import (
+            AceStepClient,
+            AceStepConfig,
+            AceStepOptions,
+            render_with_ace_step,
+        )
+
+        task_id = "task-brief"
+        output = {"file": "/v1/audio?path=%2Ftmp%2Fx.wav", "status": 1, "seed_value": "8"}
+        opener = ScriptedOpener(
+            [
+                wrapped({"task_id": task_id, "status": "queued"}),
+                wrapped([{"task_id": task_id, "status": 1, "result": json.dumps([output])}]),
+                b"RIFFrendered-wave",
+            ]
+        )
+        client = AceStepClient(AceStepConfig(), opener=opener)
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            compose_project("レゲエ。Am。2分程度。", project, seed=8)
+            brief_path = project / "prompt.json"
+            brief = json.loads(brief_path.read_text(encoding="utf-8"))
+            brief["prompt"] += "\nExtra: hand-written, must survive."
+            brief_path.write_text(json.dumps(brief, ensure_ascii=False), encoding="utf-8")
+
+            manifest = render_with_ace_step(
+                project,
+                client,
+                AceStepOptions(),
+                poll_interval=0,
+                wait_timeout=1,
+                brief=brief_path,
+            )
+
+            submitted = json.loads(manifest.request_file.read_text(encoding="utf-8"))
+            self.assertIn("must survive", submitted["prompt"])
+            result = json.loads(manifest.result_file.read_text(encoding="utf-8"))
+            self.assertEqual(result["render_brief"]["path"], str(brief_path.resolve()))
+            # Still true: the digest names the spec the brief was compiled
+            # from, and editing the prompt does not change that spec. The
+            # record is there to catch a brief belonging to another song.
+            self.assertTrue(result["render_brief"]["matches_project_spec"])
+
+    def test_the_tail_is_trimmed_to_the_briefs_grid_not_the_specs(self) -> None:
+        """A brief with an edited duration must not be cut back to the spec."""
+
+        from kihachi_music_ai.prompt_compiler import brief_grid_duration
+
+        spec = MusicBrain(seed=8).analyze("レゲエ。Am。2分程度。")
+        guarded = render_brief(spec, tail_guard_bars=2)
+
+        self.assertGreater(guarded["song"]["duration_sec"], spec.song.target_duration_sec)
+        self.assertEqual(brief_grid_duration(guarded), spec.song.target_duration_sec)
+
+    def test_a_brief_with_no_grid_cannot_be_tail_guarded(self) -> None:
+        from kihachi_music_ai.prompt_compiler import brief_grid_duration
+
+        brief = render_brief(MusicBrain(seed=8).analyze("レゲエ。Am。2分程度。"))
+        del brief["song"]["total_bars"]
+
+        self.assertIsNone(brief_grid_duration(brief))
+
+
 if __name__ == "__main__":
     unittest.main()

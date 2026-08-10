@@ -350,6 +350,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     render = ace_commands.add_parser("render", help="submit, wait, and download audio from ACE-Step")
     _add_ace_generation_arguments(render)
+    render.add_argument(
+        "--from-brief",
+        type=Path,
+        metavar="PROMPT_JSON",
+        help=(
+            "render a prompt.json as written, instead of recompiling the "
+            "prompt from the project's song_spec.json"
+        ),
+    )
     _add_ace_connection_arguments(render)
     render.add_argument(
         "--source-audio",
@@ -1362,10 +1371,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 scale=args.lora_scale,
                 adapter_name=args.lora_adapter_name,
             )
+        brief_path = args.from_brief
+        if brief_path is not None and not brief_path.is_absolute():
+            brief_path = args.project / brief_path
+        if brief_path is not None:
+            _warn_if_brief_is_stale(brief_path, args.project)
         render = render_with_ace_step(
             args.project,
             _ace_client(args),
             options,
+            brief=brief_path,
             lora=lora,
             source_audio=args.source_audio,
             reference_audio=args.reference_audio,
