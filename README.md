@@ -681,8 +681,19 @@ python3 -m kihachi_music_ai revise projects/my-song --rounds 3 --base-url http:/
 python3 -m kihachi_music_ai revise projects/my-song --dry-run
 ```
 
-**候補は自動採用しません。** 各ラウンドは隣に新しいプロジェクトを書き、元のプロジェクトには
-一切触れません。最後に順位付きで並べて終わります。順位は「blockingな欠陥がないもの」が先、
+ラウンドは1回ごとにレンダーを伴い、CPUでは数分かかります。途中で失敗しても
+`revision_log.json`はラウンドごとに書かれるので、測り終えたテイクの記録は残ります
+（`execution_state`が`failed`になり、`stopped_because`に原因が入ります）。
+
+```bash
+python3 -m kihachi_music_ai revise projects/my-song --resume
+```
+
+`--resume`は、既に音声があるラウンド（`-revNN`）を再レンダーせずに測り直して続きから進めます。
+音声の無い中途半端なディレクトリは、`--resume`を付けても拒否します。
+
+**候補は自動採用しません。** 各ラウンドは隣に新しいプロジェクトを書き、元のプロジェクトの
+入力には一切触れません（書き戻すのは`revision_log.json`だけです）。最後に順位付きで並べて終わります。順位は「blockingな欠陥がないもの」が先、
 その中で整合度順です。整合度88.69の`aligned`なテイクに2.28秒の無音が空いていた例があるため、
 穴の空いたテイクは点数では勝てません。
 

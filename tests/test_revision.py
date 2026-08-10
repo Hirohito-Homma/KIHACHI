@@ -199,3 +199,125 @@ class RankingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class LogAndResumeTests(unittest.TestCase):
+    """A round is a render, and a render is minutes. Losing one is expensive."""
+
+    def _project(self, root: Path) -> Path:
+        project = root / "song"
+        compose_project(EXAMPLE, project)
+        write_take(project / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS, gap=(12.0, 3.0))
+        return project
+
+    def _log(self, project: Path) -> dict:
+        return json.loads((project / "revision_log.json").read_text(encoding="utf-8"))
+
+    def _renderer(self):
+        def render(destination: Path, source_audio: Path) -> None:
+            write_take(destination / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS)
+
+        return render
+
+    def test_the_log_is_written_by_the_loop_not_by_its_caller(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+
+            def render(destination: Path, source_audio: Path) -> None:
+                write_take(destination / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS)
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                run_revision_loop(project, render, rounds=1)
+
+            log = self._log(project)
+            self.assertEqual(log["execution_state"], "complete")
+            self.assertTrue(log["rounds"])
+
+    def test_a_failed_round_still_leaves_the_takes_that_were_measured(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+
+            def render(destination: Path, source_audio: Path) -> None:
+                raise RuntimeError("the renderer timed out")
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(RuntimeError):
+                    run_revision_loop(project, render, rounds=2)
+
+            log = self._log(project)
+            self.assertEqual(log["execution_state"], "failed")
+            self.assertEqual(len(log["rounds"]), 1)
+            self.assertIn("the renderer timed out", log["stopped_because"])
+
+    def test_resume_measures_a_round_that_already_has_audio(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+            # A round that rendered before the run died.
+            done = project.parent / "song-rev01"
+            shutil.copytree(project, done)
+            write_take(done / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS)
+            for stale in ("audio_analysis.json", "revision_log.json"):
+                (done / stale).unlink(missing_ok=True)
+            calls: list[Path] = []
+
+            def render(destination: Path, source_audio: Path) -> None:
+                calls.append(destination)
+                write_take(destination / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS)
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                log = run_revision_loop(project, render, rounds=1, resume=True)
+
+            self.assertEqual(len(log.rounds), 2)
+            self.assertEqual(calls, [])
+            self.assertEqual(log.rounds[1].project_dir, done)
+
+    def test_resume_still_refuses_a_round_directory_with_no_audio(self) -> None:
+        """A half-staged project is not a take, whatever the flag says."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+            (project.parent / "song-rev01").mkdir()
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                log = run_revision_loop(
+                    project, lambda *_: None, rounds=1, resume=True
+                )
+
+            self.assertIn("already exists", log.stopped_because)
+
+    def test_a_stale_analysis_is_not_trusted(self) -> None:
+        """The audio was re-rendered; judging it on the old numbers is wrong."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+            with contextlib.redirect_stdout(io.StringIO()):
+                run_revision_loop(project, self._renderer(), rounds=1)
+            first = json.loads(
+                (project / "audio_analysis.json").read_text(encoding="utf-8")
+            )["sha256"]
+
+            # Same project, different take.
+            write_take(project / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS)
+            shutil.rmtree(project.parent / "song-rev01", ignore_errors=True)
+            with contextlib.redirect_stdout(io.StringIO()):
+                run_revision_loop(project, self._renderer(), rounds=1)
+            second = json.loads(
+                (project / "audio_analysis.json").read_text(encoding="utf-8")
+            )["sha256"]
+
+            self.assertNotEqual(first, second)
+
+    def test_an_analysis_that_still_describes_the_audio_is_reused(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+            with contextlib.redirect_stdout(io.StringIO()):
+                run_revision_loop(project, self._renderer(), rounds=1)
+            analysis_before = (project / "audio_analysis.json").read_bytes()
+
+            shutil.rmtree(project.parent / "song-rev01", ignore_errors=True)
+            with contextlib.redirect_stdout(io.StringIO()):
+                run_revision_loop(project, self._renderer(), rounds=1)
+
+            self.assertEqual(
+                (project / "audio_analysis.json").read_bytes(), analysis_before
+            )
+

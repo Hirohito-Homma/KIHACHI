@@ -286,6 +286,14 @@ def build_parser() -> argparse.ArgumentParser:
     revise.add_argument(
         "--rounds", type=int, default=DEFAULT_ROUNDS, help="maximum repaint rounds"
     )
+    revise.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "continue a run that stopped part-way: a -revNN project that already "
+            "has audio is measured rather than rendered again"
+        ),
+    )
     _add_ace_connection_arguments(revise)
     revise.add_argument("--wait-timeout", type=float, default=1800.0)
     revise.add_argument("--poll-interval", type=float, default=5.0)
@@ -1077,13 +1085,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
 
             print(f"Revising: {args.project} (up to {args.rounds} rounds)")
-            log = run_revision_loop(
-                args.project, render, rounds=args.rounds, on_round=announce
-            )
             log_file = args.project / "revision_log.json"
-            log_file.write_text(
-                json.dumps(log.to_dict(), ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
+            # The loop writes this after every round, so a run that dies on the
+            # third render still leaves the two takes it measured.
+            log = run_revision_loop(
+                args.project,
+                render,
+                rounds=args.rounds,
+                on_round=announce,
+                resume=args.resume,
+                log_file=log_file,
             )
             for line in describe_revisions(log):
                 print(line)
