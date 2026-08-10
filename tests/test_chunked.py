@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kihachi_music_ai.adapters.ace_step import AceStepClient, AceStepConfig
+from kihachi_music_ai.adapters.ace_step import AceStepClient, AceStepConfig, AceStepOptions
 from kihachi_music_ai.chunked import (
     DEFAULT_CHUNK_BARS,
     MIN_CHUNK_BARS,
@@ -15,6 +15,7 @@ from kihachi_music_ai.chunked import (
     load_chunk_plan,
     render_chunk_plan,
     song_spec_sha256,
+    validate_chunk_coverage,
 )
 from kihachi_music_ai.cli import main
 from kihachi_music_ai.music_brain import MusicBrain
@@ -288,3 +289,217 @@ class ChunkCliTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class PlanCoverageTests(unittest.TestCase):
+    """A hand-edited plan must not be able to leave a hole in the song."""
+
+    def _plan_file(self, root: Path, mutate) -> Path:
+        plan = build_chunk_plan(build_spec())
+        mutate(plan)
+        path = root / "plan.json"
+        path.write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
+        return path
+
+    def test_a_gap_between_chunks_is_refused(self) -> None:
+        def gap(plan):
+            plan["chunks"][1]["selection"]["start_bar"] += 4
+
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(ValueError) as caught:
+                load_chunk_plan(self._plan_file(Path(temp), gap))
+
+            self.assertIn("gap", str(caught.exception))
+
+    def test_an_overlap_between_chunks_is_refused(self) -> None:
+        def overlap(plan):
+            plan["chunks"][1]["selection"]["start_bar"] -= 4
+
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(ValueError) as caught:
+                load_chunk_plan(self._plan_file(Path(temp), overlap))
+
+            self.assertIn("overlap", str(caught.exception))
+
+    def test_a_plan_that_stops_short_of_the_song_is_refused(self) -> None:
+        def truncate(plan):
+            del plan["chunks"][-1]
+
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(ValueError) as caught:
+                load_chunk_plan(self._plan_file(Path(temp), truncate))
+
+            self.assertIn("bars", str(caught.exception))
+
+    def test_chunks_out_of_order_are_refused(self) -> None:
+        def reorder(plan):
+            plan["chunks"][1], plan["chunks"][2] = plan["chunks"][2], plan["chunks"][1]
+
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(ValueError):
+                load_chunk_plan(self._plan_file(Path(temp), reorder))
+
+    def test_the_planner_writes_a_plan_that_passes_its_own_check(self) -> None:
+        validate_chunk_coverage(build_chunk_plan(build_spec()))
+        validate_chunk_coverage(build_chunk_plan(build_spec(), target_chunk_bars=64))
+
+
+class ChunkRenderHardeningTests(unittest.TestCase):
+    def _project(self, root: Path) -> tuple[Path, dict]:
+        project = root / "project"
+        compose_project(LONG_PROMPT, project)
+        return project, build_chunk_plan(build_spec())
+
+    def test_the_delivered_file_carries_the_format_it_was_rendered_in(self) -> None:
+        """An MP3 render was being copied to audio/ace-step-01.wav."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            project, _ = self._project(Path(temp))
+            plan = build_chunk_plan(build_spec(), tail_guard_bars=0)
+            client = AceStepClient(
+                AceStepConfig(), opener=scripted_chunk_opener(len(plan["chunks"]))
+            )
+
+            manifest = render_chunk_plan(
+                project,
+                client,
+                plan,
+                poll_interval=0,
+                wait_timeout=1,
+                base_options=AceStepOptions(audio_format="mp3"),
+            )
+
+            self.assertEqual(manifest.audio_file.name, "ace-step-01.mp3")
+            self.assertFalse((project / "audio" / "ace-step-01.wav").exists())
+
+    def test_an_impossible_option_is_caught_before_anything_is_submitted(self) -> None:
+        """Finding out on the last chunk costs every render before it."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            project, plan = self._project(Path(temp))
+            opener = scripted_chunk_opener(len(plan["chunks"]))
+            client = AceStepClient(AceStepConfig(), opener=opener)
+
+            with self.assertRaises(ValueError):
+                render_chunk_plan(
+                    project,
+                    client,
+                    plan,
+                    poll_interval=0,
+                    wait_timeout=1,
+                    # A tail guard cannot be trimmed from anything but WAV.
+                    base_options=AceStepOptions(audio_format="mp3"),
+                )
+
+            self.assertEqual(opener.requests, [])
+            self.assertFalse((project / "chunks").exists())
+
+    def test_a_failure_leaves_an_account_of_what_did_render(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project, plan = self._project(Path(temp))
+            # Only enough scripted responses for the first two chunks.
+            client = AceStepClient(AceStepConfig(), opener=scripted_chunk_opener(2))
+
+            with self.assertRaises(Exception):
+                render_chunk_plan(project, client, plan, poll_interval=0, wait_timeout=1)
+
+            log = json.loads(
+                (project / "chunk_render_log.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(log["execution_state"], "incomplete")
+            self.assertEqual(log["chunks_rendered"], 2)
+            self.assertEqual(log["chunks_planned"], len(plan["chunks"]))
+            self.assertNotIn("final_audio", log)
+
+    def test_resume_reuses_the_chunks_that_already_finished(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project, plan = self._project(Path(temp))
+            with self.assertRaises(Exception):
+                render_chunk_plan(
+                    project,
+                    AceStepClient(AceStepConfig(), opener=scripted_chunk_opener(2)),
+                    plan,
+                    poll_interval=0,
+                    wait_timeout=1,
+                )
+
+            # Exactly two renders left to do, so a short script proves the
+            # finished ones were not submitted again.
+            opener = scripted_chunk_opener(len(plan["chunks"]) - 2)
+            manifest = render_chunk_plan(
+                project,
+                AceStepClient(AceStepConfig(), opener=opener),
+                plan,
+                poll_interval=0,
+                wait_timeout=1,
+                resume=True,
+            )
+
+            self.assertEqual(len(manifest.steps), len(plan["chunks"]))
+            reused = [s["index"] for s in manifest.steps if s.get("reused_from_previous_run")]
+            self.assertEqual(reused, [1, 2])
+            self.assertEqual(opener.payloads, [])
+            log = json.loads(
+                (project / "chunk_render_log.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(log["execution_state"], "rendered")
+
+    def test_resume_still_chains_each_chunk_from_the_one_before(self) -> None:
+        """A reused chunk has to feed the next repaint, or the chain breaks."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            project, plan = self._project(Path(temp))
+            with self.assertRaises(Exception):
+                render_chunk_plan(
+                    project,
+                    AceStepClient(AceStepConfig(), opener=scripted_chunk_opener(2)),
+                    plan,
+                    poll_interval=0,
+                    wait_timeout=1,
+                )
+            manifest = render_chunk_plan(
+                project,
+                AceStepClient(
+                    AceStepConfig(), opener=scripted_chunk_opener(len(plan["chunks"]) - 2)
+                ),
+                plan,
+                poll_interval=0,
+                wait_timeout=1,
+                resume=True,
+            )
+
+            for previous, step in zip(manifest.steps, manifest.steps[1:]):
+                self.assertEqual(
+                    step["source_audio_sha256"], previous["rendered_audio_sha256"]
+                )
+
+    def test_a_half_written_chunk_is_rendered_again_rather_than_reused(self) -> None:
+        """Audio without its result document may be a partial download."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            project, plan = self._project(Path(temp))
+            with self.assertRaises(Exception):
+                render_chunk_plan(
+                    project,
+                    AceStepClient(AceStepConfig(), opener=scripted_chunk_opener(2)),
+                    plan,
+                    poll_interval=0,
+                    wait_timeout=1,
+                )
+            step_two = next(
+                path for path in (project / "chunks").iterdir() if path.name.startswith("02-")
+            )
+            (step_two / "ace_step_result.json").unlink()
+
+            opener = scripted_chunk_opener(len(plan["chunks"]) - 1)
+            manifest = render_chunk_plan(
+                project,
+                AceStepClient(AceStepConfig(), opener=opener),
+                plan,
+                poll_interval=0,
+                wait_timeout=1,
+                resume=True,
+            )
+
+            reused = [s["index"] for s in manifest.steps if s.get("reused_from_previous_run")]
+            self.assertEqual(reused, [1])
+

@@ -391,6 +391,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="plan path, relative to the project unless absolute",
     )
     render_chunks.add_argument("--audio-format", choices=("wav",), default="wav")
+    render_chunks.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "reuse chunks that already finished under chunks/ instead of "
+            "rendering them again"
+        ),
+    )
     render_chunks.add_argument("--inference-steps", type=int, default=8)
     render_chunks.add_argument("--lora-path")
     render_chunks.add_argument("--lora-scale", type=float, default=1.0)
@@ -1314,13 +1322,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 poll_interval=args.poll_interval,
                 wait_timeout=args.wait_timeout,
                 overwrite=args.overwrite,
+                resume=args.resume,
+                plan_file=plan_path,
             )
             print(f"Rendered KIHACHI chunk plan: {manifest.project_dir}")
             for step in manifest.steps:
+                origin = (
+                    "reused" if step.get("reused_from_previous_run") else f"task {step['task_id']}"
+                )
                 print(
                     f"    [{step['index']}] {step['task_type']:<11} "
                     f"bars {step['bars'][0]}-{step['bars'][1]} "
-                    f"({', '.join(step['sections'])}) task {step['task_id']}"
+                    f"({', '.join(step['sections'])}) {origin}"
                 )
             print(f"- final audio: {manifest.audio_file}")
             print(f"- chain log: {manifest.log_file}")

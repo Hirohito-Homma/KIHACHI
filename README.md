@@ -829,6 +829,25 @@ repaint範囲が最終小節に届く場合は、マスク自体もguard領域�
 
 `review`は既定でtail guard 2小節を計画へ入れます（`--tail-guard-bars 0`で無効）。また、セクション全体ではなく問題小節だけを狙う**bar-level候補**も出します。最終小節がセクション目標より0.25以上落ちていれば、その連続範囲を最低4小節まで広げた候補（例: bars 29:32）を`bar_level_candidates`へ記録し、セクション平均が目標付近（誤差0.05以内）なら`recommended_selector`を`bars`にします。`--prefer-bar-level`を付けると、その狭い範囲が実際の`selection`になります。
 
+## チャンク分割レンダー
+
+9セクションの編成を1つのプロンプトで通すと、曲の3分の1を過ぎたあたりで自分の計画を無視し始めます（計画境界の再現率 1.0 → 0.25、セクションエネルギー相関 0.75 → 0.34）。そこで曲をセクション単位のチャンクに区切り、**各チャンクを自分のセクションだけを述べたプロンプトでレンダー**します。最初のパスが全長のベッドを敷き、以降は直前のレンダーを参照元とする自分の範囲のrepaintです。
+
+```bash
+uv run kihachi ace-step plan-chunks projects/my-song --target-chunk-bars 32
+uv run kihachi ace-step render-chunks projects/my-song --base-url http://127.0.0.1:8001
+```
+
+`chunk_plan.json`は手で編集する前提のファイルです（チャンク幅、repaint強度、クロスフェードは実際に回したくなるつまみです）。読み込み時に**全小節がちょうど1回ずつ描かれること**を検証し、隙間・重なり・順序の乱れ・曲末に届かない計画を、どこで途切れているかを示して拒否します。隙間はベッドがそのまま残る区間になり、レンダーログ上は成功と見分けが付かないためです。
+
+チャンクは1つあたりCPUで数分かかります。途中で失敗した場合、完了済みのチャンクは`chunks/`に残り、`chunk_render_log.json`には`execution_state: incomplete`と何番まで終わったかが記録されます。
+
+```bash
+uv run kihachi ace-step render-chunks projects/my-song --resume
+```
+
+`--resume`は完了済みのチャンク（音声と結果JSONが揃っているもの）を再利用し、残りだけをレンダーします。再利用したステップはログに`reused_from_previous_run`として残ります。音声だけあって結果JSONが無いステップは、途中で切れたダウンロードの可能性があるため再レンダーします。
+
 ## KIHACHI LoRA
 
 LoRAは生成JSONへ埋め込むのではなく、ACE-Stepサーバー上のモデルへロードします。まず現在の状態を確認できます。
