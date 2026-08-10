@@ -512,6 +512,34 @@ class AceStepAdapterTests(unittest.TestCase):
                 hashlib.sha256(revision.encode("utf-8")).hexdigest(),
             )
 
+    def test_render_with_incomplete_batch_outputs_fails(self) -> None:
+        task_id = "task-batch-fail"
+        output = {
+            "file": "/v1/audio?path=%2Ftmp%2Fmutation.wav",
+            "status": 1,
+            "seed_value": "8",
+        }
+        opener = ScriptedOpener(
+            [
+                wrapped({"task_id": task_id, "status": "queued"}),
+                wrapped([{"task_id": task_id, "status": 1, "result": json.dumps([output])}]),
+            ]
+        )
+        client = AceStepClient(AceStepConfig(), opener=opener)
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            compose_project(EXAMPLE, project)
+            with self.assertRaises(AceStepError) as caught:
+                render_with_ace_step(
+                    project,
+                    client,
+                    AceStepOptions(batch_size=2),
+                    poll_interval=0,
+                    wait_timeout=1,
+                )
+
+            self.assertIn("expected 2", str(caught.exception))
+
     def test_render_with_tail_guard_trims_to_the_grid_and_keeps_the_raw_render(self) -> None:
         # ACE-Step composes its ending inside whatever buffer it is given, so a
         # render asked for exactly the song grid leaves the final bar silent. The
