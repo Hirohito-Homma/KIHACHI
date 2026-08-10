@@ -4,6 +4,7 @@ import re
 from typing import Sequence
 
 from .arrangement import build_arrangement
+from .derive import pick, pick_int, pick_str, profile_for
 from .genres import match_genres, mood_axes, typical_bpm
 from .intent import Traits, blend, read as read_intent
 from .preferences import EMPTY as NO_PREFERENCES, Preferences, clamp
@@ -66,6 +67,9 @@ class MusicBrain:
         dub_requested = any(item.name == "dub" for item in genres) and not traits.refused("dub")
         dub = 1.0 if dub_requested else 0.0
         db_darkness, db_psychedelic = mood_axes(weighted)
+        # The dominant genre's family, where the shipped table has one for it.
+        # Everything it declines to answer keeps the constant used below.
+        profile = profile_for(weighted)
         instruments = self._instruments(traits, vocoder_requested)
         # Learned offsets, if any were supplied. ``tune`` is the identity when
         # the preferences are empty, which is the default.
@@ -109,12 +113,15 @@ class MusicBrain:
             groove=GrooveSpec(
                 swing=0.54 if any(item.name == "mutation_funk" for item in genres) else 0.5,
                 syncopation=tune("groove.syncopation", blend(0.58, 0.82, slap)),
-                humanize=0.18,
+                humanize=pick(profile.humanize, 0.18),
             ),
             arrangement=sections,
-            harmony=HarmonySpec(progression=progression, harmonic_rhythm_bars=1),
+            harmony=HarmonySpec(
+                progression=progression,
+                harmonic_rhythm_bars=pick_int(profile.harmonic_rhythm_bars, 1),
+            ),
             bass=BassSpec(
-                role="dominant",
+                role=pick_str(profile.bass_role, "dominant"),
                 technique="slap" if slap_requested else "fingered",
                 syncopation=tune("bass.syncopation", blend(0.58, 0.86, slap)),
                 mutation=tune("bass.mutation", blend(0.35, 0.78, mutation)),
@@ -126,14 +133,27 @@ class MusicBrain:
                 ),
             ),
             drums=DrumSpec(
-                pattern="syncopated_tech_house" if "tech_house" in {item.name for item in genres} else "four_on_floor",
-                kick_density=0.72,
+                # Tech house keeps its own name wherever it appears, not only
+                # when it leads: the string is pinned and the family table is
+                # coarser than the one genre that already had an answer.
+                pattern=(
+                    "syncopated_tech_house"
+                    if "tech_house" in {item.name for item in genres}
+                    else pick_str(profile.drum_pattern, "four_on_floor")
+                ),
+                kick_density=pick(profile.kick_density, 0.72),
+                # hat_density is left alone on purpose. composer.py thresholds
+                # it at 0.3 to choose 8th or 16th hats, so every value above
+                # that produces identical MIDI and only the prompt wording
+                # moves. Varying it here would look like control and not be
+                # any. Making the composer read it continuously is its own
+                # change.
                 hat_density=0.78,
                 dub_space=tune("drums.dub_space", blend(0.2, 0.62, dub)),
             ),
             chords=ChordSpec(
                 instrument="dub_chord_stab" if dub_requested else "synth_chord",
-                articulation="short_offbeat_stabs",
+                articulation=pick_str(profile.articulation, "short_offbeat_stabs"),
                 dub_delay=tune("chords.dub_delay", blend(0.18, 0.74, dub)),
             ),
             vocal=VocalSpec(

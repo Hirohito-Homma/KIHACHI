@@ -53,7 +53,7 @@ SMALL_STRENGTH = 0.5
 LARGE_STRENGTH = 1.5
 
 #: Japanese puts negation after what it negates; English puts it before.
-JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらない", "使わな")
+JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな")
 ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 
 #: Clause boundaries. Negation does not reach across one, which is what keeps
