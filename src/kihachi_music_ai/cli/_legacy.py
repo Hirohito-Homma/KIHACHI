@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
-from .analyzer import analyze_project
-from .adapters.ace_step import (
+from ..analyzer import analyze_project
+from ..adapters.ace_step import (
     DEFAULT_REQUEST_TIMEOUT,
     AceStepClient,
     AceStepConfig,
@@ -22,35 +22,35 @@ from .adapters.ace_step import (
     render_with_ace_step,
     resolve_repaint_window,
 )
-from .pipeline import compose_project
-from .repaint_planner import (
+from ..pipeline import compose_project
+from ..repaint_planner import (
     load_repaint_plan,
     song_spec_sha256,
     stage_repaint_project,
 )
-from .ableton import (
+from ..ableton import (
     parse_automation_binding,
     parse_send_binding,
     plan_project_arrangement,
 )
-from .arrangement import describe_arrangement
-from .chunked import (
+from ..arrangement import describe_arrangement
+from ..chunked import (
     DEFAULT_CHUNK_BARS,
     build_chunk_plan,
     load_chunk_plan,
     render_chunk_plan,
 )
-from .edit import apply_edit_to_project, build_spec_edit
-from .lyrics import build_lyrics
-from .midi_review import review_project_midi
-from .models import TRACK_NAMES, SongSpec
-from .preferences import compile_preferences, harvest, load as load_preferences
-from .prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
-from .report import build_report, load_candidate, rank as rank_candidates
-from .revision import DEFAULT_ROUNDS, describe as describe_revisions, run_revision_loop
-from .reviewer import review_project
-from .tail_guard import DEFAULT_TAIL_GUARD_BARS
-from .web import (
+from ..edit import apply_edit_to_project, build_spec_edit
+from ..lyrics import build_lyrics
+from ..midi_review import review_project_midi
+from ..models import TRACK_NAMES, SongSpec
+from ..preferences import compile_preferences, harvest, load as load_preferences
+from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
+from ..report import build_report, load_candidate, rank as rank_candidates
+from ..revision import DEFAULT_ROUNDS, describe as describe_revisions, run_revision_loop
+from ..reviewer import review_project
+from ..tail_guard import DEFAULT_TAIL_GUARD_BARS
+from ..web import (
     DEFAULT_HOST as WEB_DEFAULT_HOST,
     DEFAULT_PORT as WEB_DEFAULT_PORT,
     serve as serve_briefs,
