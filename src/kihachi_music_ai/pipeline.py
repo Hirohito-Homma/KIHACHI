@@ -12,6 +12,7 @@ from .lyrics import compile_lyrics
 from .midi import write_midi
 from .models import SongSpec
 from .music_brain import MusicBrain
+from .preferences import Preferences
 from .prompt_compiler import compile_audio_prompt
 
 ARTIFACT_NAMES = (
@@ -51,8 +52,9 @@ def compose_project(
     *,
     seed: int = 8,
     overwrite: bool = False,
+    preferences: Preferences | None = None,
 ) -> ArtifactManifest:
-    spec = MusicBrain(seed=seed).analyze(prompt)
+    spec = MusicBrain(seed=seed, preferences=preferences).analyze(prompt)
     destination = Path(output_dir) if output_dir is not None else Path("projects") / slugify_title(spec.song.title)
     existing = [destination / name for name in ARTIFACT_NAMES if (destination / name).exists()]
     if existing and not overwrite:

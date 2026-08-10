@@ -258,6 +258,12 @@ class SongSpec:
     # written before instruments existed still serializes to identical bytes --
     # and keeps the SHA-256 that repaint plans are pinned to.
     instruments: tuple[str, ...] | None = None
+    # Which learned preferences were applied, if any. ``None`` means none were,
+    # and ``to_dict`` omits the field in that case, so a song composed without
+    # ``--preferences`` keeps the bytes -- and the SHA-256 -- it always had.
+    # When priors did move the numbers, the fingerprint is what makes the song
+    # reproducible: seed alone no longer identifies it.
+    preferences_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         if self.spec_version != "0.1":
@@ -297,6 +303,8 @@ class SongSpec:
             del payload["instruments"]
         else:
             payload["instruments"] = list(self.instruments)
+        if self.preferences_fingerprint is None:
+            del payload["preferences_fingerprint"]
         return payload
 
     def to_json(self, *, indent: int = 2) -> str:
@@ -330,6 +338,11 @@ class SongSpec:
             vocal=VocalSpec(**data["vocal"]),
             instruments=(
                 tuple(data["instruments"]) if data.get("instruments") is not None else None
+            ),
+            preferences_fingerprint=(
+                str(data["preferences_fingerprint"])
+                if data.get("preferences_fingerprint") is not None
+                else None
             ),
         )
 

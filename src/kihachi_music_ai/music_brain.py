@@ -5,6 +5,7 @@ from typing import Sequence
 
 from .arrangement import build_arrangement
 from .genres import match_genres, mood_axes, typical_bpm
+from .preferences import EMPTY as NO_PREFERENCES, Preferences, clamp
 from .models import (
     CORE_TRACKS,
     EXTRA_TRACKS,
@@ -29,8 +30,11 @@ _MINUTES_RE = re.compile(r"(\d+(?:\.\d+)?)\s*分")
 class MusicBrain:
     """Deterministic v0.1 interpreter from a music brief to SongSpec."""
 
-    def __init__(self, *, seed: int = 8) -> None:
+    def __init__(self, *, seed: int = 8, preferences: Preferences | None = None) -> None:
         self.seed = seed
+        # Absent by default, and an absent set of priors offsets nothing, so a
+        # MusicBrain built the old way produces byte-identical output.
+        self.preferences = preferences or NO_PREFERENCES
 
     def analyze(self, prompt: str) -> SongSpec:
         prompt = prompt.strip()
@@ -52,6 +56,12 @@ class MusicBrain:
         dub_requested = any(item.name == "dub" for item in genres)
         db_darkness, db_psychedelic = mood_axes(weighted)
         instruments = self._instruments(prompt, lower, vocoder_requested)
+        # Learned offsets, if any were supplied. ``tune`` is the identity when
+        # the preferences are empty, which is the default.
+        slugs = [item.name for item in genres]
+
+        def tune(path: str, value: float) -> float:
+            return clamp(value + self.preferences.offset_for(slugs, "song", path))
 
         sections = self._sections(
             total_bars,
@@ -89,7 +99,9 @@ class MusicBrain:
             ),
             groove=GrooveSpec(
                 swing=0.54 if any(item.name == "mutation_funk" for item in genres) else 0.5,
-                syncopation=0.82 if slap_requested else 0.58,
+                syncopation=tune(
+                    "groove.syncopation", 0.82 if slap_requested else 0.58
+                ),
                 humanize=0.18,
             ),
             arrangement=sections,
@@ -97,21 +109,25 @@ class MusicBrain:
             bass=BassSpec(
                 role="dominant",
                 technique="slap" if slap_requested else "fingered",
-                syncopation=0.86 if slap_requested else 0.58,
-                mutation=0.78 if mutation_requested else 0.35,
-                octave_jump_probability=0.45 if slap_requested else 0.18,
-                ghost_note_probability=0.34 if slap_requested else 0.12,
+                syncopation=tune("bass.syncopation", 0.86 if slap_requested else 0.58),
+                mutation=tune("bass.mutation", 0.78 if mutation_requested else 0.35),
+                octave_jump_probability=tune(
+                    "bass.octave_jump_probability", 0.45 if slap_requested else 0.18
+                ),
+                ghost_note_probability=tune(
+                    "bass.ghost_note_probability", 0.34 if slap_requested else 0.12
+                ),
             ),
             drums=DrumSpec(
                 pattern="syncopated_tech_house" if "tech_house" in {item.name for item in genres} else "four_on_floor",
                 kick_density=0.72,
                 hat_density=0.78,
-                dub_space=0.62 if dub_requested else 0.2,
+                dub_space=tune("drums.dub_space", 0.62 if dub_requested else 0.2),
             ),
             chords=ChordSpec(
                 instrument="dub_chord_stab" if dub_requested else "synth_chord",
                 articulation="short_offbeat_stabs",
-                dub_delay=0.74 if dub_requested else 0.18,
+                dub_delay=tune("chords.dub_delay", 0.74 if dub_requested else 0.18),
             ),
             vocal=VocalSpec(
                 enabled=vocoder_requested,
@@ -119,6 +135,9 @@ class MusicBrain:
                 character="dark robotic phrases" if vocoder_requested else "none",
             ),
             instruments=instruments,
+            # Only when priors actually took part. Empty preferences leave the
+            # field out, and the SongSpec bytes unchanged.
+            preferences_fingerprint=self.preferences.fingerprint or None,
         )
 
     @staticmethod

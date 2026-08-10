@@ -23,12 +23,26 @@ SongSpec
 
 AbletonGPTとAbleton Liveには接続しません。コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。
 
-## 実行
+## 導入
 
-Python 3.11以降で、リポジトリ直下から実行します。
+Python 3.11以降。編集可能モードで入れると、ソースを直した結果がそのまま反映されます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai compose \
+python3 -m pip install -e .
+```
+
+以降 `PYTHONPATH=src` は不要です。呼び出しは `python3 -m kihachi_music_ai` を使います
+（`kihachi` コマンドも入りますが、環境によってはスクリプト置き場がPATHに載っておらず、
+モジュール形式のほうがどこでも確実に動きます）。
+
+インストールせずに動かす場合は、すべてのコマンドの頭に `PYTHONPATH=src` を付けてください。
+
+## 実行
+
+リポジトリ直下から実行します。
+
+```bash
+python3 -m kihachi_music_ai compose \
   'Mutation Funk、DUB、Tech House。110 BPM、D#m。ファンキーなスラップベース。前半ミニマル、後半サイケデリック。Vocoderを使用。'
 ```
 
@@ -45,7 +59,7 @@ prompt.txt
 出力先を指定する場合:
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai compose '...' --output projects/my-song
+python3 -m kihachi_music_ai compose '...' --output projects/my-song
 ```
 
 既存の対象ファイルは上書きしません。意図して再生成するときだけ `--overwrite` を付けます。
@@ -57,7 +71,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai compose '...' --output projects/my-so
 そのためライターはまず**声の処理方法**で駆動され、テーマは二番目です。モードがフレーズ長・反復・フックの戻り方を決め、SongSpecのジャンルと気分が語彙を決め、`section.vocal_probability` がそもそもどこで歌うかを決めます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai lyrics projects/my-song
+python3 -m kihachi_music_ai lyrics projects/my-song
 ```
 
 ```
@@ -123,7 +137,7 @@ Arrangement: ... dub breakdown (16 bars, energy 0.28, no drums, drenched in dub 
 現在は**SongSpecの全フィールドが消費されています**。加えて、Composerだけが読んでいてプロンプトには反映されていなかった値（`groove.humanize`、`bass.syncopation`、`drums.dub_space`、`chords.dub_delay` など）も文言に反映されるようになりました。
 
 ```
-$ kihachi apply-edit ... "dub_breakdownのディレイをかなり増やして"
+$ python3 -m kihachi_music_ai apply-edit ... "dub_breakdownのディレイをかなり増やして"
 - sections regenerated: none          ← 音符は動かない（正しい）
 - audio prompt changed: True          ← 以前は False だった
 
@@ -146,7 +160,7 @@ $ kihachi apply-edit ... "dub_breakdownのディレイをかなり増やして"
 `edit.py` は短い指示を **Spec Diff** — before/after を明示した検証可能なパラメータ変更リスト — に変換します。計画と適用は分かれていて、適用は常に**新しいプロジェクト**へ書きます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai edit projects/my-song "Dropのベースだけもっと変態的に"
+python3 -m kihachi_music_ai edit projects/my-song "Dropのベースだけもっと変態的に"
 ```
 
 ```
@@ -158,7 +172,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai edit projects/my-song "Dropのベー�
 ```
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai apply-edit projects/my-song projects/my-song-v2
+python3 -m kihachi_music_ai apply-edit projects/my-song projects/my-song-v2
 ```
 
 ```
@@ -207,7 +221,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai apply-edit projects/my-song projects/
 `arrangement.py` は使える8小節ブロック数に応じて**セクション・アーキタイプの並び**を選び、各セクションに固有のパート別密度とアクティブトラックを与えます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai compose '... 5分程度。'
+python3 -m kihachi_music_ai compose '... 5分程度。'
 ```
 
 ```
@@ -278,7 +292,7 @@ Composerは以下のSongSpec値を実際に読みます。
 外部パッケージなしで基本テストを実行できます。
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v
 ```
 
 ## Critic の二経路（MIDI照合 と Audio解析）
@@ -288,7 +302,7 @@ Analyzerは**完成ミックスから**ハーモニーを推定します。こ�
 しかしMIDIをSongSpecから書いている以上、**ハーモニーは推定する必要がありません。既に分かっています。** `midi_review.py` はディスク上の`.mid`を読み戻し、SongSpecと厳密照合します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai midi-review projects/my-song
+python3 -m kihachi_music_ai midi-review projects/my-song
 ```
 
 ```
@@ -317,7 +331,7 @@ MIDI由来のfindingはrepaintのrevision promptには載りません（あれ�
 ACE-Stepで生成したWAVを読み取り専用で解析し、SongSpecの尺、BPM、キー、コード進行、セクション/エネルギー設計に照合します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai analyze \
+python3 -m kihachi_music_ai analyze \
   projects/mutation-signal
 ```
 
@@ -339,7 +353,7 @@ WAVやMIDIは変更しません。既存の`audio_analysis.json`も`--overwrite`
 `audio_analysis.json`とSongSpecの差から、整合度と再生成方針を作れます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai review \
+python3 -m kihachi_music_ai review \
   example_output/mutation-signal-lora \
   --against example_output/mutation-signal
 ```
@@ -359,7 +373,7 @@ repaint_plan.json
 Reviewerの計画をACE-Step requestへ変換できます。この段階もネットワーク送信しません。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
+python3 -m kihachi_music_ai ace-step prepare \
   example_output/mutation-signal-lora \
   --repaint-plan repaint_plan.json
 ```
@@ -369,7 +383,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
 実生成は元プロジェクトと分離します。次のコマンドはSongSpec、MIDI、prompt、repaint計画だけを新規ディレクトリへ複製し、元AudioはSHA-256を確認するだけでコピーしません。適用した計画は`applied_repaint_plan.json`にも固定保存され、生成後のReviewerが作る次の計画と区別されます。出力先が既に存在する場合は停止します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step stage-repaint \
+python3 -m kihachi_music_ai ace-step stage-repaint \
   example_output/mutation-signal-lora \
   example_output/mutation-signal-lora-repaint-auto-01
 ```
@@ -379,7 +393,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step stage-repaint \
 再生成前に、元のACE-Step requestを残したまま改訂版requestを確認できます。この段階ではネットワーク送信しません。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
+python3 -m kihachi_music_ai ace-step prepare \
   example_output/mutation-signal-lora \
   --revision-file example_output/mutation-signal-lora/revision_prompt.txt
 ```
@@ -387,6 +401,261 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
 改訂版は`ace_step_revision_request.json`へ保存されます。`bpm`、`key_scale`、`time_signature`、尺、seedなどの構造化フィールドはSongSpecの値を維持し、修正指示はprompt先頭の`Revision constraints`へ優先配置します。
 
 確認後に実際の生成へ使う場合は、`ace-step render`にも同じ`--revision-file`を明示します。生成結果JSONには適用したrevisionのSHA-256とrequestファイル名が記録されます。
+
+## 帯域バランス（Criticが「ベースが弱い」を言えるようにする）
+
+`analyze`が全帯域のエネルギー配分を測り、`review`が群から外れたテイクを指摘します。
+
+```
+- spectral balance: sub 5% bass 84% low_mid 4% mid 6% high_mid 1% high 0%
+- low/high ratio: 64.373 (corpus median 19.8), centroid 258 Hz
+- dull_high_end: 6 kHz以上が0.1%しかない
+- bass_masking: 60-250 Hzに83.7%が集中
+```
+
+**閾値は実レンダー21本から較正しました。一般的なミックスの理想値ではありません。**
+この生成器の出力は中央値で**エネルギーの63%が60–250 Hz**に集中しており、
+一般的な基準で判定すると全部が不合格になって何も言えなくなります。
+21本のうち外れるのは2本だけで、どちらも高域がほぼ無いテイクです。
+
+副産物としてLoRAの効果を測れるようになりましたが、**方向は安定しません**。
+8ステップ・vast.aiでの対（seed 8、他条件同一）は6 kHz以上が0.1%→1.6%の16倍でしたが、
+60ステップ・ローカルで測り直すと同じseed 8で0.58倍と逆に出ます（seed 42では2.65倍）。
+高域についてLoRAが何をするかは、まだ言えません。
+
+2つの対で方向が一致したのは別の量です — **低域(60-250 Hz)が減り、high_mid(2.5-6 kHz)が増える**。
+0.674→0.497 / 0.626→0.521、および3.6倍 / 2.7倍。n=2なので示唆であって確定ではありません。
+
+FFTは標準ライブラリに無いため自前で書いています（radix-2、テストで定義式と照合済み）。
+窓は全長に分散して最大200枚なので、5分尺でも70秒尺でも約2.3秒です。
+
+## ラウドネス（ITU-R BS.1770-4）
+
+PeakとRMSは知覚音量と対応しません。Peakは1サンプルで決まり、RMSは40 Hzと3 kHzを
+同じ重みで扱います（耳の感度は約20 dB違います）。
+
+```bash
+python3 -m kihachi_music_ai analyze projects/my-song --loudness
+```
+
+```
+- integrated loudness: -19.11 LUFS (range 8.28 LU, 632/695 blocks kept)
+```
+
+**既定では走りません。** 全サンプルをフィルタするため70秒尺で約11秒、5分尺で約49秒かかり、
+`revise`は`analyze`をループで呼びます。実測21本が−19.11〜−13.91 LUFSの5 LU幅に収まっており、
+この生成器の弱点がラウドネスではないことも、常時払う理由が無い根拠です。
+
+規格が係数を公開しているのは48 kHzだけなので、他のレートは双一次変換で導出しています。
+48 kHzで公開値を浮動小数点誤差の範囲で再現することをテストで固定しました。
+一般的なEQのレシピから導くと**規格値を外し**、−23 LUFSの基準音が−23.26と出ます
+（許容±0.1を超えますが、壊れているようには見えない類の誤りです）。
+
+True peakは未実装です。インターサンプルピークの検出にはオーバーサンプリングが必要で、
+このプロジェクトがまだ到達していないマスタリング段の話になります。
+
+## Groove（指定した揺れが本当に鳴っているか）
+
+SongSpecは`swing`と`humanize`を持ちますが、それが実現しているか誰も確かめていませんでした。
+
+```
+- groove: offbeats 7.738 ms late (swing 0.54 asks 7.636, off by +0.102); humanize jitter 0.737 ms
+```
+
+**測る場所はMIDIです。音声からは測れないことを実測で確認しました。**
+
+110 BPMでswing 0.54が生む変位は7.6 ms、humanizeは±1.7 msです。既存の包絡線はホップ20 msで
+そもそも見えないため、1 msの包絡線でオンセットを取る実装も書きました。合成クリックなら
+仕込んだ7.6 msを誤差0.3 msで復元できます。しかし**実レンダー21本すべてで平均絶対偏差が約35 ms**
+（110 BPMの16分音符の1/4）に達し、裏拍の値は−9〜+4 msに散らばって7.6 msにかすりもしません。
+ダブのディレイ・テールと重なり合うパートのせいで、検出したオンセットが音符の頭を指していません。
+
+ハーモニーがミックスから検出できずMIDIでは厳密だったのと同じ構図です。音声側の測定は
+`reliable: false`と理由を添えて残してあり、判定には使いません。
+
+## ローカルサーバ（CPU推論）での注意
+
+ACE-StepをCPUで動かす場合、`--request-timeout` の既定は180秒です。30秒ではありません。
+
+CPU推論はサーバのワーカーを生成中ずっと占有するため、状態確認のポーリングですら
+その後ろで待たされます。30秒はGPU前提の値で、ローカルのIntel Macでは全ポーリングが
+タイムアウトしました。タイムアウト時は設定名を含むメッセージが出ます。
+
+```
+ACE-Step did not answer within request_timeout=30s; raise it if the server is running on CPU
+```
+
+以前はこれが「response could not be decoded」と表示され、サーバのJSONを疑う方向へ
+誘導していました。
+
+## ジャンル認識（Music Genre Master Database）
+
+`MusicBrain` のジャンル認識は、同梱のジャンルデータベース（`src/kihachi_music_ai/data/genres.json`、1020ジャンル・37ファミリー）が担います。
+
+以前は `mutation_funk` / `dub` / `tech_house` の3つを手書きの規則で拾い、**それ以外を全て `electronic` に潰していました**。ボサノヴァもドラムンベースもシューゲイザーも同じ値になり、AbletonGPT境界で `edm` に変換され、909のドラムマシンキットが割り当てられていました。下流をいくら詳しくしても、入口で区別が消えているため回復できません。
+
+```bash
+python3 tools/build_genre_data.py Music_Genre_Master_Database_v0.2.xlsx
+```
+
+ワークブックを更新したらこれでJSONを再生成します（標準ライブラリのみ。表計算ライブラリは不要）。
+
+* **英語名・カタカナ別名の両方**を照合します。実プロンプトはジャンル名をラテン文字で書くことが多いですが、「ボサノヴァ」「テックハウス」も引けます。
+* **長い名前が優先**されます。`Tech House` は `House` を兼ねず、`Dubstep` は `Dub` になりません。
+* **ファミリーより具体ジャンルが優先**されます。「ダブ」は `Reggae / Dub / Ska` ではなく `dub` です（前者だとダブセンドの判定が壊れます）。
+* **日本語の語中一致を拒否**します。「ス**ラップ**ベース」の「ラップ」でHip-Hopを拾わないためで、日本語には語境界が無いため文字種の連続で判定しています。取りこぼしは許容し、誤検出を避ける方針です。
+
+既存の3ジャンルの挙動は完全に保存されています。DBの名前はスラグ化すると旧名と一致するため（`Tech House` → `tech_house`）、swing値・ドラムパターン・ダブセンド・歌詞語彙の判定はそのまま動きます。
+
+### DBの数値をSongSpecへ
+
+認識だけでなく、DBが**実際に信号を持っている数値**をSongSpecへ流します。順序は「プロンプトの明示 → DB → 従来の定数」で、明示があれば必ずそちらが勝ちます。
+
+| 入力 | 以前 | 現在 |
+|---|---|---|
+| `ドラムンベース。` | 120 BPM | **172.5 BPM** |
+| `ダブ。` | 120 BPM | **75 BPM** |
+| `Tech House。` | 120 BPM | **126 BPM** |
+| `ボサノヴァ。` | 120 BPM | 120 BPM（後述） |
+
+**BPMは範囲が狭いときだけ使います。** v0.2の実測でBPM範囲の中央値は100幅もあり、大半はファミリーからの継承です。「70〜180」は速度ではなく速度の不在で、その中点を採用するのは推測をデータに見せかける行為になります。幅40以下の162ジャンルだけが対象で、それ以外は従来どおり120に落ちます（`Ambient` の `bpm_min=0` のような不正値も除外）。
+
+`mood_tags` は `darkness` と `psychedelic` に流します。従来はこの2つが全ジャンルで同じ定数でした。darknessは「暗↔明」の比の加重平均、psychedelicは**総重みで正規化**します（重み0.3のダブ1つで曲全体が1.0にならないように）。どちらの軸についてもタグが何も言っていない場合は `None` を返し、呼び出し側は0.5に引き寄せられず従来の定数を保ちます。
+
+**`meter` は使っていません。** v0.2で曖昧さのない単一拍子は `4/4`（476件）だけで、それは既定値と同じです。実装しても死にコードになるため、拍子が個別化されるまで見送ります。
+
+## 使いながら学習する（編集を既定値へ還元する）
+
+`edit` の指示は、既に**定量化された訂正**として記録されています。`applied_spec_edit.json` に `{"path": "mutation", "from": 0.88, "to": 1.0}` が、隣の `song_spec.json` にそのときのジャンルが残っている。同じ訂正が繰り返されるなら、それは編集ではなく**最初からそうであるべき既定値**です。
+
+```bash
+python3 -m kihachi_music_ai learn projects --out preferences.json
+python3 -m kihachi_music_ai compose '...' --preferences preferences.json
+```
+
+```
+- observations: 60
+- priors: 28  fingerprint: 9b5badfd20804959
+    dub                    fx_amount    n=4   offset +0.169
+    family:House           fx_amount    n=4   offset +0.169
+```
+
+これはコーパス収集で解けなかった問題への回答です。FMAとAcousticBrainzの両方で実測した結果、**ジャンルはテンポを説明しません**（分離度0.26、ジャンル内の広がり約35BPM）。公開音源をいくら集めても「このダブのブレイクダウンはどうあるべきか」は出てきません。本人の編集履歴なら出ます。ライセンスもオクターブ誤りもジャンル体系の不一致もありません。
+
+### 決定論を壊さないこと
+
+KIHACHIは「同じseedなら同じ曲」を保証し、repaintプランは `song_spec_sha256` に固定され、MIDIのバイト一致を回帰テストで縛っています。学習値が黙って効くと、この3つが同時に壊れます。
+
+そこで**明示的に渡したときだけ**適用します。`learn` が priors をバージョン付きファイルへコンパイルし、`--preferences` を付けたときに限り効く。「同じseed＋同じpreferences＝同じ曲」は保たれ、差分も巻き戻しもできます。指定しなければ出力は従来と1バイトも変わりません。
+
+### 縮小推定であって学習ではありません
+
+編集は数十件のオーダーです。この規模ではニューラルネットではなく**計数と縮小**が正しい推定です。
+
+```
+offset = mean_delta × n / (n + 4)
+```
+
+n=1なら平均の20%、n=9で69%しか動きません。**編集の大半はその曲固有の判断**であって恒久的な好みではないので、1件の訂正が規則に昇格しない設計にしています。反対向きの訂正は打ち消し合います。
+
+証拠が足りないジャンルは、DBの階層を**ジャンル → ファミリー → 全体**と遡ります。tech house単独で学習に足る編集数は集まりませんが、Houseファミリーなら集まります。1020ジャンルの階層がここで効きます。
+
+## Liveの楽器割り当て
+
+`ableton-plan`は、新しく作るBass／Sub／Chords／Synth／Arpトラックへ
+`apply_live_instrument_selection`を出力します。KIHACHIが渡すのはパートの役割と
+SongSpecから導いたgenre・moodだけです。OperatorなどのLive固有デバイス名と、
+インストール状況に応じたフォールバック順はAbletonGPTが管理します。
+
+実行時は既存デバイスを先に読み、候補と一致する楽器が1台だけなら再開として受け入れます。
+別の楽器がある場合は置換せず拒否します。
+
+ドラムは別の操作を使います。空のDrum Rack／Impulseは挿入に成功したうえで**無音**なので、
+デバイス挿入では終わりません。そこでDrumsトラックには `apply_live_drum_kit` を出力します。
+KIHACHIが渡すのはここでも意図だけ（`track_index`／`role`／`genre`／`mood`）で、
+プリセット名も `.adg` もブラウザのパスもLive URIも一切書きません。実在するキットの候補・
+候補順・ブラウザ上の位置・読み返し検証はすべてAbletonGPTが所有し、適用時にLiveの
+ブラウザを走査して解決します。
+
+`--split-drums` でキットを3トラックに分けた場合は、kick／snare／percussionのそれぞれに
+1台ずつキットをロードします。インストゥルメントの無いトラックは、クリップが何音しか
+鳴らさなくても無音だからです。percussionだけは専用のパーカッションキットを優先します。
+
+Vocoderは引き続き例外です。carrier／modulatorの配線が必要なので、単体楽器を挿しただけで
+完成扱いせず、警告を出します。
+
+## センド（ダブのFXをリターンへ送る）
+
+```bash
+python3 -m kihachi_music_ai ableton-plan projects/my-song --send chords:1:0.1:0.6
+```
+
+`send_index` の0がリターンA、1がB。どのリターンかはLiveセット側の事実なので導出できません
+（AbletonGPTの`get_mix_snapshot`が名前を返します）。
+
+SongSpecの`fx_amount`は、各セクションの開始拍・長さ・送り量を持つ
+`set_clip_send_envelope`へ変換されます。ダブのディレイ・スローは、曲全体の
+平均値ではなく、セクションごとに動きます。
+
+```
+- send envelope: track 4 → return B, 9 steps (0.250-0.600)
+```
+
+LiveはArrangement上のオートメーションを直接書けないため、順序は
+**Sessionクリップ作成 → Send Envelope → Arrangementへコピー**です。
+
+Liveは同じpitch・同じstartのノートを1音へ統合し、同じpitchのノートが
+重なると前のdurationを次のstartまで短縮します。`ableton-plan`はこの規則を
+先に適用し、統合・短縮した件数をwarningへ出すため、計画のノート数とLiveへ
+保存されたノート数が一致します。
+
+## Revision Loop（測る→直す→また測る、を回す）
+
+`analyze`で測り、`review`で直す場所を決め、`stage-repaint`で新しいプロジェクトを作り、
+`render`で埋める。この4手を1ラウンドとして自動で回します。
+
+```bash
+python3 -m kihachi_music_ai revise projects/my-song --rounds 3 --base-url http://127.0.0.1:8001
+```
+
+まず何をするか見るだけなら、生成せずに確認できます。
+
+```bash
+python3 -m kihachi_music_ai revise projects/my-song --dry-run
+```
+
+**候補は自動採用しません。** 各ラウンドは隣に新しいプロジェクトを書き、元のプロジェクトには
+一切触れません。最後に順位付きで並べて終わります。順位は「blockingな欠陥がないもの」が先、
+その中で整合度順です。整合度88.69の`aligned`なテイクに2.28秒の無音が空いていた例があるため、
+穴の空いたテイクは点数では勝てません。
+
+採用を機械が決めない理由は、整合度スコアが**SongSpec通りかを測るだけで、良し悪しを聴けない**
+ことにあります。同じ設定でseedを変えるだけでこのスコアは33点動きました。
+
+停止条件は3つ。直す場所が無くなる、ラウンド上限、または整合度の伸びが1.00点未満です。
+最後の閾値が0でないのは、seedのばらつきがそれより桁違いに大きく、
+0.1点の改善は結果の顔をしたノイズだからです。
+
+## 候補比較（聴いて選ぶためのページ）
+
+`revise` は「聴いてから選べ」と言って終わりますが、聴く手段を持っていませんでした。
+
+```bash
+python3 -m kihachi_music_ai report projects/my-song --from-revision-log
+```
+
+`candidates.html` を書きます。各テイクを再生でき、波形にセクション境界と欠陥の位置が重なります。
+音声は埋め込まず相対リンクです（1テイク13MB、3本入れたらページではなくなります）。
+プロジェクトを丸ごと移動してもリンクは切れません。
+
+各テイクに指示欄があります。文章を書くと、そのまま貼って実行できる`edit`コマンドを組み立てて表示します
+（アポストロフィや`$`、`;`を含む文もPOSIXの単一引用で正しく囲みます）。
+
+ページ自体は生成も採用も削除もしません。組み立てるだけで、実行は明示的な行為のままです。順位付けの規則は`revise`と同じで、
+blockingな欠陥のないテイクが先、その中で整合度順です。
+
+**「未スキャン」と「欠陥なし」は区別します。** 測っていないことを「問題なし」と表示するのは、
+検査の欠落を結果に見せかけることだからです。
 
 ## v0.1の境界
 
@@ -400,7 +669,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
 ネットワーク接続なしで、送信予定の内容を確認できます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step prepare \
+python3 -m kihachi_music_ai ace-step prepare \
   projects/mutation-signal
 ```
 
@@ -410,7 +679,7 @@ ACE-Step 1.5 RESTサーバーを起動後、生成と音声取得を実行しま
 
 ```bash
 ACESTEP_API_KEY='serverに設定したキー' \
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal \
   --base-url http://127.0.0.1:8001
 ```
@@ -432,7 +701,7 @@ ACE-Step側の5Hz LM計画を使う場合だけ`--thinking`を追加します。
 既存Audioの尺と大きな構造を保持しながら、SongSpec、改訂指示、LoRAを使って再生成できます。Mac上のAudioはmultipartで直接アップロードされるため、Vast側へ手動コピーしたり、サーバーの絶対パスを成果物へ保存したりしません。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal-cover \
   --base-url http://127.0.0.1:8001 \
   --task-type cover \
@@ -451,7 +720,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
 `repaint`は参照元の指定範囲だけを再生成し、それ以外を保持します。推奨指定はSongSpecのセクション名です。CLIがBPMと拍子から安全に秒へ変換します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal-repaint \
   --base-url http://127.0.0.1:8001 \
   --task-type repaint \
@@ -479,7 +748,7 @@ ACE-Stepは与えられたバッファの中で「曲を完結」させます。
 `--tail-guard-bars`は曲尺より数小節だけ長いバッファを要求し、モデルの終止を採点対象の小節の外へ追い出します。生成後、配信WAVは曲尺へトリムし直され、未トリムのレンダーは`audio/ace-step-01.untrimmed.wav`として監査用に残ります。トリム端には10 msのフェードだけを掛けるので、クリックは出ず、小節エネルギーは動きません。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal-repaint \
   --base-url http://127.0.0.1:8001 \
   --task-type repaint \
@@ -499,14 +768,14 @@ repaint範囲が最終小節に届く場合は、マスク自体もguard領域�
 LoRAは生成JSONへ埋め込むのではなく、ACE-Stepサーバー上のモデルへロードします。まず現在の状態を確認できます。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step lora status \
+python3 -m kihachi_music_ai ace-step lora status \
   --base-url http://127.0.0.1:8001
 ```
 
 KIHACHI LoRAをロードし、強度を設定して有効化します。
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step lora load \
+python3 -m kihachi_music_ai ace-step lora load \
   /workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final \
   --scale 0.8 \
   --base-url http://127.0.0.1:8001
@@ -517,7 +786,7 @@ PYTHONPATH=src python3 -m kihachi_music_ai ace-step lora load \
 ロードから生成まで一度に実行する場合:
 
 ```bash
-PYTHONPATH=src python3 -m kihachi_music_ai ace-step render \
+python3 -m kihachi_music_ai ace-step render \
   projects/mutation-signal \
   --base-url http://127.0.0.1:8001 \
   --lora-path /workspace/ACE-Step-1.5/output/KIHACHI_LORA_v1/final \
