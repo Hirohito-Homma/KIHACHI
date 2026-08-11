@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
 import math
@@ -11,6 +12,7 @@ import unittest
 import wave
 from array import array
 from pathlib import Path
+from unittest.mock import patch
 
 from kihachi_music_ai.pipeline import compose_project
 from kihachi_music_ai.revision import MIN_GAIN, RevisionLog, Round, describe, run_revision_loop
@@ -141,6 +143,50 @@ class LoopTests(unittest.TestCase):
                 log.stopped_because,
             )
 
+    def test_a_round_that_gains_less_than_the_floor_stops_immediately(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp), seconds=TAKE_SECONDS)
+            calls: list[Path] = []
+
+            initial = Round(
+                index=0,
+                project_dir=project,
+                alignment=100.0,
+                grade="aligned",
+                blocking=0,
+                warnings=0,
+                defect_codes=(),
+                planned_action="repaint bars 1:4",
+                audio_file=project / "audio" / "ace-step-01.wav",
+            )
+            outcome = Round(
+                index=1,
+                project_dir=project.parent / "song-rev01",
+                alignment=100.2,
+                grade="aligned",
+                blocking=0,
+                warnings=0,
+                defect_codes=(),
+                planned_action="repaint bars 5:8",
+                audio_file=project.parent / "song-rev01" / "audio" / "ace-step-01.wav",
+            )
+
+            def fake_measure(project_dir: Path, index: int) -> Round:
+                return initial if index == 0 else outcome
+
+            def fake_render(destination: Path, source_audio: Path) -> None:
+                calls.append(destination)
+                (destination / "audio").mkdir(parents=True, exist_ok=True)
+                write_take(destination / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS)
+
+            with patch("kihachi_music_ai.revision._measure", side_effect=fake_measure):
+                with patch("kihachi_music_ai.revision.stage_repaint_project", lambda *_: None):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        log = run_revision_loop(project, fake_render, rounds=5)
+
+            self.assertEqual(len(calls), 1)
+            self.assertIn("floor", log.stopped_because)
+
     def test_rounds_must_be_positive(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = self._project(Path(temp), seconds=TAKE_SECONDS)
@@ -269,6 +315,32 @@ class LogAndResumeTests(unittest.TestCase):
             self.assertEqual(len(log.rounds), 2)
             self.assertEqual(calls, [])
             self.assertEqual(log.rounds[1].project_dir, done)
+
+    def test_resume_reanalyzes_stale_audio_in_existing_round(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp))
+            done = project.parent / "song-rev01"
+            shutil.copytree(project, done)
+            write_take(done / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS, gap=(1.0, 1.0))
+            calls: list[Path] = []
+
+            def render(destination: Path, source_audio: Path) -> None:
+                calls.append(destination)
+                write_take(destination / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS)
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                log = run_revision_loop(project, render, rounds=1, resume=True)
+
+            self.assertEqual(len(log.rounds), 2)
+            self.assertEqual(calls, [])
+            self.assertEqual(log.rounds[1].project_dir, done)
+            actual_sha = hashlib.sha256(
+                (done / "audio" / "ace-step-01.wav").read_bytes()
+            ).hexdigest()
+            self.assertEqual(
+                json.loads((done / "audio_analysis.json").read_text(encoding="utf-8"))["sha256"],
+                actual_sha,
+            )
 
     def test_resume_still_refuses_a_round_directory_with_no_audio(self) -> None:
         """A half-staged project is not a take, whatever the flag says."""

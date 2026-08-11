@@ -458,7 +458,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         if args.command == "report":
-            projects = [args.project, *args.also]
+            also_projects = list(args.also)
+            projects = [args.project, *also_projects]
             stopped = None
             if args.from_revision_log:
                 log_file = args.project / "revision_log.json"
@@ -466,7 +467,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     raise FileNotFoundError(f"no revision log: {log_file}")
                 log = json.loads(log_file.read_text(encoding="utf-8"))
                 stopped = log.get("stopped_because")
-                projects = [Path(row["project"]) for row in log["rounds"]]
+                logged_projects: list[Path] = []
+                for row in log["rounds"]:
+                    recorded = Path(row["project"])
+                    if not recorded.is_absolute():
+                        recorded = (log_file.parent / recorded)
+                    logged_projects.append(recorded)
+                projects = [*logged_projects, *also_projects]
             seen: list[Path] = []
             for path in projects:
                 if path not in seen:

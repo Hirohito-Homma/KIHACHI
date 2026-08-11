@@ -261,8 +261,8 @@ def run_revision_loop(
                 on_round(outcome)
             save("revising")
 
-        # A round earns another one by fixing something a listener would notice:
-        # clearing a blocking defect, or winning more alignment than seed noise.
+            # A round earns another one by fixing something a listener would notice:
+            # clearing a blocking defect, or winning more alignment than seed noise.
             cleared = current.blocking > 0 and outcome.blocking == 0
             gained = outcome.alignment - current.alignment
             if outcome.blocking > 0 and not cleared:

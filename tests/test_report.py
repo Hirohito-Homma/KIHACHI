@@ -9,6 +9,7 @@ from array import array
 from pathlib import Path
 
 from kihachi_music_ai.analyzer import analyze_project
+from kihachi_music_ai.cli import main
 from kihachi_music_ai.pipeline import compose_project
 from kihachi_music_ai.report import Candidate, build_report, load_candidate, rank
 from kihachi_music_ai.reviewer import review_project
@@ -216,6 +217,78 @@ class PageTests(unittest.TestCase):
 
         self.assertNotIn("<script>alert(1)</script>", page)
         self.assertIn("&lt;script&gt;", page)
+
+
+class CliReportTests(unittest.TestCase):
+    def test_from_revision_log_resolves_relative_project_paths_from_the_log_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = make_project(root, "song")
+            round_project = make_project(project, "take-local")
+            (project / "revision_log.json").write_text(
+                json.dumps(
+                    {
+                        "stopped_because": "test",
+                        "rounds": [{"project": "take-local"}],
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            output = project / "candidates.html"
+
+            status = main(
+                [
+                    "report",
+                    str(project),
+                    "--from-revision-log",
+                    "--overwrite",
+                    "--output",
+                    str(output),
+                ]
+            )
+
+            self.assertEqual(status, 0)
+            page = output.read_text(encoding="utf-8")
+            self.assertIn("take-local", page)
+
+    def test_from_revision_log_keeps_also_projects_in_the_comparison(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = make_project(root, "song")
+            from_log = make_project(root, "song-rev01")
+            extra = make_project(root, "extra-candidate")
+            (project / "revision_log.json").write_text(
+                json.dumps(
+                    {
+                        "stopped_because": "test",
+                        "rounds": [{"project": str(from_log)}],
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            output = project / "candidates.html"
+
+            status = main(
+                [
+                    "report",
+                    str(project),
+                    "--from-revision-log",
+                    "--also",
+                    str(extra),
+                    "--overwrite",
+                    "--output",
+                    str(output),
+                ]
+            )
+
+            self.assertEqual(status, 0)
+            page = output.read_text(encoding="utf-8")
+            self.assertIn("song-rev01", page)
+            self.assertIn("extra-candidate", page)
 
 
 if __name__ == "__main__":

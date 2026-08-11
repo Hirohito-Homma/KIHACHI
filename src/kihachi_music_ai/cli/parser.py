@@ -11,7 +11,7 @@ import argparse
 import os
 from pathlib import Path
 
-from ..adapters.ace_step import DEFAULT_REQUEST_TIMEOUT
+from ..adapters.ace_step import AUDIO_FORMATS, DEFAULT_REQUEST_TIMEOUT
 from ..chunked import DEFAULT_CHUNK_BARS
 from ..revision import DEFAULT_ROUNDS
 from ..tail_guard import DEFAULT_TAIL_GUARD_BARS
@@ -330,7 +330,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("chunk_plan.json"),
         help="plan path, relative to the project unless absolute",
     )
-    render_chunks.add_argument("--audio-format", choices=("wav",), default="wav")
+    render_chunks.add_argument(
+        "--audio-format",
+        choices=tuple(sorted(AUDIO_FORMATS)),
+        default="wav",
+    )
     render_chunks.add_argument(
         "--resume",
         action="store_true",
@@ -399,7 +403,7 @@ def add_ace_connection_arguments(parser: argparse.ArgumentParser) -> None:
 
 def add_ace_generation_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("project", type=Path, help="directory containing song_spec.json")
-    parser.add_argument("--audio-format", choices=("wav", "flac", "mp3", "opus", "aac", "wav32"), default="wav")
+    parser.add_argument("--audio-format", choices=tuple(sorted(AUDIO_FORMATS)), default="wav")
     parser.add_argument("--thinking", action="store_true", help="allow ACE-Step 5Hz LM audio-code planning")
     parser.add_argument("--model", help="optional model returned by the server's /v1/models endpoint")
     parser.add_argument("--inference-steps", type=int, default=8)
