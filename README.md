@@ -97,9 +97,11 @@ python3 -m kihachi_music_ai lyrics projects/my-song
 
 `stage-repaint` は歌詞シートがあれば複製し、無くても動きます（このモジュール以前に作られたプロジェクトにはシートがないため）。
 
-### 未検証の点
+### 構造タグはどこまで確認できているか
 
-出力書式はACE-Stepの角括弧構造タグ（`[verse]` / `[chorus]` / `[bridge]` / `[inst]`）を使っていますが、**この規約を今回のセッションで実サーバーに対して検証できていません** — 作業中にACE-Stepサーバー（127.0.0.1:8001）が停止したためです。実生成で確認するまでは書式は暫定と考えてください。
+出力書式はACE-Stepの角括弧構造タグ（`[verse]` / `[chorus]` / `[bridge]` / `[inst]`）を使っています。2026-08-13に実サーバー（vast.ai上の`acestep-v15-turbo`）へ通し、**書式が受理されることは確認しました** — `[inst]` / `[verse]`×2 / `[chorus]` を含む歌詞シートが拒否も無視もされず、`ace_step_result.json`の`metas.lyrics`へそのまま反映されます。尺は要求69.818sに対し出力69.80s、BPMは要求110に対し推定110.5でした。
+
+**タグが音楽的に反映されるか — `[verse]`の位置に実際に歌が乗り、`[inst]`が器楽のままか — は未確認です。**これは聴いて判断するしかなく、解析器はセクション境界のrecall（この生成では0.667）までしか答えません。`decide`で聴取判断を記録するまで、規約が効いているとは書けません。
 
 ## Prompt Compiler（全ての記述をSongSpecの数値から導出）
 
@@ -789,6 +791,33 @@ python3 -m kihachi_music_ai ace-step prepare \
 ```
 
 `ace_step_request.json`にはAPIキーを含めません。既定では、KIHACHIのSongSpecをACE-Step側で書き換えないように`thinking=false`、`use_format=false`、CoT補完も無効です。
+
+### turboモデルは`inference_steps`を無視します
+
+`acestep-v15-turbo`に対しては、`--inference-steps`が**出力を一切変えません**。2026-08-13に対照実験で確認しました。プロンプト・歌詞・seedを固定し`inference_steps`だけを8と60にして`/release_task`へ直接投げたところ、別タスクとして別々に生成されたにもかかわらず（task_idも出力ファイルのUUIDも別）、音声は**バイト単位で同一**でした。
+
+| | task_id | 生成時間 | 音声SHA-256 |
+|---|---|---|---|
+| steps=8 | `0c81d668…` | 1.73s | `3d32c369…` |
+| steps=60 | `351afb24…` | 1.79s | `3d32c369…` |
+
+60ステップが1.79秒で終わること自体が、ステップ数が使われていない証拠です。キャッシュではありません。seedを変えれば出力は変わるので、**seedは効き、stepsは効きません**。
+
+蒸留済みのturboモデルが固定ステップ数で動く設計なら、これは仕様として筋が通ります。非turboモデルでどうなるかは未確認です（検証したインスタンスにはturboしか入っていませんでした）。
+
+したがって`ace_step_request.json`の`inference_steps`は、turbo相手では**記録以上の意味を持ちません**。品質が足りないときにここを上げても何も起きないので、seed・プロンプト・モデルの側で対処してください。
+
+### 最初の生成の前にモデルを初期化してください
+
+モデル未ロードの状態で生成を投げると、初回の初期化待ちでクライアントが先に切れます。2026-08-12の実機スモークはこれで中断し、`task_id`を回収できないまま音声だけをリカバリする羽目になりました（`ace_step_recovery.json`がその記録です）。
+
+```bash
+curl -X POST http://127.0.0.1:8001/v1/init \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"acestep-v15-turbo","init_llm":false}'
+```
+
+完了まで実測で約50秒。`/health`の`models_initialized`が`true`になってから`render`を実行すれば、この失敗は起きません。
 
 ACE-Step 1.5 RESTサーバーを起動後、生成と音声取得を実行します。
 
