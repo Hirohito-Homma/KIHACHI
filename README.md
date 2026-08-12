@@ -692,8 +692,22 @@ python3 -m kihachi_music_ai revise projects/my-song --resume
 `--resume`は、既に音声があるラウンド（`-revNN`）を再レンダーせずに測り直して続きから進めます。
 音声の無い中途半端なディレクトリは、`--resume`を付けても拒否します。
 
+人に共有する要約も各ラウンド後に残す場合は、Markdownの保存先を明示します。
+
+```bash
+python3 -m kihachi_music_ai revise projects/my-song \
+  --rounds 3 \
+  --revision-log-markdown projects/my-song/revision_log.md
+```
+
+`revision_log.json`が機械可読な正本で、Markdownは同じ状態の共有用要約です。
+どちらも原子的に置換され、途中でレンダーが失敗した場合も、測定済みテイクと失敗理由を
+`execution_state: failed`として残します。`--dry-run`はrevision loopを開始しないため、
+`--revision-log-markdown`とは同時に指定できません。既存ファイルは上書きせず、失敗した
+revisionを`--resume`する場合だけ、KIHACHIが以前に書いたMarkdownログを更新できます。
+
 **候補は自動採用しません。** 各ラウンドは隣に新しいプロジェクトを書き、元のプロジェクトの
-入力には一切触れません（書き戻すのは`revision_log.json`だけです）。最後に順位付きで並べて終わります。順位は「blockingな欠陥がないもの」が先、
+入力には一切触れません（書き戻すのは`revision_log.json`と、明示した場合の共有Markdownだけです）。最後に順位付きで並べて終わります。順位は「blockingな欠陥がないもの」が先、
 その中で整合度順です。整合度88.69の`aligned`なテイクに2.28秒の無音が空いていた例があるため、
 穴の空いたテイクは点数では勝てません。
 

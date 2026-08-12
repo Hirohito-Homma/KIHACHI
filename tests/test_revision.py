@@ -14,8 +14,16 @@ from array import array
 from pathlib import Path
 from unittest.mock import patch
 
+from kihachi_music_ai.cli import build_parser, main
 from kihachi_music_ai.pipeline import compose_project
-from kihachi_music_ai.revision import MIN_GAIN, RevisionLog, Round, describe, run_revision_loop
+from kihachi_music_ai.revision import (
+    MIN_GAIN,
+    RevisionLog,
+    Round,
+    describe,
+    export_markdown,
+    run_revision_loop,
+)
 from test_music_brain import EXAMPLE
 
 RATE = 8000
@@ -198,6 +206,137 @@ class LoopTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 run_revision_loop(Path(temp), self._renderer([], seconds=TAKE_SECONDS))
 
+    def test_revision_log_can_be_exported_as_markdown(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp), seconds=TAKE_SECONDS, gap=(12.0, 3.0))
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                log = run_revision_loop(project, self._renderer([], seconds=TAKE_SECONDS), rounds=1)
+
+            out = Path(temp) / "revision-log.md"
+            export_markdown(log, out)
+
+            text = out.read_text(encoding="utf-8")
+            self.assertIn("# Revision Log", text)
+            self.assertIn("stopped because", text)
+            self.assertIn("take(s)", text)
+
+    def test_revision_parser_accepts_markdown_export_path(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args([
+            "revise",
+            "project",
+            "--revision-log-markdown",
+            "revision-log.md",
+        ])
+
+        self.assertEqual(args.revision_log_markdown, Path("revision-log.md"))
+
+    def test_revision_cli_wires_the_markdown_path_into_the_durable_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "song"
+            out = Path(temp) / "logs" / "revision-log.md"
+            log = RevisionLog((), "the test completed")
+
+            def fake_loop(*args, **kwargs):
+                self.assertEqual(kwargs["markdown_log_file"], out)
+                export_markdown(log, kwargs["markdown_log_file"])
+                return log
+
+            with patch(
+                "kihachi_music_ai.cli._legacy.run_revision_loop",
+                side_effect=fake_loop,
+            ):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    status = main(
+                        [
+                            "revise",
+                            str(project),
+                            "--revision-log-markdown",
+                            str(out),
+                        ]
+                    )
+
+            self.assertEqual(status, 0)
+            self.assertIn("# Revision Log", out.read_text(encoding="utf-8"))
+
+    def test_dry_run_refuses_a_markdown_log_it_cannot_write(self) -> None:
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            status = main(
+                [
+                    "revise",
+                    "project",
+                    "--dry-run",
+                    "--revision-log-markdown",
+                    "revision-log.md",
+                ]
+            )
+
+        self.assertEqual(status, 2)
+        self.assertIn("cannot be used with --dry-run", stderr.getvalue())
+
+    def test_markdown_log_cannot_replace_an_existing_project_input(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp), seconds=TAKE_SECONDS)
+            protected = project / "song_spec.json"
+            before = protected.read_bytes()
+
+            with self.assertRaises(FileExistsError):
+                run_revision_loop(
+                    project,
+                    self._renderer([], seconds=TAKE_SECONDS),
+                    rounds=1,
+                    markdown_log_file=protected,
+                )
+
+            self.assertEqual(protected.read_bytes(), before)
+            self.assertFalse((project / "revision_log.json").exists())
+
+    def test_markdown_log_cannot_alias_the_json_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp), seconds=TAKE_SECONDS)
+            destination = project / "revision_log.json"
+
+            with self.assertRaises(ValueError):
+                run_revision_loop(
+                    project,
+                    self._renderer([], seconds=TAKE_SECONDS),
+                    rounds=1,
+                    markdown_log_file=destination,
+                )
+
+            self.assertFalse(destination.exists())
+
+    def test_resume_can_update_an_existing_revision_markdown_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp), seconds=TAKE_SECONDS)
+            destination = Path(temp) / "revision_log.md"
+            export_markdown(RevisionLog((), "an interrupted run"), destination)
+            measured = Round(
+                index=0,
+                project_dir=project,
+                alignment=80.0,
+                grade="aligned",
+                blocking=0,
+                warnings=0,
+                defect_codes=(),
+                planned_action=None,
+                audio_file=project / "audio" / "ace-step-01.wav",
+            )
+
+            with patch("kihachi_music_ai.revision._measure", return_value=measured):
+                log = run_revision_loop(
+                    project,
+                    self._renderer([], seconds=TAKE_SECONDS),
+                    rounds=1,
+                    resume=True,
+                    markdown_log_file=destination,
+                )
+
+            self.assertEqual(log.execution_state, "complete")
+            self.assertIn("- state: complete", destination.read_text(encoding="utf-8"))
+
 
 class RankingTests(unittest.TestCase):
     def _round(self, index, alignment, blocking=0, codes=()):
@@ -281,18 +420,27 @@ class LogAndResumeTests(unittest.TestCase):
     def test_a_failed_round_still_leaves_the_takes_that_were_measured(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = self._project(Path(temp))
+            markdown_log = Path(temp) / "revision-log.md"
 
             def render(destination: Path, source_audio: Path) -> None:
                 raise RuntimeError("the renderer timed out")
 
             with contextlib.redirect_stdout(io.StringIO()):
                 with self.assertRaises(RuntimeError):
-                    run_revision_loop(project, render, rounds=2)
+                    run_revision_loop(
+                        project,
+                        render,
+                        rounds=2,
+                        markdown_log_file=markdown_log,
+                    )
 
             log = self._log(project)
             self.assertEqual(log["execution_state"], "failed")
             self.assertEqual(len(log["rounds"]), 1)
             self.assertIn("the renderer timed out", log["stopped_because"])
+            markdown = markdown_log.read_text(encoding="utf-8")
+            self.assertIn("- state: failed", markdown)
+            self.assertIn("the renderer timed out", markdown)
 
     def test_resume_measures_a_round_that_already_has_audio(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -392,4 +540,3 @@ class LogAndResumeTests(unittest.TestCase):
             self.assertEqual(
                 (project / "audio_analysis.json").read_bytes(), analysis_before
             )
-

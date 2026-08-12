@@ -14,7 +14,8 @@ across a seed sweep the same settings moved it by 33 points.
 
 Nothing is overwritten. Each round writes a new project beside the last, and
 the source project keeps every input it arrived with -- the one thing written
-back into it is ``revision_log.json``, the account of the run.
+back into it is ``revision_log.json``, plus an optional Markdown mirror when
+the caller explicitly names one.
 """
 
 from __future__ import annotations
@@ -197,6 +198,7 @@ def run_revision_loop(
     on_round: Callable[[Round], None] | None = None,
     resume: bool = False,
     log_file: Path | None = None,
+    markdown_log_file: Path | None = None,
 ) -> RevisionLog:
     """Revise a rendered project up to ``rounds`` times, keeping every take.
 
@@ -211,6 +213,10 @@ def run_revision_loop(
     ``resume`` picks up a run that stopped that way. A ``-revNN`` directory that
     already holds audio is measured rather than re-rendered; one that exists
     without audio is still refused, because a half-staged project is not a take.
+
+    ``markdown_log_file`` is a human-readable mirror of the JSON log. It is
+    updated at the same checkpoints, including the failed state, but the JSON
+    log remains the machine-readable source of truth.
     """
 
     if rounds < 1:
@@ -219,20 +225,32 @@ def run_revision_loop(
     if not (project_dir / "song_spec.json").is_file():
         raise FileNotFoundError(f"SongSpec not found: {project_dir / 'song_spec.json'}")
     destination_log = Path(log_file) if log_file is not None else project_dir / "revision_log.json"
+    destination_markdown = (
+        Path(markdown_log_file) if markdown_log_file is not None else None
+    )
+    if destination_markdown is not None:
+        _validate_markdown_destination(
+            destination_markdown,
+            json_log=destination_log,
+            resume=resume,
+        )
 
     history: list[Round] = []
     stopped = "reached the round limit"
 
     def save(state: str) -> None:
+        current_log = RevisionLog(tuple(history), stopped, state)
         _atomic_write_text(
             destination_log,
             json.dumps(
-                RevisionLog(tuple(history), stopped, state).to_dict(),
+                current_log.to_dict(),
                 ensure_ascii=False,
                 indent=2,
             )
             + "\n",
         )
+        if destination_markdown is not None:
+            _atomic_write_text(destination_markdown, render_markdown(current_log))
 
     try:
         history.append(_measure(project_dir, 0))
@@ -295,6 +313,57 @@ def describe(log: RevisionLog) -> list[str]:
         )
     lines.append("Nothing adopted -- these are candidates. Listen before choosing.")
     return lines
+
+
+def render_markdown(log: RevisionLog) -> str:
+    """A shareable markdown summary of the revision log."""
+
+    lines = [
+        "# Revision Log",
+        "",
+        f"- state: {log.execution_state}",
+        f"- stopped because: {log.stopped_because}",
+        f"- rounds: {len(log.rounds)}",
+        "",
+        "```text",
+        *describe(log),
+        "```",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def export_markdown(log: RevisionLog, path: Path) -> None:
+    """Write the revision log as markdown to ``path``."""
+
+    _atomic_write_text(path, render_markdown(log))
+
+
+def _validate_markdown_destination(
+    path: Path,
+    *,
+    json_log: Path,
+    resume: bool,
+) -> None:
+    """Refuse to turn an existing project input into a revision summary."""
+
+    if path.resolve() == json_log.resolve():
+        raise ValueError("the Markdown log must not replace revision_log.json")
+    if not path.exists():
+        return
+    if not resume:
+        raise FileExistsError(
+            f"refusing to overwrite Markdown log: {path} "
+            "(use --resume only for an existing KIHACHI revision log)"
+        )
+    try:
+        existing = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise FileExistsError(
+            f"refusing to overwrite non-revision file: {path}"
+        ) from error
+    if not existing.startswith("# Revision Log\n"):
+        raise FileExistsError(f"refusing to overwrite non-revision file: {path}")
 
 
 def _atomic_write_text(path: Path, content: str) -> None:

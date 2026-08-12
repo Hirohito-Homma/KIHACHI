@@ -384,6 +384,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         if args.command == "revise":
             if args.dry_run:
+                if args.revision_log_markdown is not None:
+                    raise ValueError(
+                        "--revision-log-markdown cannot be used with --dry-run"
+                    )
                 manifest = review_project(args.project, overwrite=True)
                 plan = manifest.review
                 print(f"Would revise: {args.project}")
@@ -451,10 +455,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 on_round=announce,
                 resume=args.resume,
                 log_file=log_file,
+                markdown_log_file=args.revision_log_markdown,
             )
             for line in describe_revisions(log):
                 print(line)
             print(f"- log: {log_file}")
+            if args.revision_log_markdown is not None:
+                print(f"- markdown log: {args.revision_log_markdown}")
             return 0
 
         if args.command == "report":

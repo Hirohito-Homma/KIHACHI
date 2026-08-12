@@ -234,6 +234,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="measure and report what the first round would repaint, rendering nothing",
     )
+    revise.add_argument(
+        "--revision-log-markdown",
+        type=Path,
+        help="write a markdown summary of the revision log to this path",
+    )
 
     report = subparsers.add_parser(
         "report",
