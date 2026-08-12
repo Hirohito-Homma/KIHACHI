@@ -52,6 +52,23 @@ from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_ren
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
 from ..reviewer import review_project
+from ..tail_trim import TailTrimPlan, plan_tail_trim, trim_project_tail
+
+
+def _print_tail_trim_plan(plan: TailTrimPlan) -> None:
+    """Report the cut and, crucially, what it costs against the song grid."""
+
+    print(
+        f"- music ends at {plan.music_end_sec:.2f} s of {plan.source_duration_sec:.2f} s; "
+        f"keeping {plan.kept_duration_sec:.2f} s (+{plan.pad_sec:g} s pad)"
+    )
+    print(f"- removes {plan.removed_sec:.2f} s below {plan.threshold_dbfs:g} dBFS")
+    if plan.shortfall_sec > 0:
+        # Worth saying out loud: the cut file no longer fills the SongSpec's grid.
+        print(
+            f"- now {plan.shortfall_sec:.2f} s ({plan.shortfall_bars:g} bars) short of the "
+            f"{plan.grid_duration_sec:.2f} s song grid"
+        )
 
 
 def _audio_tracks(args: argparse.Namespace) -> list[dict[str, object]]:
@@ -559,6 +576,31 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- selected: {selected['name']} ({selected['audio_sha256']})")
             print(f"- reason: {manifest.entry['reason']}")
             print("- audio copied/overwritten/deleted: no/no/no")
+            return 0
+
+        if args.command == "trim-tail":
+            if args.dry_run:
+                plan = plan_tail_trim(
+                    args.project,
+                    audio_file=args.audio_file,
+                    pad_sec=args.pad,
+                    threshold_dbfs=args.threshold_dbfs,
+                )
+                print(f"Would trim tail: {args.project}")
+                _print_tail_trim_plan(plan)
+                print("- nothing written (--dry-run)")
+                return 0
+            manifest = trim_project_tail(
+                args.project,
+                audio_file=args.audio_file,
+                pad_sec=args.pad,
+                threshold_dbfs=args.threshold_dbfs,
+                overwrite=args.overwrite,
+            )
+            print(f"Trimmed KIHACHI tail: {manifest['manifest_file']}")
+            print(f"- source kept as-is: {manifest['source_audio']}")
+            print(f"- trimmed take: {manifest['trimmed_audio']}")
+            _print_tail_trim_plan(TailTrimPlan(**manifest["plan"]))
             return 0
 
         if args.command == "midi-review":

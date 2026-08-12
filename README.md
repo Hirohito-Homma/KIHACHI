@@ -60,7 +60,7 @@ python3 -m kihachi_music_ai compose '...' --output projects/my-song
 
 設計書が立てている区別をそのまま実装しています。**文学的に良い歌詞**と**音楽的に使いやすい歌詞**は別物です。Vocoderは文章を欲しがりません。キャリアを通して4小節ごとに繰り返されても成立する2〜3語の命令形を欲しがります。
 
-そのためライターはまず**声の処理方法**で駆動され、テーマは二番目です。モードがフレーズ長・反復・フックの戻り方を決め、SongSpecのジャンルと気分が語彙を決め、`section.vocal_probability` がそもそもどこで歌うかを決めます。
+そのためライターはまず**声の処理方法**で駆動され、テーマは二番目です。モードがフレーズ長・反復・フックの戻り方を決め、SongSpecのジャンルと気分が語彙を決め、`section.vocal_probability` がどのセクションに語を書くかを決めます（ただし**それは歌詞シートの中身を決めるだけで、実際にどこで歌うかは決まりません** — [構造タグは受理されますが、守られません](#構造タグは受理されますが守られません)）。
 
 ```bash
 python3 -m kihachi_music_ai lyrics projects/my-song
@@ -97,9 +97,17 @@ python3 -m kihachi_music_ai lyrics projects/my-song
 
 `stage-repaint` は歌詞シートがあれば複製し、無くても動きます（このモジュール以前に作られたプロジェクトにはシートがないため）。
 
-### 未検証の点
+### 構造タグは受理されますが、守られません
 
-出力書式はACE-Stepの角括弧構造タグ（`[verse]` / `[chorus]` / `[bridge]` / `[inst]`）を使っていますが、**この規約を今回のセッションで実サーバーに対して検証できていません** — 作業中にACE-Stepサーバー（127.0.0.1:8001）が停止したためです。実生成で確認するまでは書式は暫定と考えてください。
+出力書式はACE-Stepの角括弧構造タグ（`[verse]` / `[chorus]` / `[bridge]` / `[inst]`）を使っています。2026-08-13に実サーバー（vast.ai上の`acestep-v15-turbo`）へ通しました。
+
+**受理はされます。**`[inst]` / `[verse]`×2 / `[chorus]` を含む歌詞シートが拒否も無視もされず、`ace_step_result.json`の`metas.lyrics`へそのまま反映されます。尺は要求69.818sに対し出力69.80s、BPMは要求110に対し推定110.5でした。
+
+**しかし守られません。**冒頭8小節を`[inst]`にした歌詞シートで生成したところ、**その区間に歌が入りました**（人間の聴取による判定、`decision_log.json`に記録）。タグはテキストとして受け取られるだけで、どこで歌うかの制御には使われていません。
+
+これが意味するのは、**`section.vocal_probability`がAudioモデルに届いていない**ということです。ライターはこの値を見てどのセクションに語を書くかを決め、書かなかったセクションには`[inst]`を置きますが、モデルはそれを読みません。器楽で通したいセクションを器楽にする手段は、現状ありません。曲全体をインストゥルメンタルにする`--no-lyrics`だけが確実に効きます。
+
+セクション境界そのものの再現度も高くはありません（この生成でrecall 0.667、エネルギー相関0.404）。構造の指定はプロンプト側の`Arrangement:`記述に頼っており、タグは寄与していないと考えるべきです。
 
 ## Prompt Compiler（全ての記述をSongSpecの数値から導出）
 
@@ -790,6 +798,33 @@ python3 -m kihachi_music_ai ace-step prepare \
 
 `ace_step_request.json`にはAPIキーを含めません。既定では、KIHACHIのSongSpecをACE-Step側で書き換えないように`thinking=false`、`use_format=false`、CoT補完も無効です。
 
+### turboモデルは`inference_steps`を無視します
+
+`acestep-v15-turbo`に対しては、`--inference-steps`が**出力を一切変えません**。2026-08-13に対照実験で確認しました。プロンプト・歌詞・seedを固定し`inference_steps`だけを8と60にして`/release_task`へ直接投げたところ、別タスクとして別々に生成されたにもかかわらず（task_idも出力ファイルのUUIDも別）、音声は**バイト単位で同一**でした。
+
+| | task_id | 生成時間 | 音声SHA-256 |
+|---|---|---|---|
+| steps=8 | `0c81d668…` | 1.73s | `3d32c369…` |
+| steps=60 | `351afb24…` | 1.79s | `3d32c369…` |
+
+60ステップが1.79秒で終わること自体が、ステップ数が使われていない証拠です。キャッシュではありません。seedを変えれば出力は変わるので、**seedは効き、stepsは効きません**。
+
+蒸留済みのturboモデルが固定ステップ数で動く設計なら、これは仕様として筋が通ります。非turboモデルでどうなるかは未確認です（検証したインスタンスにはturboしか入っていませんでした）。
+
+したがって`ace_step_request.json`の`inference_steps`は、turbo相手では**記録以上の意味を持ちません**。品質が足りないときにここを上げても何も起きないので、seed・プロンプト・モデルの側で対処してください。
+
+### 最初の生成の前にモデルを初期化してください
+
+モデル未ロードの状態で生成を投げると、初回の初期化待ちでクライアントが先に切れます。2026-08-12の実機スモークはこれで中断し、`task_id`を回収できないまま音声だけをリカバリする羽目になりました（`ace_step_recovery.json`がその記録です）。
+
+```bash
+curl -X POST http://127.0.0.1:8001/v1/init \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"acestep-v15-turbo","init_llm":false}'
+```
+
+完了まで実測で約50秒。`/health`の`models_initialized`が`true`になってから`render`を実行すれば、この失敗は起きません。
+
 ACE-Step 1.5 RESTサーバーを起動後、生成と音声取得を実行します。
 
 ```bash
@@ -877,6 +912,37 @@ python3 -m kihachi_music_ai ace-step render \
 repaint範囲が最終小節に届く場合は、マスク自体もguard領域まで伸ばします（モデルはマスク終端で終止を書くため）。範囲が曲中で終わる場合、guardは範囲に影響しません。`--tail-guard-bars`はWAV専用で、0〜8小節の範囲です。結果JSONの`tail_guard`ブロックに、要求尺・曲尺・トリム前後のSHA-256・実測の`delivered_music_end_sec`が残ります。
 
 `review`は既定でtail guard 2小節を計画へ入れます（`--tail-guard-bars 0`で無効）。また、セクション全体ではなく問題小節だけを狙う**bar-level候補**も出します。最終小節がセクション目標より0.25以上落ちていれば、その連続範囲を最低4小節まで広げた候補（例: bars 29:32）を`bar_level_candidates`へ記録し、セクション平均が目標付近（誤差0.05以内）なら`recommended_selector`を`bars`にします。`--prefer-bar-level`を付けると、その狭い範囲が実際の`selection`になります。
+
+### turboではtail guardが発火しません
+
+tail guardは「余分に生成させて、後で曲グリッドまで切り戻す」設計です。**モデルが長いバッファを実際に使うことが前提**で、`acestep-v15-turbo`はそれを満たしません。
+
+2026-08-13の実測です。74.182s（2小節分のguard込み）を要求した生成が69.80sで返り、`tail_guard`ブロックは`source_frames == kept_frames` — **切り戻す余地がゼロ**でした。そのうえモデルは67.77sで音を鳴らし終えるため、約2秒の無音が末尾に残ります。`silent_gap`のblocking閾値は0.5sなので、**turboでの生成は常にblocking判定になります**。
+
+repaintで縮みはします（4.80s → 2.02s、alignmentは77.13 → 90.10 / `partial` → `aligned`）が、消えません。原因が生成尺そのものにあるためです。
+
+### `trim-tail`: 生成後に末尾無音を落とす
+
+guardが効かない以上、後から切るしかありません。
+
+```bash
+python3 -m kihachi_music_ai trim-tail projects/my-song --dry-run
+python3 -m kihachi_music_ai trim-tail projects/my-song
+```
+
+```
+- music ends at 67.77 s of 69.80 s; keeping 68.02 s (+0.25 s pad)
+- removes 1.78 s below -40 dBFS
+- now 1.80 s (0.826 bars) short of the 69.82 s song grid
+```
+
+**レンダーそのものには触れません。**`audio/ace-step-01.tail-trimmed.wav`を隣に書き、元ファイルはそのまま残します — モデルがどう振る舞ったかの証拠だからです。監査記録は`tail_trim.json`へ。
+
+最後の可聴サンプルから`--pad`（既定0.25秒）だけ残すので、リバーブの減衰を切り落としません。除去量が0.5秒未満なら**切らずに拒否**します（blocking閾値未満なら既に許容範囲です）。閾値を一度も超えない音声も拒否します — 切って「欠陥解消」にするのは、レンダー全体を消すのと同じだからです。
+
+**切ると曲グリッドより短くなります。**69.818sの曲が68.02sで出るので、小節数と合わなくなります。これは丸め誤差ではないため、`tail_trim.json`に秒と小節の両方で記録し、コマンドも毎回表示します。
+
+実測では、この処理で`material_defects.json`が`blocking 1` → `clean: true`になります。
 
 ## チャンク分割レンダー
 
