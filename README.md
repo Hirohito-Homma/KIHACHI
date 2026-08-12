@@ -281,11 +281,14 @@ Composerは以下のSongSpec値を実際に読みます。
 
 ## テスト
 
-外部パッケージなしで基本テストを実行できます。
+開発用依存関係を入れて、ローカルとCIで同じ全テストを実行します。
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -m pip install -e ".[dev]"
+python3 -m pytest -q
 ```
+
+Pull Requestと`main`へのpushでは、GitHub Actionsがサポート下限のPython 3.11と開発環境系統のPython 3.14で自動実行します。Vast/ACE-Stepへの実接続はGPU・ネットワーク・秘密情報に依存するため、このCIには含めません。
 
 ## Critic の二経路（MIDI照合 と Audio解析）
 
