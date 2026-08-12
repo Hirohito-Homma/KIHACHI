@@ -65,6 +65,7 @@ class Round:
     defect_codes: tuple[str, ...]
     planned_action: str | None
     audio_file: Path
+    tail_silence_only: bool = False
 
     @property
     def usable(self) -> bool:
@@ -82,6 +83,7 @@ class Round:
             "planned_action": self.planned_action,
             "audio_file": str(self.audio_file),
             "usable": self.usable,
+            "tail_silence_only": self.tail_silence_only,
         }
 
 
@@ -182,6 +184,10 @@ def _measure(project_dir: Path, index: int) -> Round:
         defect_codes=tuple(item["code"] for item in findings),
         planned_action=action,
         audio_file=audio_file,
+        tail_silence_only=(
+            review.get("tail_silence") is not None
+            and sum(1 for item in findings if item["severity"] == "blocking") == 1
+        ),
     )
 
 
@@ -263,6 +269,15 @@ def run_revision_loop(
             current = history[-1]
             if current.planned_action is None:
                 stopped = "the review found nothing worth repainting"
+                break
+            # Repainting cannot shorten the delivered take, so a blocking silence
+            # that runs to the end survives every round. Measured: two rounds took
+            # it from 4.80 s to 2.02 s and stopped there. Spend no more renders.
+            if current.tail_silence_only:
+                stopped = (
+                    "the only blocking defect is a silent tail, which a repaint "
+                    "cannot remove; run trim-tail on this take"
+                )
                 break
 
             destination = project_dir.parent / f"{project_dir.name}-rev{index:02d}"

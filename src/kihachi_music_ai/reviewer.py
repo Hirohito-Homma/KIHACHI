@@ -13,6 +13,7 @@ from .spectrum import DULL_LOW_TO_HIGH, MASKING_BASS_SHARE
 from .models import SongSpec
 from .repaint_planner import build_repaint_plan
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS
+from .tail_trim import diagnose_tail_silence
 
 REVIEW_VERSION = "0.4"
 # Audio-only weights. `key` and `chords` used to carry 0.45 between them and
@@ -112,6 +113,9 @@ def review_project(
         review["midi_alignment"] = midi_review
     if defects is not None:
         review["material_defects"] = defects
+        tail_silence = diagnose_tail_silence(defects)
+        if tail_silence is not None:
+            review["tail_silence"] = tail_silence
     if analysis.get("spectrum") is not None:
         review["spectral_balance"] = analysis["spectrum"]
 
