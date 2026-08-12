@@ -312,7 +312,12 @@ class LoopTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             project = self._project(Path(temp), seconds=TAKE_SECONDS)
             destination = Path(temp) / "revision_log.md"
-            export_markdown(RevisionLog((), "an interrupted run"), destination)
+            interrupted = RevisionLog((), "an interrupted run", "failed")
+            (project / "revision_log.json").write_text(
+                json.dumps(interrupted.to_dict(), ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            export_markdown(interrupted, destination)
             measured = Round(
                 index=0,
                 project_dir=project,
@@ -336,6 +341,39 @@ class LoopTests(unittest.TestCase):
 
             self.assertEqual(log.execution_state, "complete")
             self.assertIn("- state: complete", destination.read_text(encoding="utf-8"))
+
+    def test_a_fresh_run_refuses_to_erase_an_existing_revision_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp), seconds=TAKE_SECONDS)
+            destination = project / "revision_log.json"
+            existing = RevisionLog((), "an earlier run").to_dict()
+            before = json.dumps(existing, ensure_ascii=False) + "\n"
+            destination.write_text(before, encoding="utf-8")
+
+            with self.assertRaises(FileExistsError):
+                run_revision_loop(
+                    project,
+                    self._renderer([], seconds=TAKE_SECONDS),
+                    rounds=1,
+                )
+
+            self.assertEqual(destination.read_text(encoding="utf-8"), before)
+
+    def test_resume_refuses_a_non_revision_json_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._project(Path(temp), seconds=TAKE_SECONDS)
+            destination = project / "revision_log.json"
+            destination.write_text('{"mine": true}\n', encoding="utf-8")
+
+            with self.assertRaises(FileExistsError):
+                run_revision_loop(
+                    project,
+                    self._renderer([], seconds=TAKE_SECONDS),
+                    rounds=1,
+                    resume=True,
+                )
+
+            self.assertEqual(destination.read_text(encoding="utf-8"), '{"mine": true}\n')
 
 
 class RankingTests(unittest.TestCase):
@@ -518,6 +556,7 @@ class LogAndResumeTests(unittest.TestCase):
             # Same project, different take.
             write_take(project / "audio" / "ace-step-01.wav", seconds=TAKE_SECONDS)
             shutil.rmtree(project.parent / "song-rev01", ignore_errors=True)
+            (project / "revision_log.json").unlink()
             with contextlib.redirect_stdout(io.StringIO()):
                 run_revision_loop(project, self._renderer(), rounds=1)
             second = json.loads(
@@ -534,6 +573,7 @@ class LogAndResumeTests(unittest.TestCase):
             analysis_before = (project / "audio_analysis.json").read_bytes()
 
             shutil.rmtree(project.parent / "song-rev01", ignore_errors=True)
+            (project / "revision_log.json").unlink()
             with contextlib.redirect_stdout(io.StringIO()):
                 run_revision_loop(project, self._renderer(), rounds=1)
 

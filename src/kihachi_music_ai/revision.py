@@ -225,6 +225,7 @@ def run_revision_loop(
     if not (project_dir / "song_spec.json").is_file():
         raise FileNotFoundError(f"SongSpec not found: {project_dir / 'song_spec.json'}")
     destination_log = Path(log_file) if log_file is not None else project_dir / "revision_log.json"
+    _validate_json_destination(destination_log, resume=resume)
     destination_markdown = (
         Path(markdown_log_file) if markdown_log_file is not None else None
     )
@@ -337,6 +338,29 @@ def export_markdown(log: RevisionLog, path: Path) -> None:
     """Write the revision log as markdown to ``path``."""
 
     _atomic_write_text(path, render_markdown(log))
+
+
+def _validate_json_destination(path: Path, *, resume: bool) -> None:
+    """Keep a fresh run from erasing the account of an earlier one."""
+
+    if not path.exists():
+        return
+    if not resume:
+        raise FileExistsError(
+            f"refusing to overwrite revision log: {path} (use --resume to continue it)"
+        )
+    try:
+        existing = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as error:
+        raise FileExistsError(
+            f"refusing to overwrite non-revision file: {path}"
+        ) from error
+    if (
+        not isinstance(existing, dict)
+        or existing.get("revision_log_version") != REVISION_LOG_VERSION
+        or not isinstance(existing.get("rounds"), list)
+    ):
+        raise FileExistsError(f"refusing to overwrite non-revision file: {path}")
 
 
 def _validate_markdown_destination(
