@@ -52,6 +52,7 @@ from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_ren
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
 from ..reviewer import review_project
+from ..instrumental import plan_instrumental_sections, write_instrumental_plan
 from ..tail_trim import TailTrimPlan, plan_tail_trim, trim_project_tail
 
 
@@ -576,6 +577,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- selected: {selected['name']} ({selected['audio_sha256']})")
             print(f"- reason: {manifest.entry['reason']}")
             print("- audio copied/overwritten/deleted: no/no/no")
+            return 0
+
+        if args.command == "instrumental-plan":
+            plan = plan_instrumental_sections(args.project)
+            print(f"Instrumental sections for {args.project}:")
+            print(f"- {plan.reason}")
+            for section in plan.sections:
+                probability = (
+                    "unset" if section.vocal_probability is None
+                    else f"{section.vocal_probability:.2f}"
+                )
+                print(
+                    f"    bars {section.start_bar}:{section.end_bar}  {section.name}  "
+                    f"(energy {section.energy:.2f}, vocal_probability {probability})"
+                )
+            if plan.sections:
+                # Printed rather than run: a repaint is minutes of GPU and
+                # overwrites the take, so the caller decides.
+                print("- run these in order, each against the previous take:")
+                for command in plan.commands(base_url=args.base_url):
+                    print(f"    {command}")
+            if args.save:
+                destination = write_instrumental_plan(args.project, overwrite=args.overwrite)
+                print(f"- plan: {destination}")
             return 0
 
         if args.command == "trim-tail":
