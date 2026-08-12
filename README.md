@@ -105,9 +105,39 @@ python3 -m kihachi_music_ai lyrics projects/my-song
 
 **しかし守られません。**冒頭8小節を`[inst]`にした歌詞シートで生成したところ、**その区間に歌が入りました**（人間の聴取による判定、`decision_log.json`に記録）。タグはテキストとして受け取られるだけで、どこで歌うかの制御には使われていません。
 
-これが意味するのは、**`section.vocal_probability`がAudioモデルに届いていない**ということです。ライターはこの値を見てどのセクションに語を書くかを決め、書かなかったセクションには`[inst]`を置きますが、モデルはそれを読みません。器楽で通したいセクションを器楽にする手段は、現状ありません。曲全体をインストゥルメンタルにする`--no-lyrics`だけが確実に効きます。
+**`section.vocal_probability`は届いていないのではなく、無視されています。**この区別は重要です。同じ生成で、プロンプトのArrangement行は既にこう書いていました。
 
-セクション境界そのものの再現度も高くはありません（この生成でrecall 0.667、エネルギー相関0.404）。構造の指定はプロンプト側の`Arrangement:`記述に頼っており、タグは寄与していないと考えるべきです。
+```
+Arrangement: minimal intro (8 bars, energy 0.25, no vocal); ...
+```
+
+歌詞シートの`[inst]`と、散文の`no vocal` — **2つの独立した経路で同じことを指示して、どちらも通りませんでした**。プロンプトの書き方を変えても解決は見込めません。
+
+セクション境界そのものの再現度も高くはありません（この生成でrecall 0.667、エネルギー相関0.404）。
+
+### セクションを器楽にする方法: repaintに歌詞を渡さない
+
+**歌詞で「歌うな」と伝える経路は全滅ですが、歌詞そのものを渡さなければ効きます。**モデルは指示を読みませんが、無い語は歌えません。
+
+repaintは自前の`lyrics`フィールドを持つので、`--no-lyrics`をセクション指定と組み合わせると**その区間だけ**歌詞なしで描き直せます。
+
+```bash
+# まず通常どおりレンダーし、
+python3 -m kihachi_music_ai ace-step render projects/my-song \
+  --base-url http://127.0.0.1:8001
+
+# 器楽にしたいセクションだけを歌詞なしで描き直す
+python3 -m kihachi_music_ai ace-step render projects/my-song \
+  --task-type repaint --repaint-section psychedelic_drop --no-lyrics \
+  --source-audio projects/my-song/audio/ace-step-01.wav \
+  --base-url http://127.0.0.1:8001 --overwrite
+```
+
+2026-08-13に実サーバーで確認しました。`[chorus]`として歌が入っていた25〜32小節（52.4秒以降）を歌詞なしでrepaintしたところ、**その区間は器楽になりました**（人間の聴取による判定）。送信内容は`ace_step_repaint_request.json`に`lyrics: ""`、`repainting_start/end`が52.364〜69.818として残ります。
+
+`--task-type repaint`は必須です（セクション/小節セレクタだけでは拒否されます）。repaintのリクエストは`ace_step_repaint_request.json`へ別に書かれるので、元の`ace_step_request.json`はtext2musicのまま残ります。
+
+これで`vocal_probability`の意図を**間接的に**実現できます。ライターが`[inst]`を置いたセクションを、そのままrepaintの対象にすればよいためです。自動化はされていません — 現状は手作業でセクション名を指定します。
 
 ## Prompt Compiler（全ての記述をSongSpecの数値から導出）
 
