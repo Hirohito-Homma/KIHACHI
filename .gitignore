@@ -15,6 +15,9 @@ remote_backups/
 __pycache__/
 *.py[cod]
 .venv/
+build/
+dist/
+*.egg-info/
 .DS_Store
 
 # generate.py writes working projects here when the external drive is not
