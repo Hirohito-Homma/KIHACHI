@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
+from kihachi_music_ai.cli import main
 from kihachi_music_ai.models import SongSpec
 from kihachi_music_ai.music_brain import MusicBrain
 from kihachi_music_ai.preferences import (
@@ -78,28 +81,29 @@ class BackoffTests(unittest.TestCase):
         self.assertEqual(prefs.offset_for(["dub"], "song", "song.bpm"), 0.0)
 
 
-class HarvestTests(unittest.TestCase):
-    def _project(self, root: Path, changes, genres=("dub",), applied=True):
-        project = root / "p"
-        project.mkdir(parents=True, exist_ok=True)
-        spec = MusicBrain(seed=8).analyze(PROMPT).to_dict()
-        spec["style"]["genres"] = [{"name": g, "weight": 1.0} for g in genres]
-        (project / "song_spec.json").write_text(json.dumps(spec), encoding="utf-8")
-        (project / "applied_spec_edit.json").write_text(
-            json.dumps(
-                {
-                    "execution_state": "applied" if applied else "planned_not_applied",
-                    "changes": changes,
-                }
-            ),
-            encoding="utf-8",
-        )
-        return project
+def write_project(root: Path, changes, genres=("dub",), applied=True):
+    project = root / "p"
+    project.mkdir(parents=True, exist_ok=True)
+    spec = MusicBrain(seed=8).analyze(PROMPT).to_dict()
+    spec["style"]["genres"] = [{"name": g, "weight": 1.0} for g in genres]
+    (project / "song_spec.json").write_text(json.dumps(spec), encoding="utf-8")
+    (project / "applied_spec_edit.json").write_text(
+        json.dumps(
+            {
+                "execution_state": "applied" if applied else "planned_not_applied",
+                "changes": changes,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return project
 
+
+class HarvestTests(unittest.TestCase):
     def test_an_applied_edit_becomes_an_observation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self._project(
+            write_project(
                 root,
                 [{"scope": "song", "path": "bass.mutation", "from": 0.5, "to": 0.7}],
             )
@@ -112,7 +116,7 @@ class HarvestTests(unittest.TestCase):
     def test_a_planned_but_unapplied_edit_is_not_learned_from(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self._project(
+            write_project(
                 root,
                 [{"scope": "song", "path": "bass.mutation", "from": 0.5, "to": 0.7}],
                 applied=False,
@@ -123,14 +127,14 @@ class HarvestTests(unittest.TestCase):
     def test_a_path_outside_the_allowlist_is_ignored(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self._project(root, [{"scope": "song", "path": "song.bpm", "from": 110, "to": 174}])
+            write_project(root, [{"scope": "song", "path": "song.bpm", "from": 110, "to": 174}])
 
             self.assertEqual(harvest(root), [])
 
     def test_an_edit_that_changed_nothing_is_ignored(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self._project(
+            write_project(
                 root, [{"scope": "song", "path": "bass.mutation", "from": 0.5, "to": 0.5}]
             )
 
@@ -225,6 +229,44 @@ class ProvenanceTests(unittest.TestCase):
 
         self.assertEqual(restored.preferences_fingerprint, prefs.fingerprint)
         self.assertEqual(restored.to_dict(), spec.to_dict())
+
+
+class LearnCommandTests(unittest.TestCase):
+    """`learn` writes one file, and says why when it will not."""
+
+    def test_an_existing_preferences_file_is_refused_by_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_project(
+                root,
+                [{"scope": "song", "path": "bass.mutation", "from": 0.5, "to": 0.7}],
+            )
+            out = root / "prefs.json"
+            out.write_text("{}", encoding="utf-8")
+
+            errors = io.StringIO()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(errors):
+                status = main(["learn", str(root), "--out", str(out)])
+
+            self.assertEqual(status, 2)
+            self.assertIn("refusing to overwrite preferences", errors.getvalue())
+            self.assertEqual(out.read_text(encoding="utf-8"), "{}")
+
+    def test_overwrite_replaces_it(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_project(
+                root,
+                [{"scope": "song", "path": "bass.mutation", "from": 0.5, "to": 0.7}],
+            )
+            out = root / "prefs.json"
+            out.write_text("{}", encoding="utf-8")
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                status = main(["learn", str(root), "--out", str(out), "--overwrite"])
+
+            self.assertEqual(status, 0)
+            self.assertIn("priors", json.loads(out.read_text(encoding="utf-8")))
 
 
 if __name__ == "__main__":

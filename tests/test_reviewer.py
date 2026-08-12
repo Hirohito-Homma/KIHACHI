@@ -105,6 +105,51 @@ def write_analysis(
 
 
 class ReviewerTests(unittest.TestCase):
+    def test_review_passes_a_measured_discontinuity_to_the_repaint_planner(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            compose_project(EXAMPLE, project)
+            write_analysis(
+                project,
+                tempo_delta=-0.3,
+                key_status="low_confidence",
+                chord_match=0.0,
+                chord_coverage=0.375,
+                boundary_recall=1.0,
+                energy_correlation=0.4696,
+            )
+            defects = {
+                "defect_scan_version": "0.1",
+                "measurements": {"max_sample_jump_at_sec": 16.921},
+                "findings": [
+                    {
+                        "code": "discontinuity",
+                        "severity": "warning",
+                        "detail": "likely an audible click",
+                        "value": 0.8219,
+                        "threshold": 0.5,
+                    }
+                ],
+                "blocking": 0,
+                "warnings": 1,
+                "clean": False,
+            }
+            (project / "material_defects.json").write_text(
+                json.dumps(defects), encoding="utf-8"
+            )
+
+            manifest = review_project(project)
+
+            plan = manifest.review["repaint_candidate"]
+            self.assertEqual(plan["selection"]["selector"], "bars")
+            self.assertEqual(
+                (plan["selection"]["start_bar"], plan["selection"]["end_bar"]),
+                (7, 10),
+            )
+            self.assertIn("material_discontinuity", {
+                finding["code"] for finding in manifest.review["findings"]
+            })
+
     def test_review_compares_alignment_and_writes_revision_without_mutating_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

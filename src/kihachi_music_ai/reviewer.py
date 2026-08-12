@@ -71,6 +71,7 @@ def review_project(
         spec,
         analysis,
         findings,
+        material_defects=defects,
         tail_guard_bars=tail_guard_bars,
         prefer_bar_level=prefer_bar_level,
     )

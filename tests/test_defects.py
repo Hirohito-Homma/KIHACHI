@@ -212,6 +212,27 @@ class DiscontinuityTests(unittest.TestCase):
                 report["measurements"]["max_sample_jump_at_sec"], 1.0, delta=0.05
             )
 
+    def test_a_fast_percussive_burst_is_not_an_isolated_discontinuity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "transient.wav"
+            frames = (
+                tone(0.5, amplitude=0.1)
+                + tone(0.02, amplitude=0.85, freq=1000.0)
+                + tone(0.5, amplitude=0.1)
+            )
+            write_wav(path, frames)
+
+            report = scan_material(path)
+
+            measured = report["measurements"]
+            self.assertGreater(measured["max_sample_jump"], 0.5)
+            self.assertNotIn("discontinuity", codes(report))
+            self.assertLessEqual(
+                measured["max_sample_jump"]
+                / measured["max_sample_jump_local_mean"],
+                8.0,
+            )
+
 
 class DynamicsTests(unittest.TestCase):
     def test_a_square_wave_reads_as_crushed(self) -> None:

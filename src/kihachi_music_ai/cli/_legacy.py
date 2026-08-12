@@ -1,20 +1,27 @@
+"""The commands not yet pulled out into modules of their own.
+
+Everything here is on its way to a named module the way ``song``, ``parser``,
+and ``connection`` already are: analyze, review, revise, report, midi-review,
+ableton-plan, and the whole ``ace-step`` family. Until then this module still
+owns ``main`` and the dispatch, and the commands that have moved are called
+from it rather than duplicated in it.
+"""
+
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Sequence
 
-from .analyzer import analyze_project
-from .adapters.ace_step import (
-    DEFAULT_REQUEST_TIMEOUT,
-    AceStepClient,
-    AceStepConfig,
+from . import song
+from .connection import ace_client, print_lora_status
+from .parser import build_parser
+from ..analyzer import analyze_project
+from ..adapters.ace_step import (
     AceStepError,
     AceStepLoraConfig,
-    AceStepLoraStatus,
     AceStepOptions,
     AceStepRepaintWindow,
     load_project_spec,
@@ -22,39 +29,29 @@ from .adapters.ace_step import (
     render_with_ace_step,
     resolve_repaint_window,
 )
-from .pipeline import compose_project
-from .repaint_planner import (
+from ..repaint_planner import (
     load_repaint_plan,
     song_spec_sha256,
     stage_repaint_project,
 )
-from .ableton import (
+from ..ableton import (
     parse_automation_binding,
     parse_send_binding,
     plan_project_arrangement,
 )
-from .arrangement import describe_arrangement
-from .chunked import (
-    DEFAULT_CHUNK_BARS,
-    build_chunk_plan,
-    load_chunk_plan,
-    render_chunk_plan,
+from ..chunked import load_chunk_plan, render_chunk_plan
+from ..decision import (
+    current_decision,
+    decision_audio_status,
+    load_decision_log,
+    record_decision,
 )
-from .edit import apply_edit_to_project, build_spec_edit
-from .lyrics import build_lyrics
-from .midi_review import review_project_midi
-from .models import TRACK_NAMES, SongSpec
-from .preferences import compile_preferences, harvest, load as load_preferences
-from .prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
-from .report import build_report, load_candidate, rank as rank_candidates
-from .revision import DEFAULT_ROUNDS, describe as describe_revisions, run_revision_loop
-from .reviewer import review_project
-from .tail_guard import DEFAULT_TAIL_GUARD_BARS
-from .web import (
-    DEFAULT_HOST as WEB_DEFAULT_HOST,
-    DEFAULT_PORT as WEB_DEFAULT_PORT,
-    serve as serve_briefs,
-)
+from ..midi_review import review_project_midi
+from ..models import SongSpec
+from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
+from ..report import build_report, load_candidate, rank as rank_candidates
+from ..revision import describe as describe_revisions, run_revision_loop
+from ..reviewer import review_project
 
 
 def _audio_tracks(args: argparse.Namespace) -> list[dict[str, object]]:
@@ -84,476 +81,6 @@ def _audio_tracks(args: argparse.Namespace) -> list[dict[str, object]]:
             }
         )
     return rows
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="kihachi", description="KIHACHI Music AI v0.1")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    compose = subparsers.add_parser("compose", help="generate SongSpec, MIDI, and an audio prompt")
-    compose.add_argument("prompt", help="natural-language music brief")
-    compose.add_argument("--output", type=Path, help="output directory")
-    compose.add_argument("--seed", type=int, default=8, help="deterministic composition seed")
-    compose.add_argument("--overwrite", action="store_true", help="replace only the five known artifacts")
-    compose.add_argument(
-        "--preferences",
-        type=Path,
-        help=(
-            "apply learned priors from a `learn` output. Off by default: the same "
-            "prompt and seed must keep producing the same song unless asked otherwise"
-        ),
-    )
-
-    serve = subparsers.add_parser(
-        "serve", help="open the brief screen in a local browser tab (writes nothing)"
-    )
-    serve.add_argument("--host", default=WEB_DEFAULT_HOST, help="interface to bind")
-    serve.add_argument("--port", type=int, default=WEB_DEFAULT_PORT, help="port to bind")
-
-    analyze = subparsers.add_parser("analyze", help="analyze generated WAV and compare it with SongSpec")
-    analyze.add_argument("project", type=Path, help="directory containing song_spec.json")
-    analyze.add_argument("--audio", type=Path, help="WAV path, relative to the project unless absolute")
-    analyze.add_argument(
-        "--loudness",
-        action="store_true",
-        help=(
-            "also measure integrated loudness (ITU-R BS.1770-4). Off by default: "
-            "it filters every sample, which is ~11 s for a 70 s take and ~49 s "
-            "for a five-minute one"
-        ),
-    )
-    analyze.add_argument("--overwrite", action="store_true", help="replace only audio_analysis.json")
-
-    review = subparsers.add_parser("review", help="turn audio analysis into a non-destructive revision plan")
-    review.add_argument("project", type=Path, help="project containing SongSpec and audio_analysis.json")
-    review.add_argument("--against", type=Path, help="optional baseline project for alignment comparison")
-    review.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="replace only generation_review.json, repaint_plan.json, and revision_prompt.txt",
-    )
-    review.add_argument(
-        "--preserve-revision-prompt",
-        action="store_true",
-        help="write the review without replacing an authored revision_prompt.txt",
-    )
-    review.add_argument(
-        "--tail-guard-bars",
-        type=float,
-        default=DEFAULT_TAIL_GUARD_BARS,
-        help=(
-            "bars of render headroom the planned repaint should request past the song "
-            "grid so ACE-Step writes its ending outside the scored bars (0 disables)"
-        ),
-    )
-    review.add_argument(
-        "--prefer-bar-level",
-        action="store_true",
-        help="plan the narrow bar window over the whole section when the defect is localized",
-    )
-
-    edit = subparsers.add_parser(
-        "edit",
-        help="plan a difference instruction as a reviewable Spec Diff (writes no MIDI)",
-    )
-    edit.add_argument("project", type=Path, help="project containing song_spec.json")
-    edit.add_argument("instruction", help='e.g. "Dropのベースだけもっと変態的に"')
-    edit.add_argument(
-        "--overwrite", action="store_true", help="replace only spec_edit.json"
-    )
-
-    apply_edit = subparsers.add_parser(
-        "apply-edit",
-        help="write a new project with a planned Spec Diff applied",
-    )
-    apply_edit.add_argument("source_project", type=Path)
-    apply_edit.add_argument("output_project", type=Path)
-    apply_edit.add_argument(
-        "--spec-edit",
-        type=Path,
-        default=Path("spec_edit.json"),
-        help="planned edit, relative to the source project unless absolute",
-    )
-
-    plan_chunks = subparsers.add_parser(
-        "plan-chunks",
-        help="split a long song into section-aligned render chunks (writes no audio)",
-    )
-    plan_chunks.add_argument("project", type=Path, help="project containing song_spec.json")
-    plan_chunks.add_argument(
-        "--chunk-bars",
-        type=int,
-        default=DEFAULT_CHUNK_BARS,
-        help="target bars per chunk; whole sections are never split",
-    )
-    plan_chunks.add_argument(
-        "--tail-guard-bars", type=float, default=DEFAULT_TAIL_GUARD_BARS
-    )
-    plan_chunks.add_argument("--overwrite", action="store_true", help="replace chunk_plan.json")
-
-    learn_command = subparsers.add_parser(
-        "learn",
-        help="compile the edits already applied under a projects directory into "
-             "a preferences file (reads only; never changes a project)",
-    )
-    learn_command.add_argument(
-        "projects", type=Path, help="directory holding the project folders"
-    )
-    learn_command.add_argument(
-        "--out", type=Path, default=Path("preferences.json"),
-        help="where to write the compiled priors",
-    )
-    learn_command.add_argument("--overwrite", action="store_true")
-
-    lyrics_command = subparsers.add_parser(
-        "lyrics",
-        help="show the lyric sheet a project's SongSpec writes (read-only)",
-    )
-    lyrics_command.add_argument("project", type=Path, help="project containing song_spec.json")
-
-    ableton_plan = subparsers.add_parser(
-        "ableton-plan",
-        help="emit the operation list that lays this song out in Live (talks to nothing)",
-    )
-    ableton_plan.add_argument("project", type=Path, help="project containing song_spec.json and .mid")
-    ableton_plan.add_argument(
-        "--first-track-index",
-        type=int,
-        default=0,
-        help="Live index the first created track lands on; check it with get_live_state",
-    )
-    ableton_plan.add_argument(
-        "--session-slot",
-        type=int,
-        default=0,
-        help="empty Session slot the clips are built in before being copied",
-    )
-    ableton_plan.add_argument(
-        "--automate",
-        action="append",
-        default=[],
-        metavar="BINDING",
-        help=(
-            "bind a per-section SongSpec field to a Live device parameter as "
-            "part:field:device_index:parameter_index[:low:high], e.g. "
-            "chords:fx_amount:1:52:0.18:0.52 (repeatable). The indices come from "
-            "get_track_devices; low/high keep a musical 0..1 off the parameter's extremes"
-        ),
-    )
-    ableton_plan.add_argument(
-        "--split-drums",
-        action="store_true",
-        help=(
-            "lay the one composed drum part out as three Live tracks -- kick, "
-            "drums and percussion -- as the 12-track layout asks for. The MIDI "
-            "file stays one channel-10 track either way"
-        ),
-    )
-    ableton_plan.add_argument(
-        "--reference-audio",
-        type=Path,
-        nargs="?",
-        const=Path("audio/ace-step-01.wav"),
-        help=(
-            "bring a rendered take in as an audio track to write against; with no "
-            "value, the project's own audio/ace-step-01.wav"
-        ),
-    )
-    ableton_plan.add_argument("--vocal-audio", type=Path, help="import a recorded vocal take")
-    ableton_plan.add_argument(
-        "--send",
-        action="append",
-        default=[],
-        metavar="BINDING",
-        help=(
-            "route a part to a return as part:send_index[:low:high], e.g. "
-            "chords:1:0.1:0.6 (repeatable). Send 0 is return A, 1 is return B; "
-            "get_mix_snapshot reports their names. SongSpec fx_amount becomes "
-            "one Send Envelope step per section"
-        ),
-    )
-    ableton_plan.add_argument(
-        "--fx-track",
-        action="store_true",
-        help="add an empty audio track for FX; the devices on it are AbletonGPT's job",
-    )
-    ableton_plan.add_argument("--overwrite", action="store_true", help="replace arrangement_plan.json")
-
-    revise = subparsers.add_parser(
-        "revise",
-        help="measure, repaint, re-render and measure again, keeping every take",
-    )
-    revise.add_argument("project", type=Path, help="a project whose audio has been rendered")
-    revise.add_argument(
-        "--rounds", type=int, default=DEFAULT_ROUNDS, help="maximum repaint rounds"
-    )
-    _add_ace_connection_arguments(revise)
-    revise.add_argument("--wait-timeout", type=float, default=1800.0)
-    revise.add_argument("--poll-interval", type=float, default=5.0)
-    revise.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="measure and report what the first round would repaint, rendering nothing",
-    )
-
-    report = subparsers.add_parser(
-        "report",
-        help="write a page for comparing takes by ear (renders nothing, adopts nothing)",
-    )
-    report.add_argument("project", type=Path, help="a reviewed project")
-    report.add_argument(
-        "--also",
-        type=Path,
-        action="append",
-        default=[],
-        help="another reviewed project to compare against (repeatable)",
-    )
-    report.add_argument(
-        "--from-revision-log",
-        action="store_true",
-        help="include every take the project's revision_log.json recorded",
-    )
-    report.add_argument("--output", type=Path, help="page path; defaults to candidates.html")
-    report.add_argument("--overwrite", action="store_true")
-
-    midi_review = subparsers.add_parser(
-        "midi-review",
-        help="compare a project's written MIDI with its SongSpec (no audio needed)",
-    )
-    midi_review.add_argument("project", type=Path, help="project containing song_spec.json and .mid")
-
-    ace_step = subparsers.add_parser("ace-step", help="prepare or run the ACE-Step 1.5 adapter")
-    ace_commands = ace_step.add_subparsers(dest="ace_command", required=True)
-    prepare = ace_commands.add_parser("prepare", help="write ace_step_request.json without network access")
-    _add_ace_generation_arguments(prepare)
-    prepare.add_argument(
-        "--from-brief",
-        type=Path,
-        metavar="PROMPT_JSON",
-        help=(
-            "build the request from a prompt.json instead of the project's "
-            "song_spec.json, taking its prompt exactly as written"
-        ),
-    )
-
-    stage_repaint = ace_commands.add_parser(
-        "stage-repaint",
-        help="create a clean output project from a reviewed repaint plan",
-    )
-    stage_repaint.add_argument("source_project", type=Path)
-    stage_repaint.add_argument("output_project", type=Path)
-    stage_repaint.add_argument(
-        "--repaint-plan",
-        type=Path,
-        default=Path("repaint_plan.json"),
-        help="plan path, relative to source_project unless absolute",
-    )
-
-    render = ace_commands.add_parser("render", help="submit, wait, and download audio from ACE-Step")
-    _add_ace_generation_arguments(render)
-    render.add_argument(
-        "--from-brief",
-        type=Path,
-        metavar="PROMPT_JSON",
-        help=(
-            "render a prompt.json as written, instead of recompiling the "
-            "prompt from the project's song_spec.json"
-        ),
-    )
-    _add_ace_connection_arguments(render)
-    render.add_argument(
-        "--source-audio",
-        type=Path,
-        help="local source Audio uploaded for cover or repaint",
-    )
-    render.add_argument(
-        "--reference-audio",
-        type=Path,
-        help="optional local style-reference Audio uploaded for task-type cover",
-    )
-    render.add_argument(
-        "--lora-path",
-        help="server-side LoRA adapter directory or safetensors path",
-    )
-    render.add_argument("--lora-scale", type=float, default=1.0, help="LoRA strength from 0.0 to 1.0")
-    render.add_argument("--lora-adapter-name", help="optional ACE-Step multi-adapter name")
-    render.add_argument("--wait-timeout", type=float, default=600.0, help="generation timeout in seconds")
-    render.add_argument("--poll-interval", type=float, default=2.0, help="status polling interval")
-
-    render_chunks = ace_commands.add_parser(
-        "render-chunks",
-        help="render a chunk plan in order, each chunk repainted from the one before",
-    )
-    render_chunks.add_argument("project", type=Path)
-    render_chunks.add_argument(
-        "--chunk-plan",
-        type=Path,
-        default=Path("chunk_plan.json"),
-        help="plan path, relative to the project unless absolute",
-    )
-    render_chunks.add_argument("--audio-format", choices=("wav",), default="wav")
-    render_chunks.add_argument(
-        "--resume",
-        action="store_true",
-        help=(
-            "reuse chunks that already finished under chunks/ instead of "
-            "rendering them again"
-        ),
-    )
-    render_chunks.add_argument("--inference-steps", type=int, default=8)
-    render_chunks.add_argument("--lora-path")
-    render_chunks.add_argument("--lora-scale", type=float, default=1.0)
-    render_chunks.add_argument("--lora-adapter-name")
-    render_chunks.add_argument("--wait-timeout", type=float, default=1500.0)
-    render_chunks.add_argument("--poll-interval", type=float, default=3.0)
-    render_chunks.add_argument("--overwrite", action="store_true")
-    _add_ace_connection_arguments(render_chunks)
-
-    lora = ace_commands.add_parser("lora", help="manage ACE-Step LoRA state")
-    lora_commands = lora.add_subparsers(dest="lora_command", required=True)
-
-    lora_status = lora_commands.add_parser("status", help="show the active ACE-Step LoRA state")
-    _add_ace_connection_arguments(lora_status)
-
-    lora_load = lora_commands.add_parser("load", help="load, scale, and enable a server-side LoRA")
-    lora_load.add_argument("lora_path", help="server-side LoRA adapter directory or safetensors path")
-    lora_load.add_argument("--scale", type=float, default=1.0, help="LoRA strength from 0.0 to 1.0")
-    lora_load.add_argument("--adapter-name", help="optional ACE-Step multi-adapter name")
-    _add_ace_connection_arguments(lora_load)
-
-    lora_scale = lora_commands.add_parser("scale", help="change the loaded LoRA strength")
-    lora_scale.add_argument("scale", type=float, help="LoRA strength from 0.0 to 1.0")
-    lora_scale.add_argument("--adapter-name", help="optional ACE-Step multi-adapter name")
-    _add_ace_connection_arguments(lora_scale)
-
-    for command, help_text in (
-        ("enable", "enable the loaded LoRA"),
-        ("disable", "temporarily disable the loaded LoRA"),
-        ("unload", "unload LoRA and restore the base model"),
-    ):
-        lifecycle = lora_commands.add_parser(command, help=help_text)
-        _add_ace_connection_arguments(lifecycle)
-    return parser
-
-
-def _add_ace_connection_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--base-url",
-        default=os.environ.get("ACESTEP_BASE_URL", "http://127.0.0.1:8001"),
-        help="ACE-Step REST base URL",
-    )
-    parser.add_argument(
-        "--api-key-env",
-        default="ACESTEP_API_KEY",
-        help="environment variable containing the API key",
-    )
-    parser.add_argument(
-        "--request-timeout",
-        type=float,
-        default=DEFAULT_REQUEST_TIMEOUT,
-        help=(
-            "seconds for a single HTTP call. A CPU-inference server blocks its "
-            "worker during generation, so polls wait behind it"
-        ),
-    )
-
-
-def _add_ace_generation_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("project", type=Path, help="directory containing song_spec.json")
-    parser.add_argument("--audio-format", choices=("wav", "flac", "mp3", "opus", "aac", "wav32"), default="wav")
-    parser.add_argument("--thinking", action="store_true", help="allow ACE-Step 5Hz LM audio-code planning")
-    parser.add_argument("--model", help="optional model returned by the server's /v1/models endpoint")
-    parser.add_argument("--inference-steps", type=int, default=8)
-    parser.add_argument("--batch-size", type=int, default=1)
-    parser.add_argument(
-        "--task-type",
-        choices=("text2music", "cover", "repaint"),
-        default="text2music",
-        help="text generation, structure-preserving cover, or range repaint",
-    )
-    parser.add_argument(
-        "--audio-cover-strength",
-        type=float,
-        default=1.0,
-        help="ACE-Step cover/repaint conditioning strength from 0.0 to 1.0",
-    )
-    parser.add_argument(
-        "--cover-noise-strength",
-        type=float,
-        default=0.0,
-        help="source preservation from 0.0 (new) to 1.0 (closest to source)",
-    )
-    parser.add_argument("--repainting-start", type=float, default=0.0, help="repaint start in seconds")
-    parser.add_argument("--repainting-end", type=float, help="repaint end in seconds")
-    parser.add_argument(
-        "--repaint-section",
-        help="SongSpec section name to repaint, for example psychedelic_drop",
-    )
-    parser.add_argument(
-        "--repaint-bars",
-        metavar="START:END",
-        help="one-based inclusive SongSpec bar range, for example 25:32",
-    )
-    parser.add_argument(
-        "--repaint-plan",
-        type=Path,
-        help="Reviewer repaint_plan.json; supplies section, settings, and revision prompt",
-    )
-    parser.add_argument(
-        "--repaint-mode",
-        choices=("conservative", "balanced", "aggressive"),
-        default="balanced",
-        help="source-preservation strategy inside the repaint range",
-    )
-    parser.add_argument(
-        "--repaint-strength",
-        type=float,
-        default=0.5,
-        help="balanced repaint intensity from 0.0 to 1.0",
-    )
-    parser.add_argument(
-        "--repaint-latent-crossfade-frames",
-        type=int,
-        default=10,
-        help="latent boundary blend frames at 25 Hz",
-    )
-    parser.add_argument(
-        "--repaint-wav-crossfade-sec",
-        type=float,
-        default=0.0,
-        help="waveform splice crossfade in seconds",
-    )
-    parser.add_argument(
-        "--chunk-mask-mode",
-        choices=("explicit", "auto"),
-        default="explicit",
-        help="explicit uses the requested repaint range; auto delegates mask selection",
-    )
-    parser.add_argument(
-        "--tail-guard-bars",
-        type=float,
-        default=0.0,
-        help=(
-            "extra bars of render buffer past the song grid so ACE-Step writes its "
-            "ending outside the scored bars; the delivered WAV is trimmed back to the "
-            "grid and the untrimmed render is kept alongside it"
-        ),
-    )
-    parser.add_argument(
-        "--lyrics-file",
-        type=Path,
-        help="UTF-8 lyrics file; defaults to the project's own lyrics.txt when present",
-    )
-    parser.add_argument(
-        "--no-lyrics",
-        action="store_true",
-        help="render instrumental, ignoring the project's lyrics.txt",
-    )
-    parser.add_argument(
-        "--revision-file",
-        type=Path,
-        help="optional UTF-8 revision prompt; prioritized without changing SongSpec fields",
-    )
-    parser.add_argument("--overwrite", action="store_true")
 
 
 def _ace_options_and_window(
@@ -773,60 +300,14 @@ def _print_repaint_window(window: AceStepRepaintWindow | None) -> None:
     )
 
 
-def _ace_client(args: argparse.Namespace) -> AceStepClient:
-    return AceStepClient(
-        AceStepConfig(
-            base_url=args.base_url,
-            api_key=os.environ.get(args.api_key_env),
-            request_timeout=args.request_timeout,
-        )
-    )
-
-
-def _print_lora_status(status: AceStepLoraStatus) -> None:
-    print("ACE-Step LoRA status:")
-    print(f"- loaded: {status.lora_loaded}")
-    print(f"- enabled: {status.use_lora}")
-    print(f"- scale: {status.lora_scale}")
-    if status.adapter_type is not None:
-        print(f"- type: {status.adapter_type}")
-    if status.active_adapter is not None:
-        print(f"- active adapter: {status.active_adapter}")
-
-
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
         if args.command == "serve":
-            serve_briefs(args.host, args.port)
-            return 0
+            return song.serve(args)
         if args.command == "compose":
-            manifest = compose_project(
-                args.prompt,
-                args.output,
-                seed=args.seed,
-                overwrite=args.overwrite,
-                preferences=load_preferences(args.preferences),
-            )
-            print(f"Generated KIHACHI project: {manifest.output_dir}")
-            for path in manifest.files:
-                print(f"- {path.name}")
-            spec = manifest.spec
-            print(
-                f"- arrangement: {len(spec.arrangement)} sections over "
-                f"{spec.song.total_bars} bars ({spec.song.target_duration_sec:.1f}s)"
-            )
-            for row in describe_arrangement(spec.arrangement):
-                resting = [
-                    track for track in TRACK_NAMES if track not in row["active_tracks"]
-                ]
-                print(
-                    f"    bar {row['start_bar']:>4} +{row['length_bars']:<3} "
-                    f"{row['name']:<18} energy {row['energy']:.2f}"
-                    + (f"  (resting: {', '.join(resting)})" if resting else "")
-                )
-            return 0
+            return song.compose(args)
 
         if args.command == "analyze":
             manifest = analyze_project(
@@ -893,133 +374,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         if args.command == "edit":
-            spec = load_project_spec(args.project)
-            spec_edit = build_spec_edit(spec, args.instruction)
-            destination = args.project / "spec_edit.json"
-            if destination.exists() and not args.overwrite:
-                raise FileExistsError(f"refusing to overwrite spec edit: {destination}")
-            destination.write_text(
-                json.dumps(spec_edit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-            )
-            print(f"Planned KIHACHI edit: {args.project}")
-            print(f"- instruction: {spec_edit['instruction']}")
-            interpretation = spec_edit["interpretation"]
-            print(
-                f"- reading: {', '.join(interpretation['qualities'])} "
-                f"{interpretation['direction']} by {interpretation['magnitude']}"
-            )
-            target = spec_edit["target"]
-            sections = target["sections"]
-            print(
-                f"- target: {', '.join(target['tracks'])} in "
-                + (", ".join(sections) if isinstance(sections, list) else "every section")
-            )
-            for change in spec_edit["changes"]:
-                where = change["section"] or "(song-wide)"
-                print(f"    {where}: {change['path']} {change['from']} -> {change['to']}")
-            for warning in spec_edit["scope_warnings"]:
-                print(f"- warning: {warning}")
-            print(f"- plan: {destination} (nothing regenerated yet)")
-            return 0
+            return song.edit(args)
 
         if args.command == "apply-edit":
-            manifest = apply_edit_to_project(
-                args.source_project, args.output_project, edit_path=args.spec_edit
-            )
-            report = manifest.report
-            print(f"Applied KIHACHI edit: {manifest.output_project}")
-            print(f"- instruction: {report['instruction']}")
-            for path in manifest.files:
-                print(f"- {path.name}")
-            print(f"- sections regenerated: {report['changed_sections'] or 'none'}")
-            print(f"- sections byte-identical: {len(report['unchanged_sections'])}")
-            for track, info in sorted(report["tracks"].items()):
-                moved = info["changed_sections"]
-                print(
-                    f"    {track}: {info['notes_before']} -> {info['notes_after']} notes"
-                    + (f", changed in {', '.join(moved)}" if moved else ", unchanged")
-                )
-            print(f"- audio prompt changed: {report.get('audio_prompt_changed')}")
-            if report["no_effect"]:
-                print(
-                    "- warning: this edit changed neither the MIDI nor the audio prompt; "
-                    "try a larger magnitude, or a parameter the composer reads"
-                )
-            return 0
+            return song.apply_edit(args)
 
         if args.command == "plan-chunks":
-            spec = load_project_spec(args.project)
-            plan = build_chunk_plan(
-                spec,
-                target_chunk_bars=args.chunk_bars,
-                tail_guard_bars=args.tail_guard_bars,
-            )
-            destination = args.project / "chunk_plan.json"
-            if destination.exists() and not args.overwrite:
-                raise FileExistsError(f"refusing to overwrite chunk plan: {destination}")
-            destination.write_text(
-                json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-            )
-            print(f"Planned KIHACHI chunked render: {args.project}")
-            print(
-                f"- {len(plan['chunks'])} chunks over {plan['total_bars']} bars "
-                f"(target {plan['target_chunk_bars']} bars each)"
-            )
-            for chunk in plan["chunks"]:
-                selection = chunk["selection"]
-                guard = selection.get("tail_guard_sec")
-                print(
-                    f"    [{chunk['index']}] {chunk['task_type']:<11} "
-                    f"bars {selection['start_bar']}-{selection['end_bar']}: "
-                    f"{', '.join(chunk['sections'])}" + ("  (+tail guard)" if guard else "")
-                )
-            print(f"- plan: {destination} (nothing rendered yet)")
-            return 0
+            return song.plan_chunks(args)
 
         if args.command == "learn":
-            observations = harvest(args.projects)
-            if not observations:
-                print(f"no applied edits found under {args.projects}")
-                print("- run apply-edit first; nothing is learned from unapplied plans")
-                return 1
-            prefs = compile_preferences(observations)
-            if args.out.exists() and not args.overwrite:
-                raise CommandError(
-                    f"refusing to overwrite preferences: {args.out} (use --overwrite)"
-                )
-            args.out.write_text(
-                json.dumps(prefs.to_dict(), ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
-            print(f"Learned from {args.projects}")
-            print(f"- observations: {len(observations)}")
-            print(f"- priors: {len(prefs.priors)}  fingerprint: {prefs.fingerprint}")
-            ranked = sorted(
-                (p for p in prefs.priors if p.genre != "*"),
-                key=lambda p: -abs(p.offset),
-            )
-            for prior in ranked[:6]:
-                print(
-                    f"    {prior.genre:22} {prior.path:26} "
-                    f"n={prior.samples:<3} offset {prior.offset:+.3f}"
-                )
-            print(f"- written: {args.out}")
-            print("- nothing applies it yet; pass --preferences to compose")
-            return 0
+            return song.learn(args)
 
         if args.command == "lyrics":
-            sheet = build_lyrics(load_project_spec(args.project))
-            print(f"Lyric sheet: {args.project}")
-            print(f"- vocal mode: {sheet.mode}")
-            print(f"- hook: {sheet.hook or '(none)'}")
-            print(f"- lines: {sheet.line_count}")
-            for section in sheet.sections:
-                body = " / ".join(section.lines) if section.lines else "(no vocal)"
-                print(f"    {section.section_name:18} {section.tag:10} {body}")
-            return 0
+            return song.lyrics(args)
 
         if args.command == "revise":
             if args.dry_run:
+                if args.revision_log_markdown is not None:
+                    raise ValueError(
+                        "--revision-log-markdown cannot be used with --dry-run"
+                    )
                 manifest = review_project(args.project, overwrite=True)
                 plan = manifest.review
                 print(f"Would revise: {args.project}")
@@ -1033,7 +407,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print("- nothing rendered (--dry-run)")
                 return 0
 
-            client = _ace_client(args)
+            client = ace_client(args)
 
             def render(project: Path, source_audio: Path) -> None:
                 spec = load_project_spec(project)
@@ -1058,9 +432,25 @@ def main(argv: Sequence[str] | None = None) -> int:
                     client,
                     AceStepOptions(
                         audio_format="wav",
+                        revision=str(plan["revision_prompt"]),
                         task_type="repaint",
+                        audio_cover_strength=float(
+                            settings.get("audio_cover_strength", 1.0)
+                        ),
+                        cover_noise_strength=float(
+                            settings.get("cover_noise_strength", 0.0)
+                        ),
                         repainting_start=window.start_sec,
                         repainting_end=window.end_sec,
+                        repaint_mode=str(settings.get("repaint_mode", "balanced")),
+                        repaint_strength=float(settings.get("repaint_strength", 0.65)),
+                        repaint_latent_crossfade_frames=int(
+                            settings.get("repaint_latent_crossfade_frames", 10)
+                        ),
+                        repaint_wav_crossfade_sec=float(
+                            settings.get("repaint_wav_crossfade_sec", 0.25)
+                        ),
+                        chunk_mask_mode=str(settings.get("chunk_mask_mode", "explicit")),
                         tail_guard_bars=guard,
                     ),
                     source_audio=source_audio,
@@ -1077,21 +467,28 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
 
             print(f"Revising: {args.project} (up to {args.rounds} rounds)")
-            log = run_revision_loop(
-                args.project, render, rounds=args.rounds, on_round=announce
-            )
             log_file = args.project / "revision_log.json"
-            log_file.write_text(
-                json.dumps(log.to_dict(), ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
+            # The loop writes this after every round, so a run that dies on the
+            # third render still leaves the two takes it measured.
+            log = run_revision_loop(
+                args.project,
+                render,
+                rounds=args.rounds,
+                on_round=announce,
+                resume=args.resume,
+                log_file=log_file,
+                markdown_log_file=args.revision_log_markdown,
             )
             for line in describe_revisions(log):
                 print(line)
             print(f"- log: {log_file}")
+            if args.revision_log_markdown is not None:
+                print(f"- markdown log: {args.revision_log_markdown}")
             return 0
 
         if args.command == "report":
-            projects = [args.project, *args.also]
+            also_projects = list(args.also)
+            projects = [args.project, *also_projects]
             stopped = None
             if args.from_revision_log:
                 log_file = args.project / "revision_log.json"
@@ -1099,12 +496,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                     raise FileNotFoundError(f"no revision log: {log_file}")
                 log = json.loads(log_file.read_text(encoding="utf-8"))
                 stopped = log.get("stopped_because")
-                projects = [Path(row["project"]) for row in log["rounds"]]
+                logged_projects: list[Path] = []
+                for row in log["rounds"]:
+                    recorded = Path(row["project"])
+                    if not recorded.is_absolute():
+                        recorded = (log_file.parent / recorded)
+                    logged_projects.append(recorded)
+                projects = [*logged_projects, *also_projects]
             seen: list[Path] = []
             for path in projects:
                 if path not in seen:
                     seen.append(path)
             candidates = [load_candidate(path) for path in seen]
+            decision = current_decision(load_decision_log(args.project))
+            if decision is not None:
+                decision = {
+                    **decision,
+                    "audio_status": decision_audio_status(args.project, decision),
+                }
             destination = args.output or (args.project / "candidates.html")
             if destination.exists() and not args.overwrite:
                 raise FileExistsError(f"refusing to overwrite report: {destination}")
@@ -1114,6 +523,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     base_dir=destination.parent,
                     title=f"KIHACHI candidates: {args.project.name}",
                     stopped_because=stopped,
+                    decision=decision,
                 ),
                 encoding="utf-8",
             )
@@ -1127,7 +537,28 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"  #{position} {item.alignment:6.2f} {item.grade:<14} "
                     f"{defects:<26} {item.name}"
                 )
-            print("- nothing adopted; open the page and listen")
+            if decision is None:
+                print("- nothing adopted; open the page and listen")
+            else:
+                print(
+                    f"- current listening decision: {decision['selected']['name']} "
+                    f"({decision['reason']}); audio {decision['audio_status']['status']}"
+                )
+            return 0
+
+        if args.command == "decide":
+            manifest = record_decision(
+                args.project,
+                selected_project=args.selected,
+                candidate_projects=args.also,
+                reason=args.reason,
+            )
+            selected = manifest.entry["selected"]
+            print(f"Recorded KIHACHI listening decision: {manifest.decision_file}")
+            print(f"- action: {manifest.entry['action']}")
+            print(f"- selected: {selected['name']} ({selected['audio_sha256']})")
+            print(f"- reason: {manifest.entry['reason']}")
+            print("- audio copied/overwritten/deleted: no/no/no")
             return 0
 
         if args.command == "midi-review":
@@ -1147,11 +578,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 overwrite=args.overwrite,
             )
             plan = manifest.plan
-            song = plan["song"]
+            heading = plan["song"]
             print(f"Planned KIHACHI arrangement for Live: {manifest.project_dir}")
             print(
-                f"- {song['title']}: {song['total_bars']} bars / {song['total_beats']:g} beats "
-                f"at {song['bpm']:g} BPM, {song['key']}"
+                f"- {heading['title']}: {heading['total_bars']} bars / "
+                f"{heading['total_beats']:g} beats "
+                f"at {heading['bpm']:g} BPM, {heading['key']}"
             )
             for track in plan["tracks"]:
                 if "notes" in track:
@@ -1312,7 +744,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             manifest = render_chunk_plan(
                 args.project,
-                _ace_client(args),
+                ace_client(args),
                 plan,
                 lora=lora,
                 base_options=AceStepOptions(
@@ -1340,7 +772,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         if args.ace_command == "lora":
-            client = _ace_client(args)
+            client = ace_client(args)
             if args.lora_command == "load":
                 status = client.configure_lora(
                     AceStepLoraConfig(
@@ -1363,7 +795,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 status = client.get_lora_status()
             else:
                 status = client.get_lora_status()
-            _print_lora_status(status)
+            print_lora_status(status)
             return 0
 
         options, repaint_window = _ace_options_and_window(args)
@@ -1391,7 +823,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             _warn_if_brief_is_stale(brief_path, args.project)
         render = render_with_ace_step(
             args.project,
-            _ace_client(args),
+            ace_client(args),
             options,
             brief=brief_path,
             lora=lora,

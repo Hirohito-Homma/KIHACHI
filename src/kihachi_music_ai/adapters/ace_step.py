@@ -989,8 +989,11 @@ def render_with_ace_step(
         wait_timeout=wait_timeout,
         on_poll=on_poll,
     )
-    if len(result.outputs) > len(expected_audio):
-        raise AceStepError("ACE-Step returned more audio files than requested")
+    if len(result.outputs) != len(expected_audio):
+        raise AceStepError(
+            f"ACE-Step returned {len(result.outputs)} audio file(s), "
+            f"expected {len(expected_audio)} for batch_size={options.batch_size}"
+        )
     spec = load_project_spec(project_dir)
     brief_document = load_render_brief(brief) if brief is not None else None
     if brief_document is None:

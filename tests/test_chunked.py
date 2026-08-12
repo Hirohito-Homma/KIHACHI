@@ -17,7 +17,7 @@ from kihachi_music_ai.chunked import (
     song_spec_sha256,
     validate_chunk_coverage,
 )
-from kihachi_music_ai.cli import main
+from kihachi_music_ai.cli import build_parser, main
 from kihachi_music_ai.music_brain import MusicBrain
 from kihachi_music_ai.pipeline import compose_project
 from test_ace_step import ScriptedOpener, build_wav_bytes, wrapped
@@ -285,6 +285,28 @@ class ChunkCliTests(unittest.TestCase):
 
             self.assertNotEqual(refused, 0)
             self.assertEqual(allowed, 0)
+
+    def test_render_chunks_cli_accepts_non_wav_audio_format(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args([
+            "ace-step",
+            "render-chunks",
+            "project",
+            "--audio-format",
+            "mp3",
+        ])
+        self.assertEqual(args.audio_format, "mp3")
+
+    def test_ace_step_render_cli_accepts_non_wav_audio_format(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args([
+            "ace-step",
+            "render",
+            "project",
+            "--audio-format",
+            "mp3",
+        ])
+        self.assertEqual(args.audio_format, "mp3")
 
 
 if __name__ == "__main__":

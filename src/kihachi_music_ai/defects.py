@@ -24,6 +24,7 @@ import math
 import sys
 import wave
 from array import array
+from collections import deque
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -58,6 +59,7 @@ PHASE_CORRELATION = 0.0
 # that renders arrive at.
 DISCONTINUITY_JUMP = 0.5
 DISCONTINUITY_RATIO = 8.0
+DISCONTINUITY_CONTEXT_SECONDS = 0.01
 
 BLOCKING = "blocking"
 WARNING = "warning"
@@ -93,7 +95,7 @@ def scan_material(audio_path: Path) -> dict[str, Any]:
     findings.extend(_discontinuity_findings(measured))
 
     return {
-        "defect_scan_version": "0.1",
+        "defect_scan_version": "0.2",
         "scope": "absolute_audio_defects_not_song_spec_conformance",
         "audio_file": str(Path(audio_path).name),
         "measurements": measured,
@@ -118,6 +120,9 @@ def _measure(path: Path) -> dict[str, Any]:
             raise ValueError(f"unsupported PCM sample width: {sample_width} bytes")
 
         window_frames = max(1, int(round(sample_rate * WINDOW_SECONDS)))
+        jump_context_frames = max(
+            1, int(round(sample_rate * DISCONTINUITY_CONTEXT_SECONDS))
+        )
         peak = 0.0
         square_sum = 0.0
         signed_sum = [0.0] * channels
@@ -127,6 +132,10 @@ def _measure(path: Path) -> dict[str, Any]:
         max_jump_time = 0.0
         jump_sum = 0.0
         jump_count = 0
+        jump_history: deque[float] = deque(maxlen=jump_context_frames)
+        max_jump_context_before: list[float] = []
+        max_jump_context_after: list[float] = []
+        max_jump_future_remaining = 0
         previous = None
         left_right = [0.0, 0.0, 0.0]  # sum(L*R), sum(L^2), sum(R^2)
         window_square = 0.0
@@ -165,6 +174,13 @@ def _measure(path: Path) -> dict[str, Any]:
                     if jump > max_jump:
                         max_jump = jump
                         max_jump_time = sample_count / sample_rate
+                        max_jump_context_before = list(jump_history)
+                        max_jump_context_after = []
+                        max_jump_future_remaining = jump_context_frames
+                    elif max_jump_future_remaining > 0:
+                        max_jump_context_after.append(jump)
+                        max_jump_future_remaining -= 1
+                    jump_history.append(jump)
                 previous = mono
 
                 if channels >= 2:
@@ -190,6 +206,13 @@ def _measure(path: Path) -> dict[str, Any]:
 
     duration = frame_count / sample_rate
     rms = math.sqrt(square_sum / sample_count) if sample_count else 0.0
+    mean_jump = jump_sum / jump_count if jump_count else 0.0
+    max_jump_context = max_jump_context_before + max_jump_context_after
+    max_jump_local_mean = (
+        sum(max_jump_context) / len(max_jump_context)
+        if max_jump_context
+        else mean_jump
+    )
     correlation = None
     if channels >= 2 and left_right[1] > 0 and left_right[2] > 0:
         correlation = left_right[0] / math.sqrt(left_right[1] * left_right[2])
@@ -209,7 +232,9 @@ def _measure(path: Path) -> dict[str, Any]:
         "longest_silence_at_sec": round(longest_silent_at, 3),
         "max_sample_jump": round(max_jump, 4),
         "max_sample_jump_at_sec": round(max_jump_time, 3),
-        "mean_sample_jump": round(jump_sum / jump_count, 6) if jump_count else 0.0,
+        "mean_sample_jump": round(mean_jump, 6),
+        "max_sample_jump_local_mean": round(max_jump_local_mean, 6),
+        "max_sample_jump_context_sec": DISCONTINUITY_CONTEXT_SECONDS,
     }
 
 
@@ -323,8 +348,10 @@ def _discontinuity_findings(measured: dict[str, Any]) -> list[DefectFinding]:
     if jump <= DISCONTINUITY_JUMP:
         return []
     # Absolute size alone is not evidence: percussive material reaches this
-    # routinely. A click is a step the surrounding signal never takes.
-    ratio = jump / mean_jump if mean_jump > 0 else float("inf")
+    # routinely. Compare with the 10 ms on both sides, not the whole song: a
+    # kick has adjacent fast motion while an isolated splice step does not.
+    local_mean = float(measured.get("max_sample_jump_local_mean", mean_jump))
+    ratio = jump / local_mean if local_mean > 0 else float("inf")
     if ratio <= DISCONTINUITY_RATIO:
         return []
     return [
@@ -334,7 +361,7 @@ def _discontinuity_findings(measured: dict[str, Any]) -> list[DefectFinding]:
             detail=(
                 f"sample-to-sample jump {jump:.3f} at "
                 f"{measured['max_sample_jump_at_sec']:.2f} s, {ratio:.1f}x the "
-                f"material's mean slew; likely an audible click"
+                f"surrounding 10 ms mean slew; likely an audible click"
             ),
             value=jump,
             threshold=DISCONTINUITY_JUMP,

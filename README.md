@@ -281,11 +281,14 @@ Composerは以下のSongSpec値を実際に読みます。
 
 ## テスト
 
-外部パッケージなしで基本テストを実行できます。
+開発用依存関係を入れて、ローカルとCIで同じ全テストを実行します。
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -m pip install -e ".[dev]"
+python3 -m pytest -q
 ```
+
+Pull Requestと`main`へのpushでは、GitHub Actionsがサポート下限のPython 3.11と開発環境系統のPython 3.14で自動実行します。Vast/ACE-Stepへの実接続はGPU・ネットワーク・秘密情報に依存するため、このCIには含めません。
 
 ## Critic の二経路（MIDI照合 と Audio解析）
 
@@ -360,7 +363,8 @@ repaint_plan.json
 
 `generation_review.json`には、尺、tempo、key、chord、section境界、section energyの重み付き整合スコア、根拠付きfinding、Baseとの差を保存します。このスコアはSongSpecへの機械的な整合度であり、音質や音楽的な良さの評価ではありません。
 
-`repaint_plan.json`は、各セクションのenergy差、コード一致率、判読可能なコード小節率、開始境界、終端energy失速を比較し、最も修正優先度が高いセクションを1つ選びます。選択小節・秒範囲、局所的な改訂文、安全なrepaint設定、元解析AudioのSHA-256を保存します。計画作成だけでは生成を開始しません。
+`repaint_plan.json`は、各セクションのenergy差、コード一致率、判読可能なコード小節率、開始境界、終端energy失速を比較し、最も修正優先度が高いセクションを1つ選びます。素材検査がクリック疑いのdiscontinuityを時刻付きで検出した場合は、構成スコアより素材欠陥を優先し、その時刻を含む前後4小節をbar-level範囲として選びます。選択小節・秒範囲、局所的な改訂文、安全なrepaint設定、元解析AudioのSHA-256を保存します。計画作成だけでは生成を開始しません。
+discontinuity判定は最大sample jumpをその前後10 msの平均slewと比較します。曲全体の静かな区間を分母にしないため、孤立したsplice stepは検出しつつ、キックなど連続した高速過渡音をクリックとして追い続けません。
 
 Reviewerの計画をACE-Step requestへ変換できます。この段階もネットワーク送信しません。
 
@@ -681,8 +685,36 @@ python3 -m kihachi_music_ai revise projects/my-song --rounds 3 --base-url http:/
 python3 -m kihachi_music_ai revise projects/my-song --dry-run
 ```
 
-**候補は自動採用しません。** 各ラウンドは隣に新しいプロジェクトを書き、元のプロジェクトには
-一切触れません。最後に順位付きで並べて終わります。順位は「blockingな欠陥がないもの」が先、
+ラウンドは1回ごとにレンダーを伴い、CPUでは数分かかります。途中で失敗しても
+`revision_log.json`はラウンドごとに書かれるので、測り終えたテイクの記録は残ります
+（`execution_state`が`failed`になり、`stopped_because`に原因が入ります）。
+
+```bash
+python3 -m kihachi_music_ai revise projects/my-song --resume
+```
+
+`--resume`は、既に音声があるラウンド（`-revNN`）を再レンダーせずに測り直して続きから進めます。
+音声の無い中途半端なディレクトリは、`--resume`を付けても拒否します。
+既存の`revision_log.json`がある状態で新規実行すると、以前の履歴を守るため停止します。
+続行なら`--resume`を使い、最初からやり直す場合は既存ログとラウンドを退避してから実行します。
+各ラウンドは`repaint_plan.json`の改訂文、strength、latent/waveform crossfade、mask modeをそのままACE-Step requestへ渡します。
+
+人に共有する要約も各ラウンド後に残す場合は、Markdownの保存先を明示します。
+
+```bash
+python3 -m kihachi_music_ai revise projects/my-song \
+  --rounds 3 \
+  --revision-log-markdown projects/my-song/revision_log.md
+```
+
+`revision_log.json`が機械可読な正本で、Markdownは同じ状態の共有用要約です。
+どちらも原子的に置換され、途中でレンダーが失敗した場合も、測定済みテイクと失敗理由を
+`execution_state: failed`として残します。`--dry-run`はrevision loopを開始しないため、
+`--revision-log-markdown`とは同時に指定できません。既存ファイルは上書きせず、失敗した
+revisionを`--resume`する場合だけ、KIHACHIが以前に書いたMarkdownログを更新できます。
+
+**候補は自動採用しません。** 各ラウンドは隣に新しいプロジェクトを書き、元のプロジェクトの
+入力には一切触れません（書き戻すのは`revision_log.json`と、明示した場合の共有Markdownだけです）。最後に順位付きで並べて終わります。順位は「blockingな欠陥がないもの」が先、
 その中で整合度順です。整合度88.69の`aligned`なテイクに2.28秒の無音が空いていた例があるため、
 穴の空いたテイクは点数では勝てません。
 
@@ -713,6 +745,22 @@ blockingな欠陥のないテイクが先、その中で整合度順です。
 
 **「未スキャン」と「欠陥なし」は区別します。** 測っていないことを「問題なし」と表示するのは、
 検査の欠落を結果に見せかけることだからです。
+
+試聴後の判断は、音声を動かさずに明示的に記録します。
+
+```bash
+python3 -m kihachi_music_ai decide projects/my-song \
+  --also projects/my-song-rev01 \
+  --selected projects/my-song \
+  --reason "Base維持。改訂版よりグルーヴが自然だった"
+```
+
+`decision_log.json`へ、選んだプロジェクト、比較した全候補、各AudioのSHA-256、整合度、
+素材検査状態、試聴理由を追記します。Baseを選んだ場合は`retain_base`、別候補なら
+`select_candidate`です。このコマンドは選択を**記録するだけ**で、Audioのコピー、置換、
+削除、名前変更は行いません。判断を変更した場合も以前のentryは消さず、次のentryを追記します。
+`report`は選択時のSHA-256と現在のAudioを再照合し、差し替わっていれば`changed`、
+見つからなければ`missing`と表示して、古い試聴判断を現在のファイルへ流用しません。
 
 ## v0.1の境界
 
