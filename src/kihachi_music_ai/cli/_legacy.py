@@ -426,9 +426,25 @@ def main(argv: Sequence[str] | None = None) -> int:
                     client,
                     AceStepOptions(
                         audio_format="wav",
+                        revision=str(plan["revision_prompt"]),
                         task_type="repaint",
+                        audio_cover_strength=float(
+                            settings.get("audio_cover_strength", 1.0)
+                        ),
+                        cover_noise_strength=float(
+                            settings.get("cover_noise_strength", 0.0)
+                        ),
                         repainting_start=window.start_sec,
                         repainting_end=window.end_sec,
+                        repaint_mode=str(settings.get("repaint_mode", "balanced")),
+                        repaint_strength=float(settings.get("repaint_strength", 0.65)),
+                        repaint_latent_crossfade_frames=int(
+                            settings.get("repaint_latent_crossfade_frames", 10)
+                        ),
+                        repaint_wav_crossfade_sec=float(
+                            settings.get("repaint_wav_crossfade_sec", 0.25)
+                        ),
+                        chunk_mask_mode=str(settings.get("chunk_mask_mode", "explicit")),
                         tail_guard_bars=guard,
                     ),
                     source_audio=source_audio,

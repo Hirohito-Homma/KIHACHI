@@ -23,6 +23,10 @@ TERMINAL_COLLAPSE_THRESHOLD = 0.25
 LOCALIZED_ENERGY_TOLERANCE = 0.05
 # Repaint at least this many bars so the model has musical context to work with.
 MIN_BAR_CANDIDATE_BARS = 4
+# A material discontinuity is already a measured audio defect, not a weak
+# conformance hint.  Give it enough context on both sides and use a slightly
+# wider waveform blend than the generic musical repaint plan.
+DISCONTINUITY_WAV_CROSSFADE_SEC = 0.5
 STAGED_DESIGN_ARTIFACTS = (
     "song_spec.json",
     "bass.mid",
@@ -150,6 +154,7 @@ def build_repaint_plan(
     analysis: Mapping[str, Any],
     findings: list[dict[str, Any]],
     *,
+    material_defects: Mapping[str, Any] | None = None,
     tail_guard_bars: float = DEFAULT_TAIL_GUARD_BARS,
     prefer_bar_level: bool = False,
 ) -> dict[str, Any]:
@@ -162,27 +167,50 @@ def build_repaint_plan(
 
     guard_bars = validate_guard_bars(tail_guard_bars)
     diagnostics = _section_diagnostics(spec, analysis)
-    selected = max(
+    conformance_selection = max(
         diagnostics,
         key=lambda item: (item["priority_score"], item["start_bar"]),
     )
-    section_name = str(selected["section_name"])
-    candidates = _bar_level_candidates(spec, analysis, selected, guard_bars)
-    recommended_selector = "bars" if candidates and _defect_is_localized(selected) else "section"
-    if prefer_bar_level and candidates:
-        chosen = candidates[0]
+    defect_candidate = _discontinuity_candidate(spec, material_defects, guard_bars)
+    if defect_candidate is not None:
+        defect_bar = int(defect_candidate["defect_bar"])
+        selected = next(
+            item
+            for item in diagnostics
+            if int(item["start_bar"]) <= defect_bar <= int(item["end_bar"])
+        )
+        candidates = [defect_candidate]
+        recommended_selector = "bars"
+        chosen = defect_candidate
         window = resolve_repaint_window(
             spec,
             bar_range=f"{chosen['start_bar']}:{chosen['end_bar']}",
             tail_guard_bars=guard_bars,
         )
+        revision_prompt = _discontinuity_revision_prompt(spec, chosen)
+        selection_reason = str(chosen["reason"])
     else:
-        window = resolve_repaint_window(
-            spec,
-            section_name=section_name,
-            tail_guard_bars=guard_bars,
+        selected = conformance_selection
+        section_name = str(selected["section_name"])
+        candidates = _bar_level_candidates(spec, analysis, selected, guard_bars)
+        recommended_selector = (
+            "bars" if candidates and _defect_is_localized(selected) else "section"
         )
-    revision_prompt = _targeted_revision_prompt(spec, selected, findings, window=window)
+        if prefer_bar_level and candidates:
+            chosen = candidates[0]
+            window = resolve_repaint_window(
+                spec,
+                bar_range=f"{chosen['start_bar']}:{chosen['end_bar']}",
+                tail_guard_bars=guard_bars,
+            )
+        else:
+            window = resolve_repaint_window(
+                spec,
+                section_name=section_name,
+                tail_guard_bars=guard_bars,
+            )
+        revision_prompt = _targeted_revision_prompt(spec, selected, findings, window=window)
+        selection_reason = _selection_reason(selected)
     available_components = sum(
         selected[name] is not None
         for name in ("observed_mean_energy", "chord_match_ratio", "chord_coverage")
@@ -196,12 +224,12 @@ def build_repaint_plan(
         "selection": window.to_dict(),
         "selection_confidence": (
             "high"
-            if available_components >= 3
+            if defect_candidate is not None or available_components >= 3
             else "medium"
             if available_components >= 2
             else "low"
         ),
-        "selection_reason": _selection_reason(selected),
+        "selection_reason": selection_reason,
         "section_diagnostics": diagnostics,
         "bar_level_candidates": candidates,
         "recommended_selector": recommended_selector,
@@ -213,7 +241,11 @@ def build_repaint_plan(
             "repaint_mode": "balanced",
             "repaint_strength": 0.65,
             "repaint_latent_crossfade_frames": 10,
-            "repaint_wav_crossfade_sec": 0.25,
+            "repaint_wav_crossfade_sec": (
+                DISCONTINUITY_WAV_CROSSFADE_SEC
+                if defect_candidate is not None
+                else 0.25
+            ),
             "chunk_mask_mode": "explicit",
             "tail_guard_bars": guard_bars,
         },
@@ -439,6 +471,88 @@ def _bar_level_candidates(
         f"{target_energy:.2f}; widened to {section_end - start_bar + 1} bars for context"
     )
     return [candidate]
+
+
+def _discontinuity_candidate(
+    spec: SongSpec,
+    defects: Mapping[str, Any] | None,
+    guard_bars: float,
+) -> dict[str, Any] | None:
+    """Map a measured click to a small bar window that actually contains it."""
+
+    if not isinstance(defects, Mapping):
+        return None
+    findings_raw = defects.get("findings")
+    findings = findings_raw if isinstance(findings_raw, list) else []
+    finding = next(
+        (
+            item
+            for item in findings
+            if isinstance(item, Mapping)
+            and item.get("code") == "discontinuity"
+            and item.get("severity") in {"blocking", "warning"}
+        ),
+        None,
+    )
+    measurements_raw = defects.get("measurements")
+    measurements = measurements_raw if isinstance(measurements_raw, Mapping) else {}
+    at_sec = _number(measurements.get("max_sample_jump_at_sec"))
+    if finding is None or at_sec is None or at_sec < 0.0:
+        return None
+
+    bar_duration = spec.song.target_duration_sec / spec.song.total_bars
+    if at_sec >= spec.song.target_duration_sec:
+        defect_bar = spec.song.total_bars
+    else:
+        defect_bar = int(at_sec / bar_duration) + 1
+    start_bar = max(1, defect_bar - 1)
+    end_bar = min(spec.song.total_bars, start_bar + MIN_BAR_CANDIDATE_BARS - 1)
+    start_bar = max(1, end_bar - MIN_BAR_CANDIDATE_BARS + 1)
+    window = resolve_repaint_window(
+        spec,
+        bar_range=f"{start_bar}:{end_bar}",
+        tail_guard_bars=guard_bars,
+    )
+    candidate = window.to_dict()
+    candidate.update(
+        {
+            "defect_code": "discontinuity",
+            "defect_at_sec": round(at_sec, 3),
+            "defect_bar": defect_bar,
+            "defect_value": _number(finding.get("value")),
+            "defect_threshold": _number(finding.get("threshold")),
+            "reason": (
+                f"measured discontinuity at {at_sec:.3f} s falls in bar {defect_bar}; "
+                f"bars {start_bar}-{end_bar} include context on both sides and keep "
+                "the defect inside the repaint mask"
+            ),
+        }
+    )
+    return candidate
+
+
+def _discontinuity_revision_prompt(
+    spec: SongSpec,
+    candidate: Mapping[str, Any],
+) -> str:
+    return " ".join(
+        (
+            (
+                f"Repaint only bars {candidate['start_bar']}-{candidate['end_bar']} around "
+                f"the measured discontinuity at {float(candidate['defect_at_sec']):.3f} "
+                f"seconds in bar {candidate['defect_bar']}."
+            ),
+            (
+                f"Preserve all Audio outside this range and keep {spec.song.bpm:g} BPM, "
+                f"{spec.song.key}, {spec.song.time_signature}."
+            ),
+            (
+                "Remove the sample-to-sample discontinuity, keep both splice boundaries "
+                "click-free, and preserve the planned arrangement transition and energy "
+                "shape across the window."
+            ),
+        )
+    )
 
 
 def _targeted_revision_prompt(

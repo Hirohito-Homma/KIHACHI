@@ -360,7 +360,8 @@ repaint_plan.json
 
 `generation_review.json`には、尺、tempo、key、chord、section境界、section energyの重み付き整合スコア、根拠付きfinding、Baseとの差を保存します。このスコアはSongSpecへの機械的な整合度であり、音質や音楽的な良さの評価ではありません。
 
-`repaint_plan.json`は、各セクションのenergy差、コード一致率、判読可能なコード小節率、開始境界、終端energy失速を比較し、最も修正優先度が高いセクションを1つ選びます。選択小節・秒範囲、局所的な改訂文、安全なrepaint設定、元解析AudioのSHA-256を保存します。計画作成だけでは生成を開始しません。
+`repaint_plan.json`は、各セクションのenergy差、コード一致率、判読可能なコード小節率、開始境界、終端energy失速を比較し、最も修正優先度が高いセクションを1つ選びます。素材検査がクリック疑いのdiscontinuityを時刻付きで検出した場合は、構成スコアより素材欠陥を優先し、その時刻を含む前後4小節をbar-level範囲として選びます。選択小節・秒範囲、局所的な改訂文、安全なrepaint設定、元解析AudioのSHA-256を保存します。計画作成だけでは生成を開始しません。
+discontinuity判定は最大sample jumpをその前後10 msの平均slewと比較します。曲全体の静かな区間を分母にしないため、孤立したsplice stepは検出しつつ、キックなど連続した高速過渡音をクリックとして追い続けません。
 
 Reviewerの計画をACE-Step requestへ変換できます。この段階もネットワーク送信しません。
 
@@ -693,6 +694,7 @@ python3 -m kihachi_music_ai revise projects/my-song --resume
 音声の無い中途半端なディレクトリは、`--resume`を付けても拒否します。
 既存の`revision_log.json`がある状態で新規実行すると、以前の履歴を守るため停止します。
 続行なら`--resume`を使い、最初からやり直す場合は既存ログとラウンドを退避してから実行します。
+各ラウンドは`repaint_plan.json`の改訂文、strength、latent/waveform crossfade、mask modeをそのままACE-Step requestへ渡します。
 
 人に共有する要約も各ラウンド後に残す場合は、Markdownの保存先を明示します。
 

@@ -276,6 +276,71 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(status, 2)
         self.assertIn("cannot be used with --dry-run", stderr.getvalue())
 
+    def test_revision_cli_passes_the_whole_repaint_plan_to_the_renderer(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "song"
+            compose_project(EXAMPLE, project)
+            source_audio = project / "source.wav"
+            source_audio.write_bytes(b"source")
+            plan = {
+                "plan_version": "0.1",
+                "selection": {
+                    "selector": "bars",
+                    "start_bar": 7,
+                    "end_bar": 10,
+                },
+                "revision_prompt": "Remove the measured click without changing the groove.",
+                "ace_step_options": {
+                    "task_type": "repaint",
+                    "audio_cover_strength": 0.9,
+                    "cover_noise_strength": 0.1,
+                    "repaint_mode": "conservative",
+                    "repaint_strength": 0.35,
+                    "repaint_latent_crossfade_frames": 14,
+                    "repaint_wav_crossfade_sec": 0.5,
+                    "chunk_mask_mode": "explicit",
+                    "tail_guard_bars": 2.0,
+                },
+            }
+            (project / "repaint_plan.json").write_text(
+                json.dumps(plan), encoding="utf-8"
+            )
+            captured = {}
+
+            def fake_loop(_project, render, **_kwargs):
+                render(project, source_audio)
+                return RevisionLog((), "the test completed")
+
+            def fake_render(_project, _client, options, **kwargs):
+                captured["options"] = options
+                captured["source_audio"] = kwargs["source_audio"]
+
+            with (
+                patch(
+                    "kihachi_music_ai.cli._legacy.run_revision_loop",
+                    side_effect=fake_loop,
+                ),
+                patch(
+                    "kihachi_music_ai.cli._legacy.render_with_ace_step",
+                    side_effect=fake_render,
+                ),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                status = main(["revise", str(project)])
+
+            self.assertEqual(status, 0)
+            options = captured["options"]
+            self.assertEqual(options.revision, plan["revision_prompt"])
+            self.assertEqual(options.audio_cover_strength, 0.9)
+            self.assertEqual(options.cover_noise_strength, 0.1)
+            self.assertEqual(options.repaint_mode, "conservative")
+            self.assertEqual(options.repaint_strength, 0.35)
+            self.assertEqual(options.repaint_latent_crossfade_frames, 14)
+            self.assertEqual(options.repaint_wav_crossfade_sec, 0.5)
+            self.assertEqual(options.chunk_mask_mode, "explicit")
+            self.assertEqual(options.tail_guard_bars, 2.0)
+            self.assertEqual(captured["source_audio"], source_audio)
+
     def test_markdown_log_cannot_replace_an_existing_project_input(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = self._project(Path(temp), seconds=TAKE_SECONDS)

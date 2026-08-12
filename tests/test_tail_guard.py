@@ -264,6 +264,31 @@ class BarLevelCandidateTests(unittest.TestCase):
         self.assertEqual(plan["selection"]["end_sec"], 69.818)
         self.assertEqual(plan["ace_step_options"]["tail_guard_bars"], 0.0)
 
+    def test_discontinuity_uses_a_window_that_contains_the_measured_click(self) -> None:
+        defects = {
+            "measurements": {"max_sample_jump_at_sec": 16.921},
+            "findings": [
+                {
+                    "code": "discontinuity",
+                    "severity": "warning",
+                    "value": 0.8219,
+                    "threshold": 0.5,
+                }
+            ],
+        }
+
+        plan = self._plan(material_defects=defects)
+
+        selection = plan["selection"]
+        self.assertEqual(selection["selector"], "bars")
+        self.assertEqual((selection["start_bar"], selection["end_bar"]), (7, 10))
+        self.assertEqual((selection["start_sec"], selection["end_sec"]), (13.091, 21.818))
+        self.assertEqual(plan["recommended_selector"], "bars")
+        self.assertEqual(plan["bar_level_candidates"][0]["defect_bar"], 8)
+        self.assertIn("16.921 s falls in bar 8", plan["selection_reason"])
+        self.assertIn("measured discontinuity at 16.921 seconds", plan["revision_prompt"])
+        self.assertEqual(plan["ace_step_options"]["repaint_wav_crossfade_sec"], 0.5)
+
 
 if __name__ == "__main__":
     unittest.main()
