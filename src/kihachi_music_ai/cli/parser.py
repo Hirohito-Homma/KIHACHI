@@ -285,6 +285,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="human reason for the choice; stored verbatim in decision_log.json",
     )
 
+    instrumental = subparsers.add_parser(
+        "instrumental-plan",
+        help="report which sections should carry no vocal, and the repaints that do it",
+    )
+    instrumental.add_argument("project", type=Path, help="project containing song_spec.json")
+    instrumental.add_argument(
+        "--base-url",
+        default="http://127.0.0.1:8001",
+        help="base URL to put in the printed repaint commands (default: %(default)s)",
+    )
+    instrumental.add_argument(
+        "--save",
+        action="store_true",
+        help="also write instrumental_plan.json into the project",
+    )
+    instrumental.add_argument("--overwrite", action="store_true")
+
     trim_tail = subparsers.add_parser(
         "trim-tail",
         help="cut a render's silent tail into a new file, leaving the render itself alone",

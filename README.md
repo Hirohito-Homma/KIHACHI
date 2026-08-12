@@ -137,7 +137,30 @@ python3 -m kihachi_music_ai ace-step render projects/my-song \
 
 `--task-type repaint`は必須です（セクション/小節セレクタだけでは拒否されます）。repaintのリクエストは`ace_step_repaint_request.json`へ別に書かれるので、元の`ace_step_request.json`はtext2musicのまま残ります。
 
-これで`vocal_probability`の意図を**間接的に**実現できます。ライターが`[inst]`を置いたセクションを、そのままrepaintの対象にすればよいためです。自動化はされていません — 現状は手作業でセクション名を指定します。
+これで`vocal_probability`の意図を**間接的に**実現できます。ライターが`[inst]`を置いたセクションを、そのままrepaintの対象にすればよいためです。
+
+#### 対象セクションは`instrumental-plan`が教えます
+
+どのセクションが`[inst]`だったかを歌詞シートから読み取って手で打ち直す必要はありません。
+
+```bash
+python3 -m kihachi_music_ai instrumental-plan projects/my-song
+```
+
+```
+Instrumental sections for projects/my-song:
+- the lyric sheet left these sections wordless; the model ignores an instruction
+  not to sing, so the words have to be withheld instead
+    bars 0:7  minimal_intro  (energy 0.25, vocal_probability 0.00)
+- run these in order, each against the previous take:
+    python3 -m kihachi_music_ai ace-step render projects/my-song --task-type repaint \
+      --repaint-section minimal_intro --no-lyrics \
+      --source-audio projects/my-song/audio/ace-step-01.wav --base-url ... --overwrite
+```
+
+判定規則を再実装してはいません。`lyrics.build_lyrics`にそのまま尋ねるので、**ライターが沈黙を決める条件を変えても、repaintの対象がずれません**。`--save`で`instrumental_plan.json`を残せます。
+
+**コマンドは表示するだけで実行しません。**repaintは数分のGPUを使い、テイクを上書きするので、走らせる判断は呼び出し側に残します。SongSpecが`vocal.enabled = false`なら、曲全体が既に器楽なのでrepaintは不要である旨を表示します。
 
 ## Prompt Compiler（全ての記述をSongSpecの数値から導出）
 
