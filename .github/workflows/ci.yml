@@ -42,3 +42,22 @@ jobs:
 
       - name: Run test suite
         run: python -m pytest -q
+
+      - name: Build source and wheel distributions
+        if: matrix.python-version == '3.11'
+        run: python -m build
+
+      - name: Smoke-test the built wheel outside the checkout
+        if: matrix.python-version == '3.11'
+        run: |
+          python -m venv /tmp/kihachi-wheel-smoke
+          cd /tmp
+          /tmp/kihachi-wheel-smoke/bin/python -m pip install --no-deps "$GITHUB_WORKSPACE"/dist/*.whl
+          /tmp/kihachi-wheel-smoke/bin/kihachi compose \
+            "Mutation Funk、DUB、Tech House。110 BPM、D#m。" \
+            --output /tmp/kihachi-compose-smoke
+          test -s /tmp/kihachi-compose-smoke/song_spec.json
+          test -s /tmp/kihachi-compose-smoke/bass.mid
+          test -s /tmp/kihachi-compose-smoke/drums.mid
+          test -s /tmp/kihachi-compose-smoke/chords.mid
+          test -s /tmp/kihachi-compose-smoke/prompt.txt

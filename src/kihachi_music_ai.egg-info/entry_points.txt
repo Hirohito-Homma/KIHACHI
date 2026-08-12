@@ -1,2 +1,0 @@
-[console_scripts]
-kihachi = kihachi_music_ai.cli:main

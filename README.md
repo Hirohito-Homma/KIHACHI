@@ -286,9 +286,10 @@ Composerは以下のSongSpec値を実際に読みます。
 ```bash
 python3 -m pip install -e ".[dev]"
 python3 -m pytest -q
+python3 -m build
 ```
 
-Pull Requestと`main`へのpushでは、GitHub Actionsがサポート下限のPython 3.11と開発環境系統のPython 3.14で自動実行します。Vast/ACE-Stepへの実接続はGPU・ネットワーク・秘密情報に依存するため、このCIには含めません。
+Pull Requestと`main`へのpushでは、GitHub Actionsがサポート下限のPython 3.11と開発環境系統のPython 3.14で全テストを自動実行します。Python 3.11ではさらにsdistとwheelを作成し、checkout外の隔離環境へwheelを導入して`kihachi compose`の成果物まで検証します。Vast/ACE-Stepへの実接続はGPU・ネットワーク・秘密情報に依存するため、このCIには含めません。
 
 ## Critic の二経路（MIDI照合 と Audio解析）
 
