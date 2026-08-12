@@ -69,6 +69,57 @@ class TailTrimPlan:
         return asdict(self)
 
 
+def diagnose_tail_silence(material_defects: Any) -> dict[str, Any] | None:
+    """Report a blocking silence that sits at the very end of the take.
+
+    Repainting cannot fix this one. Measured on 2026-08-13, two repaint rounds
+    moved the tail from 4.80 s to 2.02 s and never removed it, because the cause
+    is the delivered duration rather than any section's material. So the review
+    says so, and the revision loop stops instead of spending another render on it.
+
+    A gap in the *middle* is a different defect and is not reported here: that is
+    material a repaint can genuinely rewrite.
+    """
+
+    if not isinstance(material_defects, dict):
+        return None
+    measurements = material_defects.get("measurements")
+    if not isinstance(measurements, dict):
+        return None
+    duration = measurements.get("duration_sec")
+    if not isinstance(duration, (int, float)) or duration <= 0:
+        return None
+
+    for finding in material_defects.get("findings") or []:
+        if not isinstance(finding, dict):
+            continue
+        if finding.get("code") != "silent_gap" or finding.get("severity") != "blocking":
+            continue
+        start = measurements.get("longest_silence_at_sec")
+        length = measurements.get("longest_silence_sec")
+        if not isinstance(start, (int, float)) or not isinstance(length, (int, float)):
+            continue
+        # The gap has to run to the end of the file to be a tail.
+        if float(start) + float(length) < float(duration) - TAIL_REACH_TOLERANCE_SEC:
+            continue
+        return {
+            "silence_sec": round(float(length), 4),
+            "silence_at_sec": round(float(start), 4),
+            "duration_sec": round(float(duration), 4),
+            "repaint_can_fix": False,
+            "remedy": "trim-tail",
+            "reason": (
+                "the blocking silence runs to the end of the take, so it comes from "
+                "the delivered duration rather than from a section a repaint could rewrite"
+            ),
+        }
+    return None
+
+
+#: How far short of the file end a gap may stop and still count as a tail.
+TAIL_REACH_TOLERANCE_SEC = 0.05
+
+
 def _wav_duration_sec(audio_path: Path) -> float:
     import wave
 

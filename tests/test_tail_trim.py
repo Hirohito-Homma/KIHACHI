@@ -8,6 +8,7 @@ from pathlib import Path
 
 from kihachi_music_ai.tail_trim import (
     MIN_TRIM_SEC,
+    diagnose_tail_silence,
     plan_tail_trim,
     trim_project_tail,
 )
@@ -115,6 +116,46 @@ class TailTrimTest(unittest.TestCase):
 
             manifest = trim_project_tail(project, overwrite=True)
             self.assertEqual(manifest["trimmed_audio"], "audio/ace-step-01.tail-trimmed.wav")
+
+
+class TailSilenceDiagnosisTest(unittest.TestCase):
+    """A tail gap and a mid-song hole are different problems with different fixes."""
+
+    @staticmethod
+    def defects(*, start: float, length: float, duration: float, severity="blocking"):
+        return {
+            "measurements": {
+                "duration_sec": duration,
+                "longest_silence_sec": length,
+                "longest_silence_at_sec": start,
+            },
+            "findings": [{"code": "silent_gap", "severity": severity}],
+        }
+
+    def test_a_gap_running_to_the_end_is_reported_as_untreatable_by_repaint(self):
+        found = diagnose_tail_silence(self.defects(start=67.78, length=2.02, duration=69.80))
+
+        self.assertIsNotNone(found)
+        self.assertFalse(found["repaint_can_fix"])
+        self.assertEqual(found["remedy"], "trim-tail")
+        self.assertAlmostEqual(found["silence_sec"], 2.02)
+
+    def test_a_hole_in_the_middle_is_left_to_the_repaint_planner(self):
+        self.assertIsNone(
+            diagnose_tail_silence(self.defects(start=30.0, length=2.0, duration=69.80))
+        )
+
+    def test_a_warning_level_tail_is_not_reported(self):
+        self.assertIsNone(
+            diagnose_tail_silence(
+                self.defects(start=69.4, length=0.4, duration=69.80, severity="warning")
+            )
+        )
+
+    def test_malformed_input_is_tolerated(self):
+        self.assertIsNone(diagnose_tail_silence(None))
+        self.assertIsNone(diagnose_tail_silence({}))
+        self.assertIsNone(diagnose_tail_silence({"findings": [{"code": "silent_gap"}]}))
 
 
 if __name__ == "__main__":

@@ -711,6 +711,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                     for defect in defects["findings"]:
                         if defect["severity"] in {"blocking", "warning"}:
                             print(f"- material {defect['severity']}: {defect['detail']}")
+            tail_silence = manifest.review.get("tail_silence")
+            if tail_silence is not None:
+                # Naming the remedy here is the point: the repaint candidate printed
+                # below cannot remove a tail, and following it costs a render.
+                print(
+                    f"- silent tail: {tail_silence['silence_sec']:.2f} s runs to the end; "
+                    f"a repaint cannot remove it -- run `trim-tail`"
+                )
             if "comparison" in manifest.review:
                 comparison = manifest.review["comparison"]
                 print(

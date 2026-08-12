@@ -944,6 +944,19 @@ python3 -m kihachi_music_ai trim-tail projects/my-song
 
 実測では、この処理で`material_defects.json`が`blocking 1` → `clean: true`になります。
 
+#### `review`と`revise`が末尾無音を見分けます
+
+手動で気付く必要はありません。**末尾まで続くblocking無音**を検出すると、`review`が修正手段を名指しします。
+
+```
+- material blocking: 2.02 s below -50 dBFS starting at 67.78 s
+- silent tail: 2.02 s runs to the end; a repaint cannot remove it -- run `trim-tail`
+```
+
+`revise`も同じ判定でループを止めます。repaintは配信された尺を縮められないので、末尾無音は何ラウンド回しても残ります（実測で4.80s → 2.02sまでで頭打ち）。**GPUを1レンダー分無駄にしないための停止**です。停止理由は`revision_log.json`へ記録されます。
+
+曲の**途中**の無音は別問題として扱い、従来どおりrepaintの対象に残します。そちらはモデルが実際に書き直せる素材だからです。
+
 ## チャンク分割レンダー
 
 9セクションの編成を1つのプロンプトで通すと、曲の3分の1を過ぎたあたりで自分の計画を無視し始めます（計画境界の再現率 1.0 → 0.25、セクションエネルギー相関 0.75 → 0.34）。そこで曲をセクション単位のチャンクに区切り、**各チャンクを自分のセクションだけを述べたプロンプトでレンダー**します。最初のパスが全長のベッドを敷き、以降は直前のレンダーを参照元とする自分の範囲のrepaintです。
