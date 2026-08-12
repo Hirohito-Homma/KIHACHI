@@ -344,6 +344,7 @@ def build_report(
     base_dir: Path,
     title: str = "KIHACHI candidates",
     stopped_because: str | None = None,
+    decision: dict[str, Any] | None = None,
 ) -> str:
     """One self-contained page. Audio is linked, never embedded."""
 
@@ -398,6 +399,32 @@ def build_report(
         if stopped_because
         else ""
     )
+    if decision is None:
+        decision_note = ""
+        decision_lede = "Nothing is adopted here; choose by listening."
+    else:
+        selected = decision.get("selected") or {}
+        selected_name = html.escape(str(selected.get("name", "unknown")))
+        reason = html.escape(str(decision.get("reason", "")))
+        audio_status = decision.get("audio_status") or {}
+        status = str(audio_status.get("status", "unverified"))
+        if status == "current":
+            status_text = "selected Audio SHA-256 still matches"
+        elif status == "changed":
+            status_text = "warning: selected Audio changed after this decision"
+        elif status == "missing":
+            status_text = "warning: selected Audio is missing"
+        else:
+            status_text = "selected Audio SHA-256 was not rechecked"
+        decision_note = (
+            '<p class="decision">Current human listening decision: '
+            f'<strong>{selected_name}</strong> &mdash; {reason}<br>'
+            f'<span>{html.escape(status_text)}</span></p>'
+        )
+        decision_lede = (
+            "This page does not move or replace audio; the recorded listening "
+            "decision is shown below."
+        )
     return f"""<!doctype html>
 <meta charset="utf-8">
 <title>{html.escape(title)}</title>
@@ -413,6 +440,8 @@ def build_report(
   h1 {{ font-size: 1.4rem; margin: 0 0 .25rem; }}
   .lede {{ color: var(--muted); margin: 0 0 2rem; max-width: 46rem; }}
   .stopped {{ color: var(--muted); font-size: .9rem; margin: -1.5rem 0 2rem; }}
+  .decision {{ border-left: 3px solid var(--wave); padding: .45rem .75rem;
+               margin: -1rem 0 1.5rem; background: color-mix(in srgb, var(--wave) 8%, transparent); }}
   .take {{ border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem;
            margin-bottom: 1.25rem; }}
   .take.unusable {{ border-color: color-mix(in srgb, var(--block) 45%, var(--line)); }}
@@ -456,8 +485,9 @@ def build_report(
 <p class="lede">Ranked with takes that have no blocking defect first, then by how
 closely they followed the SongSpec. That score cannot hear whether a take is any
 good &mdash; changing only the seed has moved it by 33 points &mdash; so it
-orders candidates and nothing more. Nothing is adopted here; choose by listening.</p>
+orders candidates and nothing more. {decision_lede}</p>
 {note}
+{decision_note}
 {"".join(rows)}
 {_SCRIPT}
 """

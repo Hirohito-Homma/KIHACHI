@@ -170,6 +170,23 @@ class PageTests(unittest.TestCase):
 
         self.assertIn("Nothing is adopted here; choose by listening.", " ".join(page.split()))
 
+    def test_the_page_shows_a_recorded_human_decision_without_claiming_to_apply_it(self) -> None:
+        page = build_report(
+            [fake("base", 60.0)],
+            base_dir=Path("/tmp"),
+            decision={
+                "selected": {"name": "base"},
+                "reason": "Base維持。グルーヴが自然だった",
+                "audio_status": {"status": "current"},
+            },
+        )
+
+        rendered = " ".join(page.split())
+        self.assertIn("Current human listening decision", rendered)
+        self.assertIn("Base維持。グルーヴが自然だった", rendered)
+        self.assertIn("does not move or replace audio", rendered)
+        self.assertIn("selected Audio SHA-256 still matches", rendered)
+
     def test_audio_is_linked_not_embedded(self) -> None:
         """A take is 13 MB; three of them inside a page is not a page."""
 

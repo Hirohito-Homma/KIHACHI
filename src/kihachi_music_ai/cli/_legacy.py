@@ -40,6 +40,12 @@ from ..ableton import (
     plan_project_arrangement,
 )
 from ..chunked import load_chunk_plan, render_chunk_plan
+from ..decision import (
+    current_decision,
+    decision_audio_status,
+    load_decision_log,
+    record_decision,
+)
 from ..midi_review import review_project_midi
 from ..models import SongSpec
 from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
@@ -502,6 +508,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if path not in seen:
                     seen.append(path)
             candidates = [load_candidate(path) for path in seen]
+            decision = current_decision(load_decision_log(args.project))
+            if decision is not None:
+                decision = {
+                    **decision,
+                    "audio_status": decision_audio_status(args.project, decision),
+                }
             destination = args.output or (args.project / "candidates.html")
             if destination.exists() and not args.overwrite:
                 raise FileExistsError(f"refusing to overwrite report: {destination}")
@@ -511,6 +523,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     base_dir=destination.parent,
                     title=f"KIHACHI candidates: {args.project.name}",
                     stopped_because=stopped,
+                    decision=decision,
                 ),
                 encoding="utf-8",
             )
@@ -524,7 +537,28 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"  #{position} {item.alignment:6.2f} {item.grade:<14} "
                     f"{defects:<26} {item.name}"
                 )
-            print("- nothing adopted; open the page and listen")
+            if decision is None:
+                print("- nothing adopted; open the page and listen")
+            else:
+                print(
+                    f"- current listening decision: {decision['selected']['name']} "
+                    f"({decision['reason']}); audio {decision['audio_status']['status']}"
+                )
+            return 0
+
+        if args.command == "decide":
+            manifest = record_decision(
+                args.project,
+                selected_project=args.selected,
+                candidate_projects=args.also,
+                reason=args.reason,
+            )
+            selected = manifest.entry["selected"]
+            print(f"Recorded KIHACHI listening decision: {manifest.decision_file}")
+            print(f"- action: {manifest.entry['action']}")
+            print(f"- selected: {selected['name']} ({selected['audio_sha256']})")
+            print(f"- reason: {manifest.entry['reason']}")
+            print("- audio copied/overwritten/deleted: no/no/no")
             return 0
 
         if args.command == "midi-review":

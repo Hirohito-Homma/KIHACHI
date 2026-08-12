@@ -260,6 +260,30 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--output", type=Path, help="page path; defaults to candidates.html")
     report.add_argument("--overwrite", action="store_true")
 
+    decide = subparsers.add_parser(
+        "decide",
+        help="record a human listening decision without moving or replacing audio",
+    )
+    decide.add_argument("project", type=Path, help="base project that owns the decision log")
+    decide.add_argument(
+        "--selected",
+        type=Path,
+        required=True,
+        help="chosen project; must be the base project or one supplied with --also",
+    )
+    decide.add_argument(
+        "--also",
+        type=Path,
+        action="append",
+        default=[],
+        help="another reviewed candidate considered in the listening decision (repeatable)",
+    )
+    decide.add_argument(
+        "--reason",
+        required=True,
+        help="human reason for the choice; stored verbatim in decision_log.json",
+    )
+
     midi_review = subparsers.add_parser(
         "midi-review",
         help="compare a project's written MIDI with its SongSpec (no audio needed)",

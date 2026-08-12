@@ -743,6 +743,22 @@ blockingな欠陥のないテイクが先、その中で整合度順です。
 **「未スキャン」と「欠陥なし」は区別します。** 測っていないことを「問題なし」と表示するのは、
 検査の欠落を結果に見せかけることだからです。
 
+試聴後の判断は、音声を動かさずに明示的に記録します。
+
+```bash
+python3 -m kihachi_music_ai decide projects/my-song \
+  --also projects/my-song-rev01 \
+  --selected projects/my-song \
+  --reason "Base維持。改訂版よりグルーヴが自然だった"
+```
+
+`decision_log.json`へ、選んだプロジェクト、比較した全候補、各AudioのSHA-256、整合度、
+素材検査状態、試聴理由を追記します。Baseを選んだ場合は`retain_base`、別候補なら
+`select_candidate`です。このコマンドは選択を**記録するだけ**で、Audioのコピー、置換、
+削除、名前変更は行いません。判断を変更した場合も以前のentryは消さず、次のentryを追記します。
+`report`は選択時のSHA-256と現在のAudioを再照合し、差し替わっていれば`changed`、
+見つからなければ`missing`と表示して、古い試聴判断を現在のファイルへ流用しません。
+
 ## v0.1の境界
 
 - Music Brainはルールベースで、BPM、キー、ジャンル、質感、演奏指示を決定的に解釈します。
