@@ -14,7 +14,8 @@ from pathlib import Path
 from ..adapters.ace_step import AUDIO_FORMATS, DEFAULT_REQUEST_TIMEOUT
 from ..chunked import DEFAULT_CHUNK_BARS
 from ..revision import DEFAULT_ROUNDS
-from ..tail_guard import DEFAULT_TAIL_GUARD_BARS
+from ..tail_guard import DEFAULT_TAIL_GUARD_BARS, MUSIC_END_THRESHOLD_DBFS
+from ..tail_trim import DEFAULT_TAIL_PAD_SEC
 from ..web import DEFAULT_HOST as WEB_DEFAULT_HOST, DEFAULT_PORT as WEB_DEFAULT_PORT
 
 
@@ -283,6 +284,36 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="human reason for the choice; stored verbatim in decision_log.json",
     )
+
+    trim_tail = subparsers.add_parser(
+        "trim-tail",
+        help="cut a render's silent tail into a new file, leaving the render itself alone",
+    )
+    trim_tail.add_argument("project", type=Path, help="project whose audio has been rendered")
+    trim_tail.add_argument(
+        "--audio-file",
+        type=Path,
+        help="render to trim; defaults to audio/ace-step-01.wav",
+    )
+    trim_tail.add_argument(
+        "--pad",
+        type=float,
+        default=DEFAULT_TAIL_PAD_SEC,
+        help="seconds kept after the last audible sample so a decay is not clipped "
+        "(default: %(default)s)",
+    )
+    trim_tail.add_argument(
+        "--threshold-dbfs",
+        type=float,
+        default=MUSIC_END_THRESHOLD_DBFS,
+        help="level below which the tail counts as silent (default: %(default)s)",
+    )
+    trim_tail.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="measure and report the cut, writing nothing",
+    )
+    trim_tail.add_argument("--overwrite", action="store_true")
 
     midi_review = subparsers.add_parser(
         "midi-review",

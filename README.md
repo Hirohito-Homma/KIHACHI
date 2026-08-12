@@ -913,6 +913,37 @@ repaint範囲が最終小節に届く場合は、マスク自体もguard領域�
 
 `review`は既定でtail guard 2小節を計画へ入れます（`--tail-guard-bars 0`で無効）。また、セクション全体ではなく問題小節だけを狙う**bar-level候補**も出します。最終小節がセクション目標より0.25以上落ちていれば、その連続範囲を最低4小節まで広げた候補（例: bars 29:32）を`bar_level_candidates`へ記録し、セクション平均が目標付近（誤差0.05以内）なら`recommended_selector`を`bars`にします。`--prefer-bar-level`を付けると、その狭い範囲が実際の`selection`になります。
 
+### turboではtail guardが発火しません
+
+tail guardは「余分に生成させて、後で曲グリッドまで切り戻す」設計です。**モデルが長いバッファを実際に使うことが前提**で、`acestep-v15-turbo`はそれを満たしません。
+
+2026-08-13の実測です。74.182s（2小節分のguard込み）を要求した生成が69.80sで返り、`tail_guard`ブロックは`source_frames == kept_frames` — **切り戻す余地がゼロ**でした。そのうえモデルは67.77sで音を鳴らし終えるため、約2秒の無音が末尾に残ります。`silent_gap`のblocking閾値は0.5sなので、**turboでの生成は常にblocking判定になります**。
+
+repaintで縮みはします（4.80s → 2.02s、alignmentは77.13 → 90.10 / `partial` → `aligned`）が、消えません。原因が生成尺そのものにあるためです。
+
+### `trim-tail`: 生成後に末尾無音を落とす
+
+guardが効かない以上、後から切るしかありません。
+
+```bash
+python3 -m kihachi_music_ai trim-tail projects/my-song --dry-run
+python3 -m kihachi_music_ai trim-tail projects/my-song
+```
+
+```
+- music ends at 67.77 s of 69.80 s; keeping 68.02 s (+0.25 s pad)
+- removes 1.78 s below -40 dBFS
+- now 1.80 s (0.826 bars) short of the 69.82 s song grid
+```
+
+**レンダーそのものには触れません。**`audio/ace-step-01.tail-trimmed.wav`を隣に書き、元ファイルはそのまま残します — モデルがどう振る舞ったかの証拠だからです。監査記録は`tail_trim.json`へ。
+
+最後の可聴サンプルから`--pad`（既定0.25秒）だけ残すので、リバーブの減衰を切り落としません。除去量が0.5秒未満なら**切らずに拒否**します（blocking閾値未満なら既に許容範囲です）。閾値を一度も超えない音声も拒否します — 切って「欠陥解消」にするのは、レンダー全体を消すのと同じだからです。
+
+**切ると曲グリッドより短くなります。**69.818sの曲が68.02sで出るので、小節数と合わなくなります。これは丸め誤差ではないため、`tail_trim.json`に秒と小節の両方で記録し、コマンドも毎回表示します。
+
+実測では、この処理で`material_defects.json`が`blocking 1` → `clean: true`になります。
+
 ## チャンク分割レンダー
 
 9セクションの編成を1つのプロンプトで通すと、曲の3分の1を過ぎたあたりで自分の計画を無視し始めます（計画境界の再現率 1.0 → 0.25、セクションエネルギー相関 0.75 → 0.34）。そこで曲をセクション単位のチャンクに区切り、**各チャンクを自分のセクションだけを述べたプロンプトでレンダー**します。最初のパスが全長のベッドを敷き、以降は直前のレンダーを参照元とする自分の範囲のrepaintです。
