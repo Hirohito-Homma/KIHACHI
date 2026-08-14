@@ -1,0 +1,26 @@
+{
+  "stage_version": "0.1",
+  "execution_state_at_creation": "staged_not_rendered",
+  "source_project": "mutation-signal-2min-guarded-01",
+  "source_song_spec_sha256": "2067585b5d367e8b85e16ea179b5b90467ad364be0bfa84731ec85a0fe7eaea1",
+  "source_audio": {
+    "name": "ace-step-01.wav",
+    "sha256": "85f885261b61338a26f0bf07d8334f069a74904bd8176dd5eb3b0a81983518e2",
+    "verified": true,
+    "copied_to_output": false
+  },
+  "repaint_plan": "repaint_plan.json",
+  "applied_repaint_plan": "applied_repaint_plan.json",
+  "staged_files": [
+    "song_spec.json",
+    "bass.mid",
+    "drums.mid",
+    "chords.mid",
+    "prompt.txt",
+    "lyrics.txt",
+    "prompt.json",
+    "repaint_plan.json",
+    "applied_repaint_plan.json",
+    "revision_prompt.txt"
+  ]
+}
