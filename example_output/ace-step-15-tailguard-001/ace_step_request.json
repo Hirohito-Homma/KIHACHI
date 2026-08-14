@@ -1,0 +1,20 @@
+{
+  "prompt": "Title: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (2 bars, energy 0.25); minimal groove (2 bars, energy 0.44); mutation build (2 bars, energy 0.66, wide dub echoes); psychedelic drop (2 bars, energy 0.88, wide dub echoes, heavily psychedelic). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+  "lyrics": "[inst]\n[inst]\n[inst]\n[inst]\n",
+  "thinking": false,
+  "vocal_language": "en",
+  "audio_format": "wav",
+  "bpm": 110,
+  "key_scale": "D# minor",
+  "time_signature": "4",
+  "audio_duration": 21.819,
+  "inference_steps": 8,
+  "use_random_seed": false,
+  "seed": 8,
+  "batch_size": 1,
+  "sample_mode": false,
+  "use_format": false,
+  "use_cot_caption": false,
+  "use_cot_language": false,
+  "task_type": "text2music"
+}
