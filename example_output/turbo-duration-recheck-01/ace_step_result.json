@@ -1,0 +1,54 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "4b430c9b-2e55-409f-869e-3081a32a8c46",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F393fcb6e-0853-4324-f060-79eecd0f8129.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 1.51s**\n- 1.51s per song\n- DiT phase (1 song): 1.51s",
+      "metas": {
+        "bpm": 110,
+        "duration": 74.182,
+        "genres": "N/A",
+        "keyscale": "D# major",
+        "timesignature": "4",
+        "prompt": "Title: KIHACHI Sketch\nCreate a mutation funk 50%, dub 50% hybrid at 110 BPM in D# major.\nMood: dark, subtly coloured.\nGroove: syncopated 16th-note feel, swung 0.54, machine-tight.\nBass: dominant and up-front fingered electric bass, syncopated phrasing, mutation intensity 0.35.\nDrums: four on floor, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D# - Cm - G# - A#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (8 bars, energy 0.44); mutation build (8 bars, energy 0.66, wide dub echoes); psychedelic drop (8 bars, energy 0.88, wide dub echoes). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": "[inst]\n[inst]\n[inst]\n[inst]\n"
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 74.182,
+    "song_grid_duration_sec": 69.818,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 3561600,
+        "kept_frames": 3351264,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 69.818,
+        "kept_duration_sec": 69.818,
+        "fade_out_sec": 0.01,
+        "source_sha256": "1309829af2db1d7ec07d6c011aab820ed0243f0b40f08998a7032e19e5784c78",
+        "trimmed_sha256": "65f84678df15167c6ff3a26dabbb875a5685115176e0ad1ed1238c869ee1cb49"
+      }
+    ],
+    "delivered_music_end_sec": [
+      67.4964
+    ]
+  }
+}
