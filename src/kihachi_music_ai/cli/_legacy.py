@@ -53,6 +53,7 @@ from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
 from ..reviewer import review_project
 from ..instrumental import plan_instrumental_sections, write_instrumental_plan
+from ..tail_guard import DEFAULT_TAIL_GUARD_BARS
 from ..tail_trim import TailTrimPlan, plan_tail_trim, trim_project_tail
 
 
@@ -116,7 +117,17 @@ def _ace_options_and_window(
     repaint_latent_crossfade_frames = args.repaint_latent_crossfade_frames
     repaint_wav_crossfade_sec = args.repaint_wav_crossfade_sec
     chunk_mask_mode = args.chunk_mask_mode
-    tail_guard_bars = args.tail_guard_bars
+    # None means the flag was not passed, which is not the same as an explicit 0:
+    # text2music wants a guard by default, and only an explicit 0 turns it off.
+    # cover and repaint render against a source whose length is already fixed, so
+    # lengthening the buffer for them would move the window they were given.
+    guard_requested = args.tail_guard_bars is not None
+    if guard_requested:
+        tail_guard_bars = args.tail_guard_bars
+    elif task_type == "text2music":
+        tail_guard_bars = DEFAULT_TAIL_GUARD_BARS
+    else:
+        tail_guard_bars = 0.0
     repaint_window = None
     repainting_start = args.repainting_start
     repainting_end = args.repainting_end
@@ -129,7 +140,7 @@ def _ace_options_and_window(
             raise ValueError("--repaint-plan already supplies the revision prompt")
         if args.task_type == "cover":
             raise ValueError("--repaint-plan cannot be combined with --task-type cover")
-        if args.tail_guard_bars:
+        if guard_requested and args.tail_guard_bars:
             raise ValueError("--repaint-plan already supplies the tail guard")
         plan_path = _resolve_repaint_plan_path(args.project, args.repaint_plan)
         plan = load_repaint_plan(plan_path)

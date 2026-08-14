@@ -552,11 +552,14 @@ def add_ace_generation_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--tail-guard-bars",
         type=float,
-        default=0.0,
+        default=None,
         help=(
             "extra bars of render buffer past the song grid so ACE-Step writes its "
             "ending outside the scored bars; the delivered WAV is trimmed back to the "
-            "grid and the untrimmed render is kept alongside it"
+            "grid and the untrimmed render is kept alongside it. Defaults to "
+            f"{DEFAULT_TAIL_GUARD_BARS} for text2music and 0 for cover and repaint, "
+            "which render against a source whose length is already fixed. Pass 0 to "
+            "render text2music without a guard"
         ),
     )
     parser.add_argument(
