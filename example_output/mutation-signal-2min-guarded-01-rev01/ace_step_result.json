@@ -1,0 +1,85 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "030c1777-fdf5-4127-89f6-0ea9bddb00d8",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F5323a618-7493-df66-5469-904b1d868632.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 1.50s**\n- 1.50s per song\n- DiT phase (1 song): 1.50s",
+      "metas": {
+        "bpm": 110,
+        "duration": 126.546,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nRepaint only bars 28-31 around the measured discontinuity at 61.550 seconds in bar 29. Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Remove the sample-to-sample discontinuity, keep both splice boundaries click-free, and preserve the planned arrangement transition and energy shape across the window.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (16 bars, energy 0.44); mutation build (16 bars, energy 0.66, wide dub echoes); psychedelic drop (16 bars, energy 0.88, wide dub echoes, heavily psychedelic). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": "[inst]\n[inst]\n[inst]\n[inst]\n"
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 126.546,
+    "song_grid_duration_sec": 122.182,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 5863680,
+        "kept_frames": 5863680,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 122.182,
+        "kept_duration_sec": 122.16,
+        "fade_out_sec": 0.01,
+        "source_sha256": "1fe7de0238e89f282ddabe4a92926a1be59a74cc5177a8dccf179f6c5a270977",
+        "trimmed_sha256": "4bd5c71e408b9da8de2de8f9e84e1d0a916a9ec062764af880eee198a1f70f48"
+      }
+    ],
+    "delivered_music_end_sec": [
+      122.157
+    ]
+  },
+  "conditioning": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repainting_start": 58.909,
+    "repainting_end": 67.636,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.65,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.5,
+    "chunk_mask_mode": "explicit",
+    "source_audio": {
+      "name": "ace-step-01.wav",
+      "sha256": "85f885261b61338a26f0bf07d8334f069a74904bd8176dd5eb3b0a81983518e2",
+      "size_bytes": 23458988
+    },
+    "reference_audio": null,
+    "repaint_selection": {
+      "selector": "bars",
+      "start_bar": 28,
+      "end_bar": 31,
+      "start_sec": 58.909,
+      "end_sec": 67.636,
+      "section_name": "mutation_build"
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "4b8bbccd9d162c14882c05f1f2032cebb339776b435e42d7e456ae95ed5dcb12",
+    "request_file": "ace_step_repaint_revision_request.json"
+  }
+}

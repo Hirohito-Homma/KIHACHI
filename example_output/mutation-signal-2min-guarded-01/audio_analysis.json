@@ -1,0 +1,1323 @@
+{
+  "analysis_version": "0.3",
+  "sha256": "85f885261b61338a26f0bf07d8334f069a74904bd8176dd5eb3b0a81983518e2",
+  "format": {
+    "container": "wav",
+    "codec": "pcm_s16le",
+    "sample_rate_hz": 48000,
+    "channels": 2,
+    "sample_width_bits": 16,
+    "frame_count": 5864736,
+    "duration_sec": 122.182
+  },
+  "level": {
+    "peak_dbfs": -1.0,
+    "rms_dbfs": -15.417,
+    "crest_factor_db": 14.417,
+    "dc_offset": 0.00168163,
+    "clipped_sample_ratio": 0.0,
+    "silence_ratio_below_minus_50_dbfs": 0.023241,
+    "channel_rms_dbfs": [
+      -15.333,
+      -15.502
+    ]
+  },
+  "tempo": {
+    "estimated_bpm": 110.233,
+    "confidence": 0.5128,
+    "method": "20ms-rms-positive-flux-autocorrelation"
+  },
+  "harmony": {
+    "method": "4kHz-box-downsample-goertzel-48pitch-chroma-tonic-anchor",
+    "analysis_sample_rate_hz": 4000.0,
+    "key": {
+      "estimated_key": "F# minor",
+      "confidence": 0.1151,
+      "confidence_threshold": 0.25,
+      "margin": 0.0614,
+      "tonic_anchor_chord": "F#m",
+      "tonal_confidence": 0.1663,
+      "pitch_class_profile": {
+        "C": 0.079285,
+        "C#": 0.169113,
+        "D": 0.109377,
+        "D#": 0.092043,
+        "E": 0.110857,
+        "F": 0.080076,
+        "F#": 0.104084,
+        "G": 0.038016,
+        "G#": 0.071102,
+        "A": 0.121781,
+        "A#": 0.024266,
+        "B": 0.0
+      }
+    },
+    "chords": {
+      "grid": "song_spec_bars",
+      "bars": [
+        {
+          "bar": 1,
+          "start_sec": 0.0,
+          "end_sec": 2.1818,
+          "estimated_chord": "A",
+          "confidence": 0.0498,
+          "reliable": false,
+          "expected_chord": "D#m",
+          "match": null
+        },
+        {
+          "bar": 2,
+          "start_sec": 2.1818,
+          "end_sec": 4.3635,
+          "estimated_chord": "F#m",
+          "confidence": 0.4789,
+          "reliable": true,
+          "expected_chord": "B",
+          "match": false
+        },
+        {
+          "bar": 3,
+          "start_sec": 4.3635,
+          "end_sec": 6.5453,
+          "estimated_chord": "C#m",
+          "confidence": 0.1835,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 4,
+          "start_sec": 6.5453,
+          "end_sec": 8.727,
+          "estimated_chord": "F",
+          "confidence": 0.0948,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 5,
+          "start_sec": 8.727,
+          "end_sec": 10.9087,
+          "estimated_chord": "F#m",
+          "confidence": 0.304,
+          "reliable": true,
+          "expected_chord": "D#m",
+          "match": false
+        },
+        {
+          "bar": 6,
+          "start_sec": 10.9087,
+          "end_sec": 13.0905,
+          "estimated_chord": "F#m",
+          "confidence": 0.3019,
+          "reliable": true,
+          "expected_chord": "B",
+          "match": false
+        },
+        {
+          "bar": 7,
+          "start_sec": 13.0905,
+          "end_sec": 15.2722,
+          "estimated_chord": "C#",
+          "confidence": 0.0136,
+          "reliable": false,
+          "expected_chord": "F#",
+          "match": null
+        },
+        {
+          "bar": 8,
+          "start_sec": 15.2722,
+          "end_sec": 17.454,
+          "estimated_chord": "F",
+          "confidence": 0.1789,
+          "reliable": true,
+          "expected_chord": "C#",
+          "match": false
+        },
+        {
+          "bar": 9,
+          "start_sec": 17.454,
+          "end_sec": 19.6358,
+          "estimated_chord": "F#m",
+          "confidence": 0.47,
+          "reliable": true,
+          "expected_chord": "D#m",
+          "match": false
+        },
+        {
+          "bar": 10,
+          "start_sec": 19.6358,
+          "end_sec": 21.8175,
+          "estimated_chord": "F#m",
+          "confidence": 0.473,
+          "reliable": true,
+          "expected_chord": "B",
+          "match": false
+        },
+        {
+          "bar": 11,
+          "start_sec": 21.8175,
+          "end_sec": 23.9992,
+          "estimated_chord": "F#m",
+          "confidence": 0.2848,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 12,
+          "start_sec": 23.9992,
+          "end_sec": 26.181,
+          "estimated_chord": "F#m",
+          "confidence": 0.2245,
+          "reliable": true,
+          "expected_chord": "C#",
+          "match": false
+        },
+        {
+          "bar": 13,
+          "start_sec": 26.181,
+          "end_sec": 28.3627,
+          "estimated_chord": "D",
+          "confidence": 0.4391,
+          "reliable": true,
+          "expected_chord": "D#m",
+          "match": false
+        },
+        {
+          "bar": 14,
+          "start_sec": 28.3627,
+          "end_sec": 30.5445,
+          "estimated_chord": "F#m",
+          "confidence": 0.3401,
+          "reliable": true,
+          "expected_chord": "B",
+          "match": false
+        },
+        {
+          "bar": 15,
+          "start_sec": 30.5445,
+          "end_sec": 32.7263,
+          "estimated_chord": "C#m",
+          "confidence": 0.0237,
+          "reliable": false,
+          "expected_chord": "F#",
+          "match": null
+        },
+        {
+          "bar": 16,
+          "start_sec": 32.7263,
+          "end_sec": 34.908,
+          "estimated_chord": "F",
+          "confidence": 0.1177,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 17,
+          "start_sec": 34.908,
+          "end_sec": 37.0898,
+          "estimated_chord": "A",
+          "confidence": 0.1259,
+          "reliable": false,
+          "expected_chord": "D#m",
+          "match": null
+        },
+        {
+          "bar": 18,
+          "start_sec": 37.0898,
+          "end_sec": 39.2715,
+          "estimated_chord": "A",
+          "confidence": 0.0525,
+          "reliable": false,
+          "expected_chord": "B",
+          "match": null
+        },
+        {
+          "bar": 19,
+          "start_sec": 39.2715,
+          "end_sec": 41.4532,
+          "estimated_chord": "A",
+          "confidence": 0.0869,
+          "reliable": false,
+          "expected_chord": "F#",
+          "match": null
+        },
+        {
+          "bar": 20,
+          "start_sec": 41.4532,
+          "end_sec": 43.635,
+          "estimated_chord": "F#m",
+          "confidence": 0.1144,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 21,
+          "start_sec": 43.635,
+          "end_sec": 45.8167,
+          "estimated_chord": "Dm",
+          "confidence": 0.0814,
+          "reliable": false,
+          "expected_chord": "D#m",
+          "match": null
+        },
+        {
+          "bar": 22,
+          "start_sec": 45.8167,
+          "end_sec": 47.9985,
+          "estimated_chord": "A",
+          "confidence": 0.2124,
+          "reliable": true,
+          "expected_chord": "B",
+          "match": false
+        },
+        {
+          "bar": 23,
+          "start_sec": 47.9985,
+          "end_sec": 50.1803,
+          "estimated_chord": "C#m",
+          "confidence": 0.36,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 24,
+          "start_sec": 50.1803,
+          "end_sec": 52.362,
+          "estimated_chord": "Dm",
+          "confidence": 0.0208,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 25,
+          "start_sec": 52.362,
+          "end_sec": 54.5438,
+          "estimated_chord": "C#m",
+          "confidence": 0.0036,
+          "reliable": false,
+          "expected_chord": "D#m",
+          "match": null
+        },
+        {
+          "bar": 26,
+          "start_sec": 54.5438,
+          "end_sec": 56.7255,
+          "estimated_chord": "D",
+          "confidence": 0.0236,
+          "reliable": false,
+          "expected_chord": "B",
+          "match": null
+        },
+        {
+          "bar": 27,
+          "start_sec": 56.7255,
+          "end_sec": 58.9072,
+          "estimated_chord": "F#m",
+          "confidence": 0.1098,
+          "reliable": false,
+          "expected_chord": "F#",
+          "match": null
+        },
+        {
+          "bar": 28,
+          "start_sec": 58.9072,
+          "end_sec": 61.089,
+          "estimated_chord": "F#m",
+          "confidence": 0.0101,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 29,
+          "start_sec": 61.089,
+          "end_sec": 63.2707,
+          "estimated_chord": "Dm",
+          "confidence": 0.0119,
+          "reliable": false,
+          "expected_chord": "D#m",
+          "match": null
+        },
+        {
+          "bar": 30,
+          "start_sec": 63.2707,
+          "end_sec": 65.4525,
+          "estimated_chord": "D",
+          "confidence": 0.0307,
+          "reliable": false,
+          "expected_chord": "B",
+          "match": null
+        },
+        {
+          "bar": 31,
+          "start_sec": 65.4525,
+          "end_sec": 67.6342,
+          "estimated_chord": "C#m",
+          "confidence": 0.2985,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 32,
+          "start_sec": 67.6342,
+          "end_sec": 69.816,
+          "estimated_chord": "F#m",
+          "confidence": 0.0351,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 33,
+          "start_sec": 69.816,
+          "end_sec": 71.9977,
+          "estimated_chord": "A",
+          "confidence": 0.191,
+          "reliable": true,
+          "expected_chord": "D#m",
+          "match": false
+        },
+        {
+          "bar": 34,
+          "start_sec": 71.9977,
+          "end_sec": 74.1795,
+          "estimated_chord": "F#m",
+          "confidence": 0.0866,
+          "reliable": false,
+          "expected_chord": "B",
+          "match": null
+        },
+        {
+          "bar": 35,
+          "start_sec": 74.1795,
+          "end_sec": 76.3612,
+          "estimated_chord": "F#m",
+          "confidence": 0.4206,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 36,
+          "start_sec": 76.3612,
+          "end_sec": 78.543,
+          "estimated_chord": "F#",
+          "confidence": 0.1766,
+          "reliable": true,
+          "expected_chord": "C#",
+          "match": false
+        },
+        {
+          "bar": 37,
+          "start_sec": 78.543,
+          "end_sec": 80.7248,
+          "estimated_chord": "Dm",
+          "confidence": 0.2365,
+          "reliable": true,
+          "expected_chord": "D#m",
+          "match": false
+        },
+        {
+          "bar": 38,
+          "start_sec": 80.7248,
+          "end_sec": 82.9065,
+          "estimated_chord": "F#m",
+          "confidence": 0.0684,
+          "reliable": false,
+          "expected_chord": "B",
+          "match": null
+        },
+        {
+          "bar": 39,
+          "start_sec": 82.9065,
+          "end_sec": 85.0883,
+          "estimated_chord": "C#m",
+          "confidence": 0.4573,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 40,
+          "start_sec": 85.0883,
+          "end_sec": 87.27,
+          "estimated_chord": "C#",
+          "confidence": 0.082,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 41,
+          "start_sec": 87.27,
+          "end_sec": 89.4518,
+          "estimated_chord": "C#",
+          "confidence": 0.1074,
+          "reliable": false,
+          "expected_chord": "D#m",
+          "match": null
+        },
+        {
+          "bar": 42,
+          "start_sec": 89.4518,
+          "end_sec": 91.6335,
+          "estimated_chord": "A",
+          "confidence": 0.2687,
+          "reliable": true,
+          "expected_chord": "B",
+          "match": false
+        },
+        {
+          "bar": 43,
+          "start_sec": 91.6335,
+          "end_sec": 93.8153,
+          "estimated_chord": "F#m",
+          "confidence": 0.3849,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 44,
+          "start_sec": 93.8153,
+          "end_sec": 95.997,
+          "estimated_chord": "F#m",
+          "confidence": 0.1263,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 45,
+          "start_sec": 95.997,
+          "end_sec": 98.1787,
+          "estimated_chord": "Dm",
+          "confidence": 0.0102,
+          "reliable": false,
+          "expected_chord": "D#m",
+          "match": null
+        },
+        {
+          "bar": 46,
+          "start_sec": 98.1787,
+          "end_sec": 100.3605,
+          "estimated_chord": "F#m",
+          "confidence": 0.0137,
+          "reliable": false,
+          "expected_chord": "B",
+          "match": null
+        },
+        {
+          "bar": 47,
+          "start_sec": 100.3605,
+          "end_sec": 102.5422,
+          "estimated_chord": "C#m",
+          "confidence": 0.3431,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 48,
+          "start_sec": 102.5422,
+          "end_sec": 104.724,
+          "estimated_chord": "C#",
+          "confidence": 0.1305,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 49,
+          "start_sec": 104.724,
+          "end_sec": 106.9057,
+          "estimated_chord": "A",
+          "confidence": 0.057,
+          "reliable": false,
+          "expected_chord": "D#m",
+          "match": null
+        },
+        {
+          "bar": 50,
+          "start_sec": 106.9057,
+          "end_sec": 109.0875,
+          "estimated_chord": "A",
+          "confidence": 0.0022,
+          "reliable": false,
+          "expected_chord": "B",
+          "match": null
+        },
+        {
+          "bar": 51,
+          "start_sec": 109.0875,
+          "end_sec": 111.2692,
+          "estimated_chord": "C",
+          "confidence": 0.0014,
+          "reliable": false,
+          "expected_chord": "F#",
+          "match": null
+        },
+        {
+          "bar": 52,
+          "start_sec": 111.2692,
+          "end_sec": 113.451,
+          "estimated_chord": "F#",
+          "confidence": 0.004,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        },
+        {
+          "bar": 53,
+          "start_sec": 113.451,
+          "end_sec": 115.6328,
+          "estimated_chord": "A",
+          "confidence": 0.2073,
+          "reliable": true,
+          "expected_chord": "D#m",
+          "match": false
+        },
+        {
+          "bar": 54,
+          "start_sec": 115.6328,
+          "end_sec": 117.8145,
+          "estimated_chord": "D#m",
+          "confidence": 0.0146,
+          "reliable": false,
+          "expected_chord": "B",
+          "match": null
+        },
+        {
+          "bar": 55,
+          "start_sec": 117.8145,
+          "end_sec": 119.9963,
+          "estimated_chord": "A",
+          "confidence": 0.2498,
+          "reliable": true,
+          "expected_chord": "F#",
+          "match": false
+        },
+        {
+          "bar": 56,
+          "start_sec": 119.9963,
+          "end_sec": 122.178,
+          "estimated_chord": "C#",
+          "confidence": 0.119,
+          "reliable": false,
+          "expected_chord": "C#",
+          "match": null
+        }
+      ],
+      "confidence_threshold": 0.15,
+      "confident_bar_coverage": 0.4286,
+      "progression_match_ratio": 0.0
+    }
+  },
+  "sections": {
+    "method": "20ms-rms-song-grid-energy-and-local-db-change",
+    "grid": "song_spec_bars",
+    "bar_duration_sec": 2.181818,
+    "bars": [
+      {
+        "bar": 1,
+        "start_sec": 0.0,
+        "end_sec": 2.1818,
+        "rms_dbfs": -19.417,
+        "normalized_energy": 0.1136,
+        "planned_section": "minimal_intro",
+        "target_energy": 0.25
+      },
+      {
+        "bar": 2,
+        "start_sec": 2.1818,
+        "end_sec": 4.3636,
+        "rms_dbfs": -21.069,
+        "normalized_energy": 0.0,
+        "planned_section": "minimal_intro",
+        "target_energy": 0.25
+      },
+      {
+        "bar": 3,
+        "start_sec": 4.3636,
+        "end_sec": 6.5455,
+        "rms_dbfs": -21.838,
+        "normalized_energy": 0.0,
+        "planned_section": "minimal_intro",
+        "target_energy": 0.25
+      },
+      {
+        "bar": 4,
+        "start_sec": 6.5455,
+        "end_sec": 8.7273,
+        "rms_dbfs": -19.232,
+        "normalized_energy": 0.1448,
+        "planned_section": "minimal_intro",
+        "target_energy": 0.25
+      },
+      {
+        "bar": 5,
+        "start_sec": 8.7273,
+        "end_sec": 10.9091,
+        "rms_dbfs": -18.579,
+        "normalized_energy": 0.2548,
+        "planned_section": "minimal_intro",
+        "target_energy": 0.25
+      },
+      {
+        "bar": 6,
+        "start_sec": 10.9091,
+        "end_sec": 13.0909,
+        "rms_dbfs": -20.493,
+        "normalized_energy": 0.0,
+        "planned_section": "minimal_intro",
+        "target_energy": 0.25
+      },
+      {
+        "bar": 7,
+        "start_sec": 13.0909,
+        "end_sec": 15.2727,
+        "rms_dbfs": -20.578,
+        "normalized_energy": 0.0,
+        "planned_section": "minimal_intro",
+        "target_energy": 0.25
+      },
+      {
+        "bar": 8,
+        "start_sec": 15.2727,
+        "end_sec": 17.4545,
+        "rms_dbfs": -17.134,
+        "normalized_energy": 0.498,
+        "planned_section": "minimal_intro",
+        "target_energy": 0.25
+      },
+      {
+        "bar": 9,
+        "start_sec": 17.4545,
+        "end_sec": 19.6364,
+        "rms_dbfs": -17.815,
+        "normalized_energy": 0.3834,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 10,
+        "start_sec": 19.6364,
+        "end_sec": 21.8182,
+        "rms_dbfs": -19.888,
+        "normalized_energy": 0.0344,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 11,
+        "start_sec": 21.8182,
+        "end_sec": 24.0,
+        "rms_dbfs": -20.318,
+        "normalized_energy": 0.0,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 12,
+        "start_sec": 24.0,
+        "end_sec": 26.1818,
+        "rms_dbfs": -17.079,
+        "normalized_energy": 0.5071,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 13,
+        "start_sec": 26.1818,
+        "end_sec": 28.3636,
+        "rms_dbfs": -14.32,
+        "normalized_energy": 0.9716,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 14,
+        "start_sec": 28.3636,
+        "end_sec": 30.5455,
+        "rms_dbfs": -20.015,
+        "normalized_energy": 0.013,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 15,
+        "start_sec": 30.5455,
+        "end_sec": 32.7273,
+        "rms_dbfs": -20.169,
+        "normalized_energy": 0.0,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 16,
+        "start_sec": 32.7273,
+        "end_sec": 34.9091,
+        "rms_dbfs": -15.184,
+        "normalized_energy": 0.8262,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 17,
+        "start_sec": 34.9091,
+        "end_sec": 37.0909,
+        "rms_dbfs": -14.715,
+        "normalized_energy": 0.905,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 18,
+        "start_sec": 37.0909,
+        "end_sec": 39.2727,
+        "rms_dbfs": -15.569,
+        "normalized_energy": 0.7613,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 19,
+        "start_sec": 39.2727,
+        "end_sec": 41.4545,
+        "rms_dbfs": -16.495,
+        "normalized_energy": 0.6055,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 20,
+        "start_sec": 41.4545,
+        "end_sec": 43.6364,
+        "rms_dbfs": -14.656,
+        "normalized_energy": 0.915,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 21,
+        "start_sec": 43.6364,
+        "end_sec": 45.8182,
+        "rms_dbfs": -15.116,
+        "normalized_energy": 0.8376,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 22,
+        "start_sec": 45.8182,
+        "end_sec": 48.0,
+        "rms_dbfs": -15.547,
+        "normalized_energy": 0.7651,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 23,
+        "start_sec": 48.0,
+        "end_sec": 50.1818,
+        "rms_dbfs": -15.58,
+        "normalized_energy": 0.7595,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 24,
+        "start_sec": 50.1818,
+        "end_sec": 52.3636,
+        "rms_dbfs": -13.767,
+        "normalized_energy": 1.0,
+        "planned_section": "minimal_groove",
+        "target_energy": 0.44
+      },
+      {
+        "bar": 25,
+        "start_sec": 52.3636,
+        "end_sec": 54.5455,
+        "rms_dbfs": -15.131,
+        "normalized_energy": 0.835,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 26,
+        "start_sec": 54.5455,
+        "end_sec": 56.7273,
+        "rms_dbfs": -15.417,
+        "normalized_energy": 0.7869,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 27,
+        "start_sec": 56.7273,
+        "end_sec": 58.9091,
+        "rms_dbfs": -16.189,
+        "normalized_energy": 0.6569,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 28,
+        "start_sec": 58.9091,
+        "end_sec": 61.0909,
+        "rms_dbfs": -14.656,
+        "normalized_energy": 0.915,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 29,
+        "start_sec": 61.0909,
+        "end_sec": 63.2727,
+        "rms_dbfs": -15.226,
+        "normalized_energy": 0.819,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 30,
+        "start_sec": 63.2727,
+        "end_sec": 65.4545,
+        "rms_dbfs": -15.438,
+        "normalized_energy": 0.7833,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 31,
+        "start_sec": 65.4545,
+        "end_sec": 67.6364,
+        "rms_dbfs": -15.169,
+        "normalized_energy": 0.8287,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 32,
+        "start_sec": 67.6364,
+        "end_sec": 69.8182,
+        "rms_dbfs": -13.691,
+        "normalized_energy": 1.0,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 33,
+        "start_sec": 69.8182,
+        "end_sec": 72.0,
+        "rms_dbfs": -13.989,
+        "normalized_energy": 1.0,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 34,
+        "start_sec": 72.0,
+        "end_sec": 74.1818,
+        "rms_dbfs": -14.992,
+        "normalized_energy": 0.8585,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 35,
+        "start_sec": 74.1818,
+        "end_sec": 76.3636,
+        "rms_dbfs": -15.08,
+        "normalized_energy": 0.8437,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 36,
+        "start_sec": 76.3636,
+        "end_sec": 78.5455,
+        "rms_dbfs": -14.371,
+        "normalized_energy": 0.963,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 37,
+        "start_sec": 78.5455,
+        "end_sec": 80.7273,
+        "rms_dbfs": -14.302,
+        "normalized_energy": 0.9745,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 38,
+        "start_sec": 80.7273,
+        "end_sec": 82.9091,
+        "rms_dbfs": -14.939,
+        "normalized_energy": 0.8674,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 39,
+        "start_sec": 82.9091,
+        "end_sec": 85.0909,
+        "rms_dbfs": -14.602,
+        "normalized_energy": 0.924,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 40,
+        "start_sec": 85.0909,
+        "end_sec": 87.2727,
+        "rms_dbfs": -13.886,
+        "normalized_energy": 1.0,
+        "planned_section": "mutation_build",
+        "target_energy": 0.66
+      },
+      {
+        "bar": 41,
+        "start_sec": 87.2727,
+        "end_sec": 89.4545,
+        "rms_dbfs": -14.336,
+        "normalized_energy": 0.9688,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 42,
+        "start_sec": 89.4545,
+        "end_sec": 91.6364,
+        "rms_dbfs": -14.902,
+        "normalized_energy": 0.8735,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 43,
+        "start_sec": 91.6364,
+        "end_sec": 93.8182,
+        "rms_dbfs": -14.834,
+        "normalized_energy": 0.8851,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 44,
+        "start_sec": 93.8182,
+        "end_sec": 96.0,
+        "rms_dbfs": -14.463,
+        "normalized_energy": 0.9474,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 45,
+        "start_sec": 96.0,
+        "end_sec": 98.1818,
+        "rms_dbfs": -14.324,
+        "normalized_energy": 0.9708,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 46,
+        "start_sec": 98.1818,
+        "end_sec": 100.3636,
+        "rms_dbfs": -15.072,
+        "normalized_energy": 0.845,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 47,
+        "start_sec": 100.3636,
+        "end_sec": 102.5455,
+        "rms_dbfs": -14.587,
+        "normalized_energy": 0.9265,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 48,
+        "start_sec": 102.5455,
+        "end_sec": 104.7273,
+        "rms_dbfs": -13.61,
+        "normalized_energy": 1.0,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 49,
+        "start_sec": 104.7273,
+        "end_sec": 106.9091,
+        "rms_dbfs": -13.999,
+        "normalized_energy": 1.0,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 50,
+        "start_sec": 106.9091,
+        "end_sec": 109.0909,
+        "rms_dbfs": -15.077,
+        "normalized_energy": 0.8441,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 51,
+        "start_sec": 109.0909,
+        "end_sec": 111.2727,
+        "rms_dbfs": -15.155,
+        "normalized_energy": 0.8311,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 52,
+        "start_sec": 111.2727,
+        "end_sec": 113.4545,
+        "rms_dbfs": -14.416,
+        "normalized_energy": 0.9553,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 53,
+        "start_sec": 113.4545,
+        "end_sec": 115.6364,
+        "rms_dbfs": -14.428,
+        "normalized_energy": 0.9533,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 54,
+        "start_sec": 115.6364,
+        "end_sec": 117.8182,
+        "rms_dbfs": -15.142,
+        "normalized_energy": 0.8332,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 55,
+        "start_sec": 117.8182,
+        "end_sec": 120.0,
+        "rms_dbfs": -14.654,
+        "normalized_energy": 0.9154,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      },
+      {
+        "bar": 56,
+        "start_sec": 120.0,
+        "end_sec": 122.1818,
+        "rms_dbfs": -17.313,
+        "normalized_energy": 0.4679,
+        "planned_section": "psychedelic_drop",
+        "target_energy": 0.88
+      }
+    ],
+    "detected_boundaries_after_bar": [
+      3,
+      7,
+      11,
+      15,
+      25,
+      31,
+      49
+    ],
+    "boundary_strength_unit": "dB",
+    "boundary_detection_threshold_db": 0.5,
+    "observed_sections": [
+      {
+        "index": 1,
+        "start_bar": 1,
+        "end_bar": 3,
+        "mean_normalized_energy": 0.0379,
+        "boundary_strength": 0.0
+      },
+      {
+        "index": 2,
+        "start_bar": 4,
+        "end_bar": 7,
+        "mean_normalized_energy": 0.0999,
+        "boundary_strength": 2.5484
+      },
+      {
+        "index": 3,
+        "start_bar": 8,
+        "end_bar": 11,
+        "mean_normalized_energy": 0.2289,
+        "boundary_strength": 3.0612
+      },
+      {
+        "index": 4,
+        "start_bar": 12,
+        "end_bar": 15,
+        "mean_normalized_energy": 0.3729,
+        "boundary_strength": 4.4031
+      },
+      {
+        "index": 5,
+        "start_bar": 16,
+        "end_bar": 25,
+        "mean_normalized_energy": 0.821,
+        "boundary_strength": 5.1429
+      },
+      {
+        "index": 6,
+        "start_bar": 26,
+        "end_bar": 31,
+        "mean_normalized_energy": 0.7983,
+        "boundary_strength": 1.3538
+      },
+      {
+        "index": 7,
+        "start_bar": 32,
+        "end_bar": 49,
+        "mean_normalized_energy": 0.936,
+        "boundary_strength": 1.4636
+      },
+      {
+        "index": 8,
+        "start_bar": 50,
+        "end_bar": 56,
+        "mean_normalized_energy": 0.8286,
+        "boundary_strength": 1.3112
+      }
+    ],
+    "planned_sections": [
+      {
+        "name": "minimal_intro",
+        "start_bar": 1,
+        "length_bars": 8,
+        "target_energy": 0.25,
+        "observed_mean_energy": 0.1264
+      },
+      {
+        "name": "minimal_groove",
+        "start_bar": 9,
+        "length_bars": 16,
+        "target_energy": 0.44,
+        "observed_mean_energy": 0.5803
+      },
+      {
+        "name": "mutation_build",
+        "start_bar": 25,
+        "length_bars": 16,
+        "target_energy": 0.66,
+        "observed_mean_energy": 0.8785
+      },
+      {
+        "name": "psychedelic_drop",
+        "start_bar": 41,
+        "length_bars": 16,
+        "target_energy": 0.88,
+        "observed_mean_energy": 0.8886
+      }
+    ],
+    "planned_boundaries_after_bar": [
+      8,
+      24,
+      40
+    ],
+    "planned_boundary_matches": [
+      {
+        "planned_after_bar": 8,
+        "nearest_detected_after_bar": 7,
+        "distance_bars": 1,
+        "matched_within_one_bar": true
+      },
+      {
+        "planned_after_bar": 24,
+        "nearest_detected_after_bar": 25,
+        "distance_bars": 1,
+        "matched_within_one_bar": true
+      },
+      {
+        "planned_after_bar": 40,
+        "nearest_detected_after_bar": 31,
+        "distance_bars": 9,
+        "matched_within_one_bar": false
+      }
+    ],
+    "planned_boundary_recall_within_one_bar": 0.6667,
+    "energy_correlation_to_song_spec": 0.6916
+  },
+  "spectrum": {
+    "spectrum_version": "0.1",
+    "method": "hann-2048-fft-200-windows",
+    "sample_rate_hz": 48000,
+    "windows": 200,
+    "bands": {
+      "sub": {
+        "low_hz": 20.0,
+        "high_hz": 60.0,
+        "share": 0.227771,
+        "dbfs": 6.906
+      },
+      "bass": {
+        "low_hz": 60.0,
+        "high_hz": 250.0,
+        "share": 0.64881,
+        "dbfs": 11.452
+      },
+      "low_mid": {
+        "low_hz": 250.0,
+        "high_hz": 800.0,
+        "share": 0.083637,
+        "dbfs": 2.555
+      },
+      "mid": {
+        "low_hz": 800.0,
+        "high_hz": 2500.0,
+        "share": 0.023031,
+        "dbfs": -3.046
+      },
+      "high_mid": {
+        "low_hz": 2500.0,
+        "high_hz": 6000.0,
+        "share": 0.006473,
+        "dbfs": -8.558
+      },
+      "high": {
+        "low_hz": 6000.0,
+        "high_hz": 16000.0,
+        "share": 0.009805,
+        "dbfs": -6.755
+      }
+    },
+    "low_to_high_ratio": 53.85,
+    "centroid_hz": 278.5
+  },
+  "loudness": null,
+  "quality_flags": [],
+  "song_spec_comparison": {
+    "target_duration_sec": 122.182,
+    "duration_delta_sec": 0.0,
+    "target_bpm": 110.0,
+    "tempo_delta_bpm": 0.233,
+    "target_key": "D# minor",
+    "observed_key": "F# minor",
+    "key_confidence": 0.1151,
+    "key_status": "low_confidence",
+    "progression_match_ratio": 0.0,
+    "section_energy_correlation": 0.6916,
+    "section_boundary_recall": 0.6667
+  },
+  "audio_file": "audio/ace-step-01.wav"
+}

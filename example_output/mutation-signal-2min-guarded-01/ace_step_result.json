@@ -1,0 +1,54 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "e61dd8b4-5e4d-4045-b609-16b5c0479a17",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F7fb16a7c-dbf7-5723-e609-2718dcd33335.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 1.86s**\n- 1.86s per song\n- DiT phase (1 song): 1.86s",
+      "metas": {
+        "bpm": 110,
+        "duration": 126.546,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Title: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (16 bars, energy 0.44); mutation build (16 bars, energy 0.66, wide dub echoes); psychedelic drop (16 bars, energy 0.88, wide dub echoes, heavily psychedelic). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": "[inst]\n[inst]\n[inst]\n[inst]\n"
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 126.546,
+    "song_grid_duration_sec": 122.182,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 6071040,
+        "kept_frames": 5864736,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 122.182,
+        "kept_duration_sec": 122.182,
+        "fade_out_sec": 0.01,
+        "source_sha256": "ed0c6eab78ea5ac3c6d72970f5f5cdbc1f5daa06470f09b0414c5d1a8de536c3",
+        "trimmed_sha256": "85f885261b61338a26f0bf07d8334f069a74904bd8176dd5eb3b0a81983518e2"
+      }
+    ],
+    "delivered_music_end_sec": [
+      122.1775
+    ]
+  }
+}
