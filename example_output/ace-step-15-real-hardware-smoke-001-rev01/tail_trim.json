@@ -1,0 +1,32 @@
+{
+  "tail_trim_version": "0.1",
+  "scope": "removes_a_silent_tail_only_never_replaces_the_render",
+  "source_audio": "audio/ace-step-01.wav",
+  "trimmed_audio": "audio/ace-step-01.tail-trimmed.wav",
+  "plan": {
+    "audio_file": "audio/ace-step-01.wav",
+    "source_duration_sec": 17.455,
+    "music_end_sec": 16.1494,
+    "pad_sec": 0.25,
+    "kept_duration_sec": 16.3994,
+    "removed_sec": 1.0556,
+    "grid_duration_sec": 17.455,
+    "shortfall_sec": 1.0556,
+    "shortfall_bars": 0.484,
+    "threshold_dbfs": -40.0,
+    "worth_trimming": true,
+    "reason": "1.06 s of tail below -40 dBFS"
+  },
+  "trim": {
+    "source_frames": 837840,
+    "kept_frames": 787171,
+    "sample_rate": 48000,
+    "channels": 2,
+    "sample_width": 2,
+    "requested_duration_sec": 16.3994,
+    "kept_duration_sec": 16.3994,
+    "fade_out_sec": 0.01,
+    "source_sha256": "e73cee6eef1630058dd032dc3eff8a870f7bcce37231790c4e12ee7ae8c42c24",
+    "trimmed_sha256": "583311672b94f1f32c52ed3953421fa04ab65a653bbb4e6e104f2a7d41a1c363"
+  }
+}

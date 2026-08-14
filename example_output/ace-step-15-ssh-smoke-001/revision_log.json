@@ -1,0 +1,41 @@
+{
+  "revision_log_version": "0.1",
+  "execution_state": "complete",
+  "stopped_because": "round 1 changed alignment by -6.79, under the 1-point floor",
+  "rounds": [
+    {
+      "index": 0,
+      "project": "example_output/ace-step-15-ssh-smoke-001",
+      "alignment": 86.81,
+      "grade": "aligned",
+      "blocking": 0,
+      "warnings": 1,
+      "defects": [
+        "discontinuity"
+      ],
+      "planned_action": "repaint minimal_groove",
+      "audio_file": "example_output/ace-step-15-ssh-smoke-001/audio/ace-step-01.wav",
+      "usable": true
+    },
+    {
+      "index": 1,
+      "project": "example_output/ace-step-15-ssh-smoke-001-rev01",
+      "alignment": 80.02,
+      "grade": "aligned",
+      "blocking": 0,
+      "warnings": 1,
+      "defects": [
+        "discontinuity"
+      ],
+      "planned_action": "repaint mutation_build",
+      "audio_file": "example_output/ace-step-15-ssh-smoke-001-rev01/audio/ace-step-01.wav",
+      "usable": true
+    }
+  ],
+  "ranking": [
+    0,
+    1
+  ],
+  "adopted": null,
+  "adoption_note": "Nothing was adopted. These are candidates: the alignment score measures whether a take followed the SongSpec, not whether it sounds good, and a seed change alone moves it by tens of points."
+}

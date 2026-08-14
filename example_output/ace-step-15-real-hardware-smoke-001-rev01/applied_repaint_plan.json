@@ -1,0 +1,106 @@
+{
+  "plan_version": "0.1",
+  "execution_state": "prepared_not_rendered",
+  "song_spec_sha256": "977c97de7eadfcb9e2985a6f14b690c4662ba4a4d0d0cf456715fcde54eff844",
+  "analysis_audio_sha256": "e6fd0473eec695e1e7d801256a1e3aea49c1c32307e36a384567ec0a93ae7dd3",
+  "source_audio": {
+    "sha256": "e6fd0473eec695e1e7d801256a1e3aea49c1c32307e36a384567ec0a93ae7dd3",
+    "relative_path": "audio/ace-step-01.wav"
+  },
+  "selection": {
+    "selector": "bars",
+    "start_bar": 1,
+    "end_bar": 4,
+    "start_sec": 0.0,
+    "end_sec": 8.727
+  },
+  "selection_confidence": "high",
+  "selection_reason": "measured discontinuity at 1.115 s falls in bar 1; bars 1-4 include context on both sides and keep the defect inside the repaint mask",
+  "section_diagnostics": [
+    {
+      "section_name": "minimal_intro",
+      "start_bar": 1,
+      "end_bar": 2,
+      "target_energy": 0.25,
+      "observed_mean_energy": 0.8914,
+      "energy_error": 0.6414,
+      "terminal_energy_collapse": null,
+      "chord_coverage": 1.0,
+      "chord_match_ratio": 0.0,
+      "opening_boundary_match": null,
+      "priority_score": 54.24
+    },
+    {
+      "section_name": "minimal_groove",
+      "start_bar": 3,
+      "end_bar": 4,
+      "target_energy": 0.44,
+      "observed_mean_energy": 0.8652,
+      "energy_error": 0.4252,
+      "terminal_energy_collapse": null,
+      "chord_coverage": 1.0,
+      "chord_match_ratio": 0.0,
+      "opening_boundary_match": false,
+      "priority_score": 57.76
+    },
+    {
+      "section_name": "mutation_build",
+      "start_bar": 5,
+      "end_bar": 6,
+      "target_energy": 0.66,
+      "observed_mean_energy": 0.7476,
+      "energy_error": 0.0876,
+      "terminal_energy_collapse": null,
+      "chord_coverage": 0.5,
+      "chord_match_ratio": 0.0,
+      "opening_boundary_match": false,
+      "priority_score": 60.13
+    },
+    {
+      "section_name": "psychedelic_drop",
+      "start_bar": 7,
+      "end_bar": 8,
+      "target_energy": 0.88,
+      "observed_mean_energy": 0.3229,
+      "energy_error": -0.5571,
+      "terminal_energy_collapse": 0.88,
+      "chord_coverage": 0.0,
+      "chord_match_ratio": null,
+      "opening_boundary_match": true,
+      "priority_score": 72.41
+    }
+  ],
+  "bar_level_candidates": [
+    {
+      "selector": "bars",
+      "start_bar": 1,
+      "end_bar": 4,
+      "start_sec": 0.0,
+      "end_sec": 8.727,
+      "defect_code": "discontinuity",
+      "defect_at_sec": 1.115,
+      "defect_bar": 1,
+      "defect_value": 0.53,
+      "defect_threshold": 0.5,
+      "reason": "measured discontinuity at 1.115 s falls in bar 1; bars 1-4 include context on both sides and keep the defect inside the repaint mask"
+    }
+  ],
+  "recommended_selector": "bars",
+  "revision_prompt": "Repaint only bars 1-4 around the measured discontinuity at 1.115 seconds in bar 1. Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Remove the sample-to-sample discontinuity, keep both splice boundaries click-free, and preserve the planned arrangement transition and energy shape across the window.",
+  "ace_step_options": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.65,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.5,
+    "chunk_mask_mode": "explicit",
+    "tail_guard_bars": 2.0
+  },
+  "safety": {
+    "original_audio_mutated": false,
+    "render_started": false,
+    "requires_separate_output_project": true
+  }
+}

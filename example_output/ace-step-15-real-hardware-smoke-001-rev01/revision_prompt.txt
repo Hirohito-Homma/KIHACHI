@@ -1,0 +1,1 @@
+Repaint only bars 1-4 around the measured discontinuity at 1.115 seconds in bar 1. Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Remove the sample-to-sample discontinuity, keep both splice boundaries click-free, and preserve the planned arrangement transition and energy shape across the window.

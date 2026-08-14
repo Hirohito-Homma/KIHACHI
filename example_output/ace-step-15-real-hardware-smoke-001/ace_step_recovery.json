@@ -1,0 +1,20 @@
+{
+  "schema_version": "ace-step-recovery-v1",
+  "adapter": "ace-step-1.5-rest",
+  "recovery_reason": "client_request_timeout_during_first_model_initialization",
+  "task_id": null,
+  "task_id_status": "not_recovered_do_not_infer_from_audio_uuid",
+  "request_file": "ace_step_request.json",
+  "request_sha256": "ac7b2b3a0c3c13be2aded2cd790e71f6d37ff0bbd01d5f420830209535021780",
+  "source_endpoint": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2Fcb635b88-5682-c9ab-c36f-df72d8feaace.wav",
+  "source_audio_uuid": "cb635b88-5682-c9ab-c36f-df72d8feaace",
+  "source_audio_uuid_is_task_id": false,
+  "audio_file": "audio/ace-step-01.wav",
+  "audio_sha256": "e6fd0473eec695e1e7d801256a1e3aea49c1c32307e36a384567ec0a93ae7dd3",
+  "observed_api_jobs": {
+    "total": 1,
+    "succeeded": 1,
+    "failed": 0
+  },
+  "subjective_listening": "not_performed"
+}

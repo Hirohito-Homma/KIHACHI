@@ -1,0 +1,54 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "1973653b-875a-462a-9369-706600da4f04",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2Fc9dcceae-07b9-9ade-6d97-998b2741ad9c.wav",
+      "status": 1,
+      "seed_value": "21",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 2.40s**\n- 2.40s per song\n- DiT phase (1 song): 2.40s",
+      "metas": {
+        "bpm": 110,
+        "duration": 74.182,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Title: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25, minimal, no vocal); minimal groove (8 bars, energy 0.44, minimal); mutation build (8 bars, energy 0.66, wide dub echoes); psychedelic drop (8 bars, energy 0.88, wide dub echoes, vocal-led, heavily psychedelic). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": "[inst]\n[verse]\nRun Delay\nMutate Bend\n[verse]\nRun in reverse\nGroove Mirror\nMutate the fracture\nPrism Spiral\n[chorus]\nPull low\nCode Bass\nDub the room\nBass Circuit\n"
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 74.182,
+    "song_grid_duration_sec": 69.818,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 3561600,
+        "kept_frames": 3351264,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 69.818,
+        "kept_duration_sec": 69.818,
+        "fade_out_sec": 0.01,
+        "source_sha256": "f3f5bbd744d39b4e15a3dd3d84dda6652379859616babd8182d510303993e3d5",
+        "trimmed_sha256": "baee8cb72a6be04fff94cf1455e6dc7929e9cf877fee5b7dce038cce17a08eeb"
+      }
+    ],
+    "delivered_music_end_sec": [
+      69.8175
+    ]
+  }
+}

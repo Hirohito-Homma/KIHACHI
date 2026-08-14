@@ -1,0 +1,84 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "a3a4f2c6-3337-45ee-b08d-66023bb0e1ec",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2Fba78434a-4bfb-0014-fd6b-418ba96abbf0.wav",
+      "status": 1,
+      "seed_value": "21",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 2.08s**\n- 2.08s per song\n- DiT phase (1 song): 2.08s",
+      "metas": {
+        "bpm": 110,
+        "duration": 74.182,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nRepaint only bars 7-10 around the measured discontinuity at 16.921 seconds in bar 8. Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Remove the sample-to-sample discontinuity, keep both splice boundaries click-free, and preserve the planned arrangement transition and energy shape across the window.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25, minimal, no vocal); minimal groove (8 bars, energy 0.44, minimal); mutation build (8 bars, energy 0.66, wide dub echoes); psychedelic drop (8 bars, energy 0.88, wide dub echoes, vocal-led, heavily psychedelic). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": "[inst]\n[verse]\nRun Delay\nMutate Bend\n[verse]\nRun in reverse\nGroove Mirror\nMutate the fracture\nPrism Spiral\n[chorus]\nPull low\nCode Bass\nDub the room\nBass Circuit\n"
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 74.182,
+    "song_grid_duration_sec": 69.818,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 3350400,
+        "kept_frames": 3350400,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 69.818,
+        "kept_duration_sec": 69.8,
+        "fade_out_sec": 0.01,
+        "source_sha256": "fa50e2bb5ca4ce018366a560538781e3f0136f2ac13a7e71a2b6fa3dd9ce04b2",
+        "trimmed_sha256": "56dec5a9b8ae2b5295f322070ecbae0f6581739534160c15abdcd393095e4736"
+      }
+    ],
+    "delivered_music_end_sec": [
+      69.7989
+    ]
+  },
+  "conditioning": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repainting_start": 13.091,
+    "repainting_end": 21.818,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.65,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.5,
+    "chunk_mask_mode": "explicit",
+    "source_audio": {
+      "name": "ace-step-01.wav",
+      "sha256": "baee8cb72a6be04fff94cf1455e6dc7929e9cf877fee5b7dce038cce17a08eeb",
+      "size_bytes": 13405100
+    },
+    "reference_audio": null,
+    "repaint_selection": {
+      "selector": "bars",
+      "start_bar": 7,
+      "end_bar": 10,
+      "start_sec": 13.091,
+      "end_sec": 21.818
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "4b4176a607d344d9a2205ae133f3595bc1efea26b001acf9f9e59f956e6f6602",
+    "request_file": "ace_step_repaint_revision_request.json"
+  }
+}
