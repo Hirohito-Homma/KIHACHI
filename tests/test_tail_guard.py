@@ -12,6 +12,8 @@ from kihachi_music_ai.adapters.ace_step import (
     AceStepOptions,
     resolve_repaint_window,
 )
+from kihachi_music_ai.cli import build_parser
+from kihachi_music_ai.cli._legacy import _ace_options_and_window
 from kihachi_music_ai.music_brain import MusicBrain
 from kihachi_music_ai.repaint_planner import build_repaint_plan, load_repaint_plan
 from kihachi_music_ai.tail_guard import (
@@ -288,6 +290,48 @@ class BarLevelCandidateTests(unittest.TestCase):
         self.assertIn("16.921 s falls in bar 8", plan["selection_reason"])
         self.assertIn("measured discontinuity at 16.921 seconds", plan["revision_prompt"])
         self.assertEqual(plan["ace_step_options"]["repaint_wav_crossfade_sec"], 0.5)
+
+
+class RenderGuardDefaultTest(unittest.TestCase):
+    """What `ace-step render` renders with when nobody passes --tail-guard-bars.
+
+    The planners have always defaulted to a guard; the render command defaulted
+    to none, so every take rendered from the CLI was the one shape the guard
+    exists to prevent.
+    """
+
+    def _options(self, *flags: str):
+        with tempfile.TemporaryDirectory() as temp:
+            args = build_parser().parse_args(
+                ["ace-step", "render", temp, *flags]
+            )
+            options, _window = _ace_options_and_window(args)
+            return options
+
+    def test_text2music_is_guarded_without_being_asked(self) -> None:
+        self.assertEqual(
+            self._options().tail_guard_bars, DEFAULT_TAIL_GUARD_BARS
+        )
+
+    def test_an_explicit_zero_still_turns_the_guard_off(self) -> None:
+        # Distinct from the flag being absent, which is why the default is None.
+        self.assertEqual(self._options("--tail-guard-bars", "0").tail_guard_bars, 0.0)
+
+    def test_an_explicit_value_wins(self) -> None:
+        self.assertEqual(self._options("--tail-guard-bars", "4").tail_guard_bars, 4.0)
+
+    def test_cover_and_repaint_stay_unguarded(self) -> None:
+        # Both render against a source whose length is already fixed, so
+        # lengthening the buffer would move the window they were handed.
+        self.assertEqual(
+            self._options("--task-type", "cover").tail_guard_bars, 0.0
+        )
+        self.assertEqual(
+            self._options(
+                "--task-type", "repaint", "--repainting-end", "8.0"
+            ).tail_guard_bars,
+            0.0,
+        )
 
 
 if __name__ == "__main__":
