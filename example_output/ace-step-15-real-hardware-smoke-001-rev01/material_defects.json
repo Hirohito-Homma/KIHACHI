@@ -1,0 +1,30 @@
+{
+  "defect_scan_version": "0.2",
+  "scope": "absolute_audio_defects_not_song_spec_conformance",
+  "audio_file": "ace-step-01.tail-trimmed.wav",
+  "measurements": {
+    "duration_sec": 16.3994,
+    "sample_rate": 48000,
+    "channels": 2,
+    "peak_dbfs": -1.0,
+    "rms_dbfs": -21.748,
+    "crest_db": 20.748,
+    "clipped_runs": 0,
+    "dc_offset": [
+      0.000828,
+      0.001573
+    ],
+    "stereo_correlation": 0.8912,
+    "longest_silence_sec": 0.34,
+    "longest_silence_at_sec": 14.36,
+    "max_sample_jump": 0.3639,
+    "max_sample_jump_at_sec": 12.02,
+    "mean_sample_jump": 0.002167,
+    "max_sample_jump_local_mean": 0.020586,
+    "max_sample_jump_context_sec": 0.01
+  },
+  "findings": [],
+  "blocking": 0,
+  "warnings": 0,
+  "clean": true
+}

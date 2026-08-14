@@ -1,0 +1,26 @@
+{
+  "stage_version": "0.1",
+  "execution_state_at_creation": "staged_not_rendered",
+  "source_project": "ace-step-15-ssh-smoke-001",
+  "source_song_spec_sha256": "a6773937004579ba0045d7d03d7570a49e05af093466fd33995a968ede8d9d23",
+  "source_audio": {
+    "name": "ace-step-01.wav",
+    "sha256": "baee8cb72a6be04fff94cf1455e6dc7929e9cf877fee5b7dce038cce17a08eeb",
+    "verified": true,
+    "copied_to_output": false
+  },
+  "repaint_plan": "repaint_plan.json",
+  "applied_repaint_plan": "applied_repaint_plan.json",
+  "staged_files": [
+    "song_spec.json",
+    "bass.mid",
+    "drums.mid",
+    "chords.mid",
+    "prompt.txt",
+    "lyrics.txt",
+    "prompt.json",
+    "repaint_plan.json",
+    "applied_repaint_plan.json",
+    "revision_prompt.txt"
+  ]
+}

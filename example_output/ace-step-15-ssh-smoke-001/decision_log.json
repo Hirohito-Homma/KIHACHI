@@ -1,0 +1,50 @@
+{
+  "decision_log_version": "0.1",
+  "scope": "human_listening_decisions_only",
+  "current_decision": 0,
+  "entries": [
+    {
+      "index": 0,
+      "action": "retain_base",
+      "selected": {
+        "project": ".",
+        "name": "ace-step-15-ssh-smoke-001",
+        "audio_sha256": "baee8cb72a6be04fff94cf1455e6dc7929e9cf877fee5b7dce038cce17a08eeb"
+      },
+      "reason": "Base維持。ユーザーによる試聴判断。",
+      "candidates": [
+        {
+          "project": ".",
+          "name": "ace-step-15-ssh-smoke-001",
+          "audio_file": "audio/ace-step-01.wav",
+          "audio_sha256": "baee8cb72a6be04fff94cf1455e6dc7929e9cf877fee5b7dce038cce17a08eeb",
+          "alignment": 86.81,
+          "grade": "aligned",
+          "material_status": "warning",
+          "defects": [
+            {
+              "code": "discontinuity",
+              "severity": "warning"
+            }
+          ]
+        },
+        {
+          "project": "../ace-step-15-ssh-smoke-001-clickfix01",
+          "name": "ace-step-15-ssh-smoke-001-clickfix01",
+          "audio_file": "audio/ace-step-01.wav",
+          "audio_sha256": "56dec5a9b8ae2b5295f322070ecbae0f6581739534160c15abdcd393095e4736",
+          "alignment": 87.23,
+          "grade": "aligned",
+          "material_status": "clean",
+          "defects": []
+        }
+      ],
+      "effects": {
+        "audio_copied": false,
+        "audio_overwritten": false,
+        "audio_deleted": false,
+        "selection_record_only": true
+      }
+    }
+  ]
+}

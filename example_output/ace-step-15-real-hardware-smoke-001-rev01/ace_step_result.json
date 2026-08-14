@@ -1,0 +1,84 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "67d08008-b5fb-4850-8537-1d42b53abdd3",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2Fc448ace5-b475-a2b8-9a6f-3e092406a1f2.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 1.04s**\n- 1.04s per song\n- DiT phase (1 song): 1.04s",
+      "metas": {
+        "bpm": 110,
+        "duration": 21.819,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Revision constraints (highest priority):\nRepaint only bars 1-4 around the measured discontinuity at 1.115 seconds in bar 1. Preserve all Audio outside this range and keep 110 BPM, D# minor, 4/4. Remove the sample-to-sample discontinuity, keep both splice boundaries click-free, and preserve the planned arrangement transition and energy shape across the window.\n\nBase song design:\nTitle: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (2 bars, energy 0.25); minimal groove (2 bars, energy 0.44); mutation build (2 bars, energy 0.66, wide dub echoes); psychedelic drop (2 bars, energy 0.88, wide dub echoes, heavily psychedelic). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": "[inst]\n[inst]\n[inst]\n[inst]\n"
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 21.819,
+    "song_grid_duration_sec": 17.455,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 839040,
+        "kept_frames": 837840,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 17.455,
+        "kept_duration_sec": 17.455,
+        "fade_out_sec": 0.01,
+        "source_sha256": "98a2dcd7a7824a9601c22ff1fdd0f597d8da36e945d1a53be982f4fe2b770fd8",
+        "trimmed_sha256": "e73cee6eef1630058dd032dc3eff8a870f7bcce37231790c4e12ee7ae8c42c24"
+      }
+    ],
+    "delivered_music_end_sec": [
+      16.1494
+    ]
+  },
+  "conditioning": {
+    "task_type": "repaint",
+    "audio_cover_strength": 1.0,
+    "cover_noise_strength": 0.0,
+    "repainting_start": 0.0,
+    "repainting_end": 8.727,
+    "repaint_mode": "balanced",
+    "repaint_strength": 0.65,
+    "repaint_latent_crossfade_frames": 10,
+    "repaint_wav_crossfade_sec": 0.5,
+    "chunk_mask_mode": "explicit",
+    "source_audio": {
+      "name": "ace-step-01.wav",
+      "sha256": "e6fd0473eec695e1e7d801256a1e3aea49c1c32307e36a384567ec0a93ae7dd3",
+      "size_bytes": 3356238
+    },
+    "reference_audio": null,
+    "repaint_selection": {
+      "selector": "bars",
+      "start_bar": 1,
+      "end_bar": 4,
+      "start_sec": 0.0,
+      "end_sec": 8.727
+    }
+  },
+  "revision": {
+    "applied": true,
+    "sha256": "39468d3483762a1159e11c3d7e66d70d8e0c5e17b8dfe241e677a6ff9b71c737",
+    "request_file": "ace_step_repaint_revision_request.json"
+  }
+}

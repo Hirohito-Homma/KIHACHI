@@ -1,0 +1,26 @@
+{
+  "stage_version": "0.1",
+  "execution_state_at_creation": "staged_not_rendered",
+  "source_project": "ace-step-15-real-hardware-smoke-001",
+  "source_song_spec_sha256": "977c97de7eadfcb9e2985a6f14b690c4662ba4a4d0d0cf456715fcde54eff844",
+  "source_audio": {
+    "name": "ace-step-01.wav",
+    "sha256": "e6fd0473eec695e1e7d801256a1e3aea49c1c32307e36a384567ec0a93ae7dd3",
+    "verified": true,
+    "copied_to_output": false
+  },
+  "repaint_plan": "repaint_plan.json",
+  "applied_repaint_plan": "applied_repaint_plan.json",
+  "staged_files": [
+    "song_spec.json",
+    "bass.mid",
+    "drums.mid",
+    "chords.mid",
+    "prompt.txt",
+    "lyrics.txt",
+    "prompt.json",
+    "repaint_plan.json",
+    "applied_repaint_plan.json",
+    "revision_prompt.txt"
+  ]
+}
