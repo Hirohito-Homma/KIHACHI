@@ -1,0 +1,20 @@
+{
+  "prompt": "Title: KIHACHI Sketch\nCreate a ambient 100% hybrid at 110 BPM in D# minor.\nMood: shadowed, subtly coloured.\nGroove: syncopated 16th-note feel, straight, controlled human feel.\nBass: supporting fingered electric bass, syncopated phrasing, mutation intensity 0.35.\nDrums: sparse pulse, sparse kick, sparse hats.\nHarmony: D#m - D#m - C# - C#, one chord every 4 bars; synth chord, sustained pads, dry.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (16 bars, energy 0.44); mutation build (16 bars, energy 0.66); psychedelic drop (16 bars, energy 0.88). Overall: lift steadily to a peak of 0.88, staying delicate throughout.\nProduction: airy open space, bright open top end, gentle dynamics, very light low end.",
+  "lyrics": "[inst]\n[inst]\n[inst]\n[inst]\n",
+  "thinking": false,
+  "vocal_language": "en",
+  "audio_format": "wav",
+  "bpm": 110,
+  "key_scale": "D# minor",
+  "time_signature": "4",
+  "audio_duration": 122.182,
+  "inference_steps": 8,
+  "use_random_seed": false,
+  "seed": 8,
+  "batch_size": 1,
+  "sample_mode": false,
+  "use_format": false,
+  "use_cot_caption": false,
+  "use_cot_language": false,
+  "task_type": "text2music"
+}

@@ -1,0 +1,54 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "68a8e83a-179c-4bd2-b1a6-f277a8a64b2e",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F5f468543-74a8-acda-ea4b-cbdf06b5c917.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 1.89s**\n- 1.89s per song\n- DiT phase (1 song): 1.89s",
+      "metas": {
+        "bpm": 110,
+        "duration": 126.546,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Title: KIHACHI Sketch\nCreate a ambient 100% hybrid at 110 BPM in D# minor.\nMood: shadowed, subtly coloured.\nGroove: syncopated 16th-note feel, straight, controlled human feel.\nBass: supporting fingered electric bass, syncopated phrasing, mutation intensity 0.35.\nDrums: sparse pulse, sparse kick, sparse hats.\nHarmony: D#m - D#m - C# - C#, one chord every 4 bars; synth chord, sustained pads, dry.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (16 bars, energy 0.44); mutation build (16 bars, energy 0.66, wide dub echoes); psychedelic drop (16 bars, energy 0.88, wide dub echoes). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, tight dry space, restrained distortion, club-ready dynamics, clear separation between kick and bass.",
+        "lyrics": "[inst]\n[inst]\n[inst]\n[inst]\n"
+      }
+    }
+  ],
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 4.364,
+    "requested_duration_sec": 126.546,
+    "song_grid_duration_sec": 122.182,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 6071040,
+        "kept_frames": 5864736,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 122.182,
+        "kept_duration_sec": 122.182,
+        "fade_out_sec": 0.01,
+        "source_sha256": "f40fef5e556d2028034e499552a07add224f76c1b8ffc8433e7c3944f38b4dde",
+        "trimmed_sha256": "eb1dcdbfce5e779023fc6c5fe82b5671b92139df21698e3b6a554889c1fc4e1f"
+      }
+    ],
+    "delivered_music_end_sec": [
+      122.1792
+    ]
+  }
+}
