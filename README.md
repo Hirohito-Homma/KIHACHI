@@ -830,6 +830,46 @@ python3 -m kihachi_music_ai decide projects/my-song \
 `report`は選択時のSHA-256と現在のAudioを再照合し、差し替わっていれば`changed`、
 見つからなければ`missing`と表示して、古い試聴判断を現在のファイルへ流用しません。
 
+## stem分離（v0.2）
+
+**KIHACHIはstemを作りません。**作る道具（Demucs等）はtorchと数百MBの重みを要求し、
+コアは`dependencies = []`のままにしたいからです。代わりに**契約**だけを持ちます —
+どこへ何という名前で置くか、何を検証するか、何を記録するか。詳細はADR-0008。
+
+```bash
+# 走らせるべきコマンドを表示する（分離はしない）
+python3 -m kihachi_music_ai stems prepare projects/my-song
+```
+
+```
+- run this yourself, wherever the separator lives:
+    demucs -n htdemucs --filename {stem}.{ext} -o projects/my-song/audio/stems projects/my-song/audio/ace-step-01.wav
+- then take the result in:
+    python3 -m kihachi_music_ai stems import projects/my-song
+- nothing written
+```
+
+表示されたコマンドをローカルCPUで走らせてもGPUの箱で走らせても構いません。契約どおりの場所
+（`audio/stems/{drums,bass,other,vocals}.wav`）に置かれていれば取り込めます。
+
+```bash
+python3 -m kihachi_music_ai stems import projects/my-song
+```
+
+取り込み時に、各stemのsample rate・channel数・尺が元Audioと一致するかを検証します。
+**尺がずれたstemは拒否します** — 小節グリッド上の解析を静かに狂わせるより、ここで止めるほうが安いためです。
+`stem_manifest.json`に元AudioとstemのSHA-256、モデル名、尺が残ります。元Audioもstemも書き換えません。
+
+分離済みstemは通常のWAVなので、解析経路は新設していません。
+
+```bash
+python3 -m kihachi_music_ai analyze projects/my-song --audio audio/stems/other.wav
+```
+
+これがv0.1で持ち越した2つの問い — コード進行がマスキングで見えないだけなのか、
+低域偏重がKIHACHIの指定由来なのか — を測れるようにするための最初の一歩です。
+ただし分離自体が完全ではないので、**否定的な結果の解釈には注意が要ります**。
+
 ## v0.1の既知の限界
 
 **いずれも実測で確認した仕様上の限界であり、不具合ではありません。**「直そうとして時間を使わないため」に集めています。

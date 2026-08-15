@@ -53,6 +53,7 @@ from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
 from ..reviewer import review_project
 from ..instrumental import plan_instrumental_sections, write_instrumental_plan
+from ..stems import import_stems, plan_separation
 from ..tail_guard import DEFAULT_TAIL_GUARD_BARS
 from ..tail_trim import TailTrimPlan, plan_tail_trim, trim_project_tail
 
@@ -637,6 +638,40 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- source kept as-is: {manifest['source_audio']}")
             print(f"- trimmed take: {manifest['trimmed_audio']}")
             _print_tail_trim_plan(TailTrimPlan(**manifest["plan"]))
+            return 0
+
+        if args.command == "stems":
+            if args.stems_command == "prepare":
+                plan = plan_separation(
+                    args.project, audio_file=args.audio_file, model=args.model
+                )
+                print(f"Separation plan for {args.project}:")
+                print(f"- source: {plan.source_audio}")
+                print(f"- model: {plan.model}")
+                # Printed, not run: separation wants a GPU and minutes, and the
+                # separator is deliberately outside this package (ADR-0008).
+                print("- run this yourself, wherever the separator lives:")
+                print(f"    {' '.join(plan.command)}")
+                print("- then take the result in:")
+                print(f"    python3 -m kihachi_music_ai stems import {args.project}")
+                print("- expected afterwards:")
+                for path in plan.expected_stems:
+                    print(f"    {path}")
+                print("- nothing written")
+                return 0
+            manifest = import_stems(
+                args.project,
+                audio_file=args.audio_file,
+                model=args.model,
+                overwrite=args.overwrite,
+            )
+            print(f"Imported KIHACHI stems: {args.project}")
+            print(f"- source audio: {manifest['source_audio']['path']}")
+            print(f"- model: {manifest['model']}")
+            for entry in manifest["stems"]:
+                print(f"    {entry['stem']:<7} {entry['duration_sec']:.3f} s  {entry['path']}")
+            print(f"- manifest: {args.project / 'stem_manifest.json'}")
+            print("- measure one with: analyze --audio audio/stems/other.wav")
             return 0
 
         if args.command == "midi-review":
