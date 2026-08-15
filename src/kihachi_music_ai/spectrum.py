@@ -27,20 +27,35 @@ from typing import Any
 
 SPECTRUM_VERSION = "0.1"
 
-# Calibrated from 21 real renders rather than chosen. Across all of them 63% of
+# Calibrated from real renders rather than chosen. Across all of them 63% of
 # the energy sits in 60-250 Hz, so "bass heavy" is this generator's normal and
 # flagging it would flag everything -- these thresholds find takes that fall
 # outside what the corpus does, not takes that miss an absolute mix target.
 #
+# Re-measured 2026-08-15 over 31 renders, up from the 21 this was first drawn
+# from. The centre barely moved, so the thresholds below stand as they are:
+#
 #            sub    bass   low_mid  mid    high_mid  high    low/high
-#   median   0.168  0.627  0.104    0.066  0.023     0.016   19.8
-#   range    .05-.22 .48-.84 .04-.20 .03-.10 .01-.04  .001-.021  13-64
+#   21 takes 0.168  0.627  0.104    0.066  0.023     0.016   19.8
+#   31 takes 0.169  0.632  0.101    0.058  0.022     0.016   21.9
+#   range    .01-.28 .48-.84 .04-.29 .02-.10 .00-.04  .00-.02   13-660
+#
+# What did move is the tail: the range ran 13-64 over the first corpus and now
+# reaches 660. Every value past 64 comes from a take shorter than 20 s, which is
+# mostly intro -- too little song for a top end to develop. Read `low_to_high_ratio`
+# on a very short take as a fact about its length, not its mix.
 DULL_LOW_TO_HIGH = 40.0
-"""Twice the median. Catches the pre-LoRA baseline (64.4) and the chunked
-render (51.2) and nothing else -- both takes with almost no top end."""
+"""Twice the median (21.9 x 2 = 43.8 on the 31-take corpus, which flags the same
+takes as 40.0 does, so the number stays put).
+
+No longer just two takes. It caught the pre-LoRA baseline (64.4) and the chunked
+render (51.2) when it was written; over 31 renders it now catches seven, the other
+five all from 2026-08-15 -- two sub-20 s takes at 420 and 660, and three guarded
+takes between 44 and 54."""
 
 MASKING_BASS_SHARE = 0.80
-"""The corpus tops out at 0.837, which is the pre-LoRA baseline alone."""
+"""The corpus tops out at 0.837, which is the pre-LoRA baseline alone. Still the
+only take above 0.80 after the 2026-08-15 re-measure over 31 renders."""
 
 BANDS: tuple[tuple[str, float, float], ...] = (
     ("sub", 20.0, 60.0),
