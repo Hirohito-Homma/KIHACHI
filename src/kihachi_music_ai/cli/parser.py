@@ -14,6 +14,7 @@ from pathlib import Path
 from ..adapters.ace_step import AUDIO_FORMATS, DEFAULT_REQUEST_TIMEOUT
 from ..chunked import DEFAULT_CHUNK_BARS
 from ..revision import DEFAULT_ROUNDS
+from ..select import SHORTLIST_NAME
 from ..stems import DEFAULT_MODEL as DEFAULT_STEM_MODEL
 from ..tail_guard import DEFAULT_TAIL_GUARD_BARS, MUSIC_END_THRESHOLD_DBFS
 from ..tail_trim import DEFAULT_TAIL_PAD_SEC
@@ -261,6 +262,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     report.add_argument("--output", type=Path, help="page path; defaults to candidates.html")
     report.add_argument("--overwrite", action="store_true")
+
+    shortlist = subparsers.add_parser(
+        "shortlist",
+        help="rank takes on what measurably separates them (adopts nothing)",
+    )
+    shortlist.add_argument("project", type=Path, help="a reviewed project")
+    shortlist.add_argument(
+        "--also",
+        type=Path,
+        action="append",
+        default=[],
+        help="another reviewed candidate to rank alongside it (repeatable)",
+    )
+    shortlist.add_argument(
+        "--from-revision-log",
+        action="store_true",
+        help="rank every take the project's revision_log.json recorded",
+    )
+    shortlist.add_argument(
+        "--save",
+        action="store_true",
+        help=f"write the ranking to {SHORTLIST_NAME}",
+    )
+    shortlist.add_argument("--overwrite", action="store_true")
 
     decide = subparsers.add_parser(
         "decide",

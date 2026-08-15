@@ -830,6 +830,60 @@ python3 -m kihachi_music_ai decide projects/my-song \
 `report`は選択時のSHA-256と現在のAudioを再照合し、差し替わっていれば`changed`、
 見つからなければ`missing`と表示して、古い試聴判断を現在のファイルへ流用しません。
 
+## 候補の順位付け（v0.2: 何が差を作ったかまで言う）
+
+`report`の順位は`(blockingな欠陥, 整合度)`の2つだけで決まります。これは「どれが最高得点か」には
+答えますが、**なぜ勝ったのか**も、**0.3点差と20点差の違い**も言えません。テイクが6本あり、
+しかも指定した和音進行・キーが鳴らない（「v0.1の既知の限界」参照）以上、選ぶ側が唯一残ったレバーです。
+
+```bash
+python3 -m kihachi_music_ai shortlist projects/my-song \
+  --also projects/my-song-rev01 \
+  --also projects/my-song-rev02
+```
+
+規則は2つです。
+
+**動かない次元は何も決められません。** review v0.1は`key`と`chords`に合計0.45のweightを
+割いていましたが、`example_output`の25テイクを集計すると`key`は**全テイクで0.350の定数**、
+`chords`は0.000〜0.098でした。v0.4で両方とも外しましたが、それは後から気づいたことです。
+だから検査をコード側に入れました — 各次元を**その候補集合の中で**先に測り、ばらつきが
+`spread_floor`（0.05）に届かない次元は「動かなかった」と表示したうえで、weightに関わらず
+判断根拠から外します。生き残った次元でweightを再正規化するので、1次元しか動かない集合でも
+得点が全員ゼロ近辺に潰れません。
+
+**floorを下回る差は差ではありません。** 上位2本が`margin_floor`（3.0点）以内なら、
+勝者を名指しせず`too_close_to_call`とし、`decide`コマンドの`--selected`も空欄のままにします
+（直前の行で「決められない」と言っておきながら、実行可能な選択を手渡すのは矛盾です）。
+**全次元が動かなかった場合も同じ扱い**です。それは「順位付け不能」ではなく最も強い同着で、
+どちらにせよ耳で分けるしかないからです。
+
+同着のときだけ、warning欠陥の少ないテイクを`tie_break`として添えます。**得点には入れません** —
+warningは閾値付近の測定値であり、repaintはクリックを消さず移動させることがあるので、
+点数を与えるには足りず、数字が尽きた後で触れるには足ります。
+
+実際の3テイクに当てると、こうなります。
+
+```text
+  #1 100.00  aligned        discontinuity              ace-step-15-ssh-smoke-001
+  #2 100.00  aligned        clean                      ace-step-15-ssh-smoke-001-clickfix01
+  #3  66.67  aligned        discontinuity              ace-step-15-ssh-smoke-001-rev01
+- decided on: section_boundaries (spread 0.333)
+- identical across these takes, so not used: duration, midi:coverage, midi:harmony,
+  midi:key, midi:section_energy, section_energy, tempo
+- too close to call: ... are within 3.0 points; listen to all of them
+- caution: this is a ranking on section_boundaries alone
+- cleanest of the tied takes: ace-step-15-ssh-smoke-001-clickfix01
+```
+
+比較できるのは**同一SongSpecのテイクだけ**です（ADR-0005の規則を3本以上へ広げたものです）。
+設計が違えば`different_song_spec`、未スキャンなら`not_scanned`、blocking欠陥があれば
+`blocking_defect`として、順位に入れずに除外理由を表示します。
+
+`--save`で`take_shortlist.json`に残ります。**採用はしません。** 出力には
+`not_judged`（音色、歌唱、音楽的な面白さ、ハーモニーの当否）を必ず並べます。ここにある数字が
+答えていない問いを、答えたように見せないためです。選ぶのは`decide`で、理由は聴いた人が書きます。
+
 ## stem分離（v0.2）
 
 **KIHACHIはstemを作りません。**作る道具（Demucs等）はtorchと数百MBの重みを要求し、
@@ -971,7 +1025,8 @@ uv run kihachi ace-step render  projects/my-song --from-brief prompt.json
 ```
 
   SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。`render` の場合、テールガードの切り戻し先はブリーフ自身の `total_bars`・`bpm`・`time_signature` から求めた長さです（SongSpec側のグリッドに切り戻すと、尺を書き換えたブリーフはまさにその部分を失います）。どのブリーフでレンダーしたかは `ace_step_result.json` の `render_brief`（パス・SHA-256・SongSpecとの一致）に残ります。
-- Audio-to-MIDI、stem分離、複数候補の音楽的な自動採用、Ableton Live展開、LLM接続は次段階です。ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
+- Audio-to-MIDI、Ableton Live展開、LLM接続は次段階です。ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
+- stem分離はv0.2で取り込み済みです（ADR-0008）。複数候補については`shortlist`が順位と根拠を出しますが、**採用は自動化していません**（ADR-0009）。測れない次元が残る以上、最後は試聴です。
 
 ## ACE-Step 1.5アダプター
 

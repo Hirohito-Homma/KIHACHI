@@ -51,11 +51,46 @@ from ..models import SongSpec
 from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
+from ..select import (
+    build_shortlist,
+    describe as describe_shortlist,
+    write_shortlist,
+)
 from ..reviewer import review_project
 from ..instrumental import plan_instrumental_sections, write_instrumental_plan
 from ..stems import import_stems, plan_separation
 from ..tail_guard import DEFAULT_TAIL_GUARD_BARS
 from ..tail_trim import TailTrimPlan, plan_tail_trim, trim_project_tail
+
+
+def _candidate_projects(args: argparse.Namespace) -> tuple[list[Path], str | None]:
+    """The takes a command was pointed at, deduplicated and in order.
+
+    Shared by `report` and `shortlist` so the two never disagree about which
+    takes are in a comparison -- the page and the ranking are read together.
+    """
+
+    also_projects = list(args.also)
+    projects = [args.project, *also_projects]
+    stopped = None
+    if getattr(args, "from_revision_log", False):
+        log_file = args.project / "revision_log.json"
+        if not log_file.is_file():
+            raise FileNotFoundError(f"no revision log: {log_file}")
+        log = json.loads(log_file.read_text(encoding="utf-8"))
+        stopped = log.get("stopped_because")
+        logged_projects: list[Path] = []
+        for row in log["rounds"]:
+            recorded = Path(row["project"])
+            if not recorded.is_absolute():
+                recorded = log_file.parent / recorded
+            logged_projects.append(recorded)
+        projects = [*logged_projects, *also_projects]
+    seen: list[Path] = []
+    for path in projects:
+        if path not in seen:
+            seen.append(path)
+    return seen, stopped
 
 
 def _print_tail_trim_plan(plan: TailTrimPlan) -> None:
@@ -517,26 +552,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         if args.command == "report":
-            also_projects = list(args.also)
-            projects = [args.project, *also_projects]
-            stopped = None
-            if args.from_revision_log:
-                log_file = args.project / "revision_log.json"
-                if not log_file.is_file():
-                    raise FileNotFoundError(f"no revision log: {log_file}")
-                log = json.loads(log_file.read_text(encoding="utf-8"))
-                stopped = log.get("stopped_because")
-                logged_projects: list[Path] = []
-                for row in log["rounds"]:
-                    recorded = Path(row["project"])
-                    if not recorded.is_absolute():
-                        recorded = (log_file.parent / recorded)
-                    logged_projects.append(recorded)
-                projects = [*logged_projects, *also_projects]
-            seen: list[Path] = []
-            for path in projects:
-                if path not in seen:
-                    seen.append(path)
+            seen, stopped = _candidate_projects(args)
             candidates = [load_candidate(path) for path in seen]
             decision = current_decision(load_decision_log(args.project))
             if decision is not None:
@@ -574,6 +590,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"- current listening decision: {decision['selected']['name']} "
                     f"({decision['reason']}); audio {decision['audio_status']['status']}"
                 )
+            return 0
+
+        if args.command == "shortlist":
+            seen, _ = _candidate_projects(args)
+            if args.save:
+                manifest = write_shortlist(
+                    args.project, seen[1:], overwrite=args.overwrite
+                )
+                shortlist = manifest.shortlist
+            else:
+                manifest = None
+                shortlist = build_shortlist(args.project, seen[1:])
+            for line in describe_shortlist(shortlist):
+                print(line)
+            if manifest is not None:
+                print(f"- shortlist: {manifest.shortlist_file}")
             return 0
 
         if args.command == "decide":
