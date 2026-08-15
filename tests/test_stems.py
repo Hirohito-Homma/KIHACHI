@@ -132,14 +132,37 @@ class ImportStemsTests(unittest.TestCase):
 
             self.assertIn("bass", str(caught.exception))
 
-    def test_a_stem_at_another_sample_rate_is_refused(self) -> None:
+    def test_a_stem_at_another_sample_rate_is_recorded_not_refused(self) -> None:
+        # htdemucs returns 44.1 kHz whatever it is handed. Measured 2026-08-15:
+        # a 48 kHz render came back as 44.1 kHz stems of exactly the same length,
+        # and the analyzer reads each file's own rate, so this changes nothing
+        # about the measurements it produces.
         with tempfile.TemporaryDirectory() as temp:
             project = build_project(temp, other={"sample_rate": 16000})
 
-            with self.assertRaises(ValueError) as caught:
-                import_stems(project)
+            manifest = import_stems(project)
 
-            self.assertIn("other", str(caught.exception))
+            entry = next(e for e in manifest["stems"] if e["stem"] == "other")
+            self.assertEqual(entry["sample_rate"], 16000)
+            self.assertTrue(entry["resampled"])
+            self.assertFalse(
+                next(e for e in manifest["stems"] if e["stem"] == "bass")["resampled"]
+            )
+
+    def test_stems_under_the_model_directory_are_found(self) -> None:
+        # Demucs always digs <out>/<model>/, and --filename cannot remove it.
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            write_wav(project / "audio" / "ace-step-01.wav")
+            for name in STEM_NAMES:
+                write_wav(project / "audio" / "stems" / DEFAULT_MODEL / f"{name}.wav")
+
+            manifest = import_stems(project)
+
+            for entry in manifest["stems"]:
+                self.assertEqual(
+                    entry["path"], f"audio/stems/{DEFAULT_MODEL}/{entry['stem']}.wav"
+                )
 
     def test_an_existing_manifest_survives_without_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -160,6 +183,33 @@ class ImportStemsTests(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 load_stem_manifest(path)
+
+
+class StemAnalysisArtifactTests(unittest.TestCase):
+    """Measuring a stem must not destroy the take's own measurements."""
+
+    def test_a_stem_analysis_lands_beside_the_take_not_on_top_of_it(self) -> None:
+        from kihachi_music_ai.analyzer import analyze_project
+        from kihachi_music_ai.pipeline import compose_project
+        from test_music_brain import EXAMPLE
+
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            compose_project(EXAMPLE, project)
+            write_wav(project / "audio" / "ace-step-01.wav", seconds=4.0)
+            for name in STEM_NAMES:
+                write_wav(project / "audio" / "stems" / f"{name}.wav", seconds=4.0)
+
+            analyze_project(project)
+            take = (project / "audio_analysis.json").read_text(encoding="utf-8")
+
+            analyze_project(project, project / "audio" / "stems" / "other.wav")
+
+            self.assertEqual(
+                (project / "audio_analysis.json").read_text(encoding="utf-8"), take
+            )
+            self.assertTrue((project / "audio_analysis.other.json").exists())
+            self.assertTrue((project / "material_defects.other.json").exists())
 
 
 class StemsCliTests(unittest.TestCase):

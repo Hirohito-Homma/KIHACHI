@@ -849,26 +849,62 @@ python3 -m kihachi_music_ai stems prepare projects/my-song
 - nothing written
 ```
 
-表示されたコマンドをローカルCPUで走らせてもGPUの箱で走らせても構いません。契約どおりの場所
-（`audio/stems/{drums,bass,other,vocals}.wav`）に置かれていれば取り込めます。
+表示されたコマンドをローカルCPUで走らせてもGPUの箱で走らせても構いません。Demucsは`-o`の下に
+必ずモデル名のディレクトリを掘るので（`--filename`が変えるのは葉の名前だけで、この階層は消せません）、
+実際の配置は`audio/stems/htdemucs/{drums,bass,other,vocals}.wav`になります。平置きで出す分離器も
+あるため、取り込み側は**両方**を見ます。
 
 ```bash
 python3 -m kihachi_music_ai stems import projects/my-song
 ```
 
-取り込み時に、各stemのsample rate・channel数・尺が元Audioと一致するかを検証します。
-**尺がずれたstemは拒否します** — 小節グリッド上の解析を静かに狂わせるより、ここで止めるほうが安いためです。
-`stem_manifest.json`に元AudioとstemのSHA-256、モデル名、尺が残ります。元Audioもstemも書き換えません。
+取り込み時に**尺**とchannel数が元Audioと一致するかを検証します。**尺がずれたstemは拒否します** —
+小節グリッド上の解析を静かに狂わせるより、ここで止めるほうが安いためです。
+
+sample rateの一致は求めません。htdemucsは48 kHzを渡しても44.1 kHzで返します（2026-08-15実測、
+尺は122.1820 sで完全一致）。解析器は各ファイル自身のrateを読むので測定に影響しません。
+事実として`resampled`にだけ残します。
+
+`stem_manifest.json`に元AudioとstemのSHA-256、モデル名、尺、sample rateが残ります。
+元Audioもstemも書き換えません。
 
 分離済みstemは通常のWAVなので、解析経路は新設していません。
 
 ```bash
-python3 -m kihachi_music_ai analyze projects/my-song --audio audio/stems/other.wav
+python3 -m kihachi_music_ai analyze projects/my-song --audio audio/stems/htdemucs/other.wav
 ```
 
-これがv0.1で持ち越した2つの問い — コード進行がマスキングで見えないだけなのか、
-低域偏重がKIHACHIの指定由来なのか — を測れるようにするための最初の一歩です。
-ただし分離自体が完全ではないので、**否定的な結果の解釈には注意が要ります**。
+stemの解析は`audio_analysis.other.json`と`material_defects.other.json`へ書かれます。
+**テイク自身の`audio_analysis.json`は上書きしません** — stemを測るたびに元の測定が消えるのは、
+この経路を最初に通したときに実際に起きた事故です。
+
+### 測ってみた結果: マスキングではありませんでした
+
+2026-08-15、2分のテイク（`mutation-signal-2min-guarded-01`）をhtdemucsで分離し、
+ハーモニーを担う`other` stemを測りました。
+
+| | 完成ミックス | `other` stem |
+|---|---|---|
+| 信頼可能な小節のcoverage | 0.4286 | **0.8036** |
+| キー推定の確信度 | 0.1151（閾値0.25未満） | **0.4249**（閾値超え） |
+| キー判定 | `low_confidence` | `SongSpec mismatch` |
+| コード進行一致率 | 0.0 | **0.0** |
+
+**検出器は自信を持てるようになり、その上で「進行は一致しない」と言っています。**
+マスキングでは説明がつきません。v0.1が「区別できない」と書いた2択のうち、
+**マスキング説は否定されました**。
+
+検出された和音は45の信頼小節でF#m 23回、F# 7回、C# 5回、C#m 4回、A#m 4回。
+F#mだけで過半数を占め、**4小節周期の進行ではなく、ほぼ静止したハーモニー**です。
+5度上への移調も疑いましたが、根音は33.3%一致する一方で質（メジャー/マイナー）は4.4%しか
+合わないため、移調では説明できません。ただしF#・C#・A#m・G#mはいずれもD#短調の音階和音なので、
+**キー自体は概ね合っています**。欠けているのは小節ごとの進行です。
+
+留保が3つあります。1テイクの結果であること。ディレイの深い素材でメジャー/マイナーの判別は
+1音差でしかないこと。ベースstemは単音ラインで三和音を作らないため、三和音前提の推定器では
+裏付けが取れなかったこと（coverage 0.23）。
+
+低域偏重の出所は未測定です。
 
 ## v0.1の既知の限界
 

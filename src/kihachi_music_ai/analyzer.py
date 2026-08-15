@@ -15,6 +15,7 @@ from typing import Any
 from .defects import scan_material
 from .loudness import integrated_loudness
 from .spectrum import band_energies
+from .stems import STEM_DIRECTORY
 from .models import SongSpec
 from .theory import NOTE_TO_PC, chord_is_minor, chord_root
 
@@ -34,6 +35,21 @@ class AudioAnalysisManifest:
     analysis: dict[str, Any]
     defects_file: Path | None = None
     defects: dict[str, Any] | None = None
+
+
+def _artifact_suffix(audio_path: Path, project_dir: Path) -> str:
+    """Empty for the take itself, `.<stem>` for anything under audio/stems/.
+
+    Keeps the take's own audio_analysis.json and material_defects.json as the
+    unqualified names they have always been, so nothing that reads them moves.
+    """
+
+    stems_root = (project_dir / "audio" / STEM_DIRECTORY).resolve()
+    try:
+        audio_path.resolve().relative_to(stems_root)
+    except ValueError:
+        return ""
+    return f".{audio_path.stem}"
 
 
 def analyze_project(
@@ -71,10 +87,15 @@ def analyze_project(
     if not audio_path.is_file():
         raise FileNotFoundError(f"WAV audio not found: {audio_path}")
 
-    analysis_path = project_dir / "audio_analysis.json"
+    # A stem gets its own pair of artifacts. Writing every analysis to the one
+    # audio_analysis.json means measuring a stem destroys the take's own
+    # measurements, and --overwrite makes that silent -- which is exactly what
+    # happened the first time the stem workflow was run end to end.
+    suffix = _artifact_suffix(audio_path, project_dir)
+    analysis_path = project_dir / f"audio_analysis{suffix}.json"
     if analysis_path.exists() and not overwrite:
         raise FileExistsError(f"refusing to overwrite audio analysis: {analysis_path}")
-    defects_path = project_dir / "material_defects.json"
+    defects_path = project_dir / f"material_defects{suffix}.json"
     if scan_defects and defects_path.exists() and not overwrite:
         raise FileExistsError(f"refusing to overwrite defect scan: {defects_path}")
 
