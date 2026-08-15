@@ -1,0 +1,60 @@
+{
+  "adapter": "ace-step-1.5-rest",
+  "task_id": "4f4e848c-750a-4142-91b7-d4106b7c4d7c",
+  "status": 1,
+  "audio_files": [
+    "audio/ace-step-01.wav"
+  ],
+  "outputs": [
+    {
+      "source_file": "/v1/audio?path=%2Fvenv%2Fmain%2Flib%2Fpython3.11%2Fsite-packages%2F.cache%2Facestep%2Ftmp%2Fapi_audio%2F15ac3e78-b481-f70a-4c7d-d244b6a6ce54.wav",
+      "status": 1,
+      "seed_value": "8",
+      "lm_model": "acestep-5Hz-lm-0.6B",
+      "dit_model": "acestep-v15-turbo",
+      "generation_info": "**🎵 Total generation time (1 song): 1.46s**\n- 1.46s per song\n- DiT phase (1 song): 1.46s",
+      "metas": {
+        "bpm": 110,
+        "duration": 122.182,
+        "genres": "N/A",
+        "keyscale": "D# minor",
+        "timesignature": "4",
+        "prompt": "Title: KIHACHI Sketch\nCreate a ambient 100% hybrid at 110 BPM in D# minor.\nMood: shadowed, subtly coloured.\nGroove: syncopated 16th-note feel, straight, controlled human feel.\nBass: supporting fingered electric bass, syncopated phrasing, mutation intensity 0.35.\nDrums: sparse pulse, sparse kick, sparse hats.\nHarmony: D#m - D#m - C# - C#, one chord every 4 bars; synth chord, sustained pads, dry.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (16 bars, energy 0.44); mutation build (16 bars, energy 0.66); psychedelic drop (16 bars, energy 0.88). Overall: lift steadily to a peak of 0.88, staying delicate throughout.\nProduction: airy open space, bright open top end, gentle dynamics, very light low end.",
+        "lyrics": "[inst]\n[inst]\n[inst]\n[inst]\n"
+      }
+    }
+  ],
+  "render_brief": {
+    "path": "/Users/user/MusicAI/kihachi-music-ai/example_output/bright-contrast-02-pure/prompt.json",
+    "sha256": "bf021c49f0d6cd1448fc0d3d70c7d148e465f5db7d44af125408590a70e9a492",
+    "song_spec_sha256": "01a4497b558476fd7423dbc4dbe7e915f6f088d7e0aed8f4b51dea0e3566c45d",
+    "matches_project_spec": true
+  },
+  "tail_guard": {
+    "guard_bars": 2.0,
+    "guard_sec": 0.0,
+    "requested_duration_sec": 122.182,
+    "song_grid_duration_sec": 122.182,
+    "trim_fade_out_sec": 0.01,
+    "untrimmed_audio_files": [
+      "audio/ace-step-01.untrimmed.wav"
+    ],
+    "trims": [
+      {
+        "source_frames": 5865600,
+        "kept_frames": 5864736,
+        "sample_rate": 48000,
+        "channels": 2,
+        "sample_width": 2,
+        "requested_duration_sec": 122.182,
+        "kept_duration_sec": 122.182,
+        "fade_out_sec": 0.01,
+        "source_sha256": "3dc0637e84f38bd82be2f8bf72d5772cc41cba3fd3868e8c58b0d5516a51b217",
+        "trimmed_sha256": "8c06615c753adfd1f5c541825c94dd0a13c287505143d4de943c3b94ec6c2cad"
+      }
+    ],
+    "delivered_music_end_sec": [
+      114.5949
+    ]
+  }
+}

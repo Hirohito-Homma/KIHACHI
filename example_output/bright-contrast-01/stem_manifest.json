@@ -1,0 +1,46 @@
+{
+  "manifest_version": "stem-manifest-v1",
+  "model": "htdemucs",
+  "separator_run_by": "caller",
+  "source_audio": {
+    "path": "audio/ace-step-01.wav",
+    "sha256": "eb1dcdbfce5e779023fc6c5fe82b5671b92139df21698e3b6a554889c1fc4e1f",
+    "duration_sec": 122.182,
+    "sample_rate": 48000,
+    "channels": 2
+  },
+  "stems": [
+    {
+      "stem": "drums",
+      "path": "audio/stems/htdemucs/drums.wav",
+      "sha256": "7f20b23b4499b3e1157ed32b66a4067c7b874b0da6c702826207bd8dd898b1ff",
+      "duration_sec": 122.182,
+      "sample_rate": 44100,
+      "resampled": true
+    },
+    {
+      "stem": "bass",
+      "path": "audio/stems/htdemucs/bass.wav",
+      "sha256": "413a424a32c1d7c7f31ada5bea832d213d4058624dfb34c45b8c420fdf15236c",
+      "duration_sec": 122.182,
+      "sample_rate": 44100,
+      "resampled": true
+    },
+    {
+      "stem": "other",
+      "path": "audio/stems/htdemucs/other.wav",
+      "sha256": "cc1a8f1c438d7863fc0924c3f662bf8b308d7d4bc147b6a59f7636c138c8bdd5",
+      "duration_sec": 122.182,
+      "sample_rate": 44100,
+      "resampled": true
+    },
+    {
+      "stem": "vocals",
+      "path": "audio/stems/htdemucs/vocals.wav",
+      "sha256": "62fc4e350afe09e8ea9d9311c04c86a7b247ba8ea2c3254a84c0493627aa1665",
+      "duration_sec": 122.182,
+      "sample_rate": 44100,
+      "resampled": true
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "version": "0.1",
+  "source_prompt": "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。ベースは控えめで薄い。パーカッションは軽く、シェイカーとハイハット中心。インストゥルメンタル。",
+  "prompt": "Title: KIHACHI Sketch\nCreate a ambient 100% hybrid at 110 BPM in D# minor.\nMood: shadowed, subtly coloured.\nGroove: syncopated 16th-note feel, straight, controlled human feel.\nBass: supporting fingered electric bass, syncopated phrasing, mutation intensity 0.35.\nDrums: sparse pulse, sparse kick, sparse hats.\nHarmony: D#m - D#m - C# - C#, one chord every 4 bars; synth chord, sustained pads, dry.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (8 bars, energy 0.25); minimal groove (16 bars, energy 0.44); mutation build (16 bars, energy 0.66); psychedelic drop (16 bars, energy 0.88). Overall: lift steadily to a peak of 0.88, staying delicate throughout.\nProduction: airy open space, bright open top end, gentle dynamics, very light low end.",
+  "seed": 8,
+  "song": {
+    "title": "KIHACHI Sketch",
+    "bpm": 110.0,
+    "key": "D# minor",
+    "tonic": "D#",
+    "mode": "minor",
+    "time_signature": "4/4",
+    "total_bars": 56,
+    "duration_sec": 122.182
+  },
+  "genres": [
+    {
+      "name": "ambient",
+      "weight": 1.0
+    }
+  ],
+  "harmony": {
+    "progression": [
+      "D#m",
+      "D#m",
+      "C#",
+      "C#"
+    ],
+    "harmonic_rhythm_bars": 4
+  },
+  "sections": [
+    {
+      "name": "minimal_intro",
+      "start_bar": 1,
+      "length_bars": 8,
+      "energy": 0.25
+    },
+    {
+      "name": "minimal_groove",
+      "start_bar": 9,
+      "length_bars": 16,
+      "energy": 0.44
+    },
+    {
+      "name": "mutation_build",
+      "start_bar": 25,
+      "length_bars": 16,
+      "energy": 0.66
+    },
+    {
+      "name": "psychedelic_drop",
+      "start_bar": 41,
+      "length_bars": 16,
+      "energy": 0.88
+    }
+  ],
+  "parts": [
+    "bass",
+    "drums",
+    "chords"
+  ],
+  "song_spec_sha256": "01a4497b558476fd7423dbc4dbe7e915f6f088d7e0aed8f4b51dea0e3566c45d"
+}
