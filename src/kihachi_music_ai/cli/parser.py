@@ -14,6 +14,7 @@ from pathlib import Path
 from ..adapters.ace_step import AUDIO_FORMATS, DEFAULT_REQUEST_TIMEOUT
 from ..chunked import DEFAULT_CHUNK_BARS
 from ..revision import DEFAULT_ROUNDS
+from ..stems import DEFAULT_MODEL as DEFAULT_STEM_MODEL
 from ..tail_guard import DEFAULT_TAIL_GUARD_BARS, MUSIC_END_THRESHOLD_DBFS
 from ..tail_trim import DEFAULT_TAIL_PAD_SEC
 from ..web import DEFAULT_HOST as WEB_DEFAULT_HOST, DEFAULT_PORT as WEB_DEFAULT_PORT
@@ -331,6 +332,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="measure and report the cut, writing nothing",
     )
     trim_tail.add_argument("--overwrite", action="store_true")
+
+    stems = subparsers.add_parser(
+        "stems",
+        help="separate a render into stems -- print the command, then take the result in",
+    )
+    stem_commands = stems.add_subparsers(dest="stems_command", required=True)
+    stems_prepare = stem_commands.add_parser(
+        "prepare",
+        help="print the separation command to run; separates nothing itself",
+    )
+    stems_import = stem_commands.add_parser(
+        "import",
+        help="verify stems produced elsewhere and record stem_manifest.json",
+    )
+    for command in (stems_prepare, stems_import):
+        command.add_argument("project", type=Path, help="project whose audio has been rendered")
+        command.add_argument(
+            "--audio-file",
+            type=Path,
+            help="render to separate; defaults to audio/ace-step-01.wav",
+        )
+        command.add_argument(
+            "--model",
+            default=DEFAULT_STEM_MODEL,
+            help="separator model name (default: %(default)s)",
+        )
+    stems_import.add_argument("--overwrite", action="store_true")
 
     midi_review = subparsers.add_parser(
         "midi-review",
