@@ -252,7 +252,7 @@ def _balance_findings(spectrum: dict[str, Any] | None) -> list[dict[str, Any]]:
                 "severity": "medium",
                 "evidence": (
                     f"low-to-high energy ratio {ratio:g} against a corpus median of "
-                    f"19.8; only {bands.get('high', {}).get('share', 0.0):.1%} of the "
+                    f"21.9; only {bands.get('high', {}).get('share', 0.0):.1%} of the "
                     "energy is above 6 kHz"
                 ),
                 "recommendation": (

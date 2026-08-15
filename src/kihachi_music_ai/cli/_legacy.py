@@ -396,7 +396,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"- spectral balance: {shares}")
                 print(
                     f"- low/high ratio: {spectrum['low_to_high_ratio']} "
-                    f"(corpus median 19.8), centroid {spectrum['centroid_hz']:.0f} Hz"
+                    f"(corpus median 21.9), centroid {spectrum['centroid_hz']:.0f} Hz"
                 )
             print(f"- peak: {level['peak_dbfs']} dBFS")
             print(f"- RMS: {level['rms_dbfs']} dBFS")

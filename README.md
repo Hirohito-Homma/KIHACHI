@@ -472,7 +472,7 @@ python3 -m kihachi_music_ai ace-step prepare \
 
 ```
 - spectral balance: sub 5% bass 84% low_mid 4% mid 6% high_mid 1% high 0%
-- low/high ratio: 64.373 (corpus median 19.8), centroid 258 Hz
+- low/high ratio: 64.373 (corpus median 21.9), centroid 258 Hz
 - dull_high_end: 6 kHz以上が0.1%しかない
 - bass_masking: 60-250 Hzに83.7%が集中
 ```
@@ -842,7 +842,7 @@ python3 -m kihachi_music_ai decide projects/my-song \
 | turboが`inference_steps`を無視する | steps 8と60で音声がバイト単位で同一 | `seed`は効くので、変化が欲しければseedを変える |
 | 短い曲でtail guardが届かない | 32小節ではguard 2小節で2.32s不足（blocking）、4小節でも1.31s | `--tail-guard-bars`を4以上にする、または`trim-tail`で後から落とす。56小節では既定で足りる |
 | repaintがクリックを消さず移動させることがある | 17秒テイクでは消失、2分テイクでは61.55s→63.73sへ移動（いずれもマスク内） | 測定値だけで追加レンダーを決めない。閾値付近（0.5前後）は可聴か先に聴く |
-| 低域に寄る | 6kHz以上が全エネルギーの1〜2%、low/high比が中央値19.8に対し22〜54 | 未調査。`dull_high_end` findingとして報告のみ |
+| 低域に寄る | 6kHz以上が全エネルギーの1〜2%。31テイクの中央値は21.9で、40超えが7件 | 較正は2026-08-15に再測して据え置き。20秒未満のテイクでは比が420〜660まで跳ねるが、これは尺の性質（イントロ主体で高域が育たない）であってミックスの問題ではない |
 | True peak未実装 | — | インターサンプルピークにはオーバーサンプリングが必要なため見送り |
 
 コード進行と低域の2つは、原因の切り分けにstem分離が要ります（v0.1の範囲外）。
