@@ -110,9 +110,9 @@ class QuantisedDimensionTests(unittest.TestCase):
             boundaries = self.dimension(shortlist, "section_boundaries")
             self.assertAlmostEqual(boundaries["quantum"], 1.0 / len(planned), places=3)
             self.assertEqual(boundaries["evidence"], "single_step")
-            self.assertIn("weak evidence", "\n".join(describe(shortlist)))
+            self.assertIn("narrow evidence", "\n".join(describe(shortlist)))
 
-    def test_a_gap_of_several_steps_is_not_called_weak(self) -> None:
+    def test_a_gap_of_several_steps_is_not_called_narrow(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             first = make_project(root, "first")
@@ -125,7 +125,7 @@ class QuantisedDimensionTests(unittest.TestCase):
             self.assertEqual(
                 self.dimension(shortlist, "section_boundaries")["evidence"], "multi_step"
             )
-            self.assertNotIn("weak evidence", "\n".join(describe(shortlist)))
+            self.assertNotIn("narrow evidence", "\n".join(describe(shortlist)))
 
     def test_a_dimension_that_is_not_a_count_has_no_step(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

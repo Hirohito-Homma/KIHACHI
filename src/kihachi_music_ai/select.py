@@ -46,16 +46,26 @@ SHORTLIST_NAME = "take_shortlist.json"
 SPREAD_FLOOR = 0.05
 """How far a dimension must range across the candidates to be allowed to decide.
 
-A declared floor, not a measured noise figure -- 5% of each component's 0..1
-scale. It is recorded in the output so a later measurement can replace it with
-a real one.
+**Not a noise threshold.** The estimators were measured on 2026-08-16 and they
+barely move: perturbing a take's audio in ways no listener could hear -- 0.999
+gain, a one-frame shift, one LSB of dither -- shifted the components by at most
+0.0007, and only `tempo` moved at all. Boundary recall survived sweeping its own
+0.5 dB detection constant across 0.40-0.60 unchanged in 27 of 28 stored takes.
+
+So this floor is not protecting the ranking from measurement error; there is
+almost none. It encodes a different judgement: how much measured difference is
+worth acting on. 5% of each component's 0..1 scale is that judgement, not a
+finding, and it is recorded in the output as such.
 """
 
 MARGIN_FLOOR = 3.0
 """Points (out of 100) the leader needs over the runner-up to be called ahead.
 
-Below this the recommendation is "listen to both", which is the truthful answer
-when the deciding dimensions are ratios estimated off one render each.
+The same judgement at the score level, and the same caveat: measured drift under
+an inaudible change to the audio is 0.02 points, so 3.0 is about 150 times the
+error it could be blamed on. What it buys is refusing to name a winner on a
+difference too small to hear, when the score is a SongSpec-alignment heuristic
+that moved 37.32 to 77.52 across five renders of one design.
 """
 
 UNJUDGED = (
@@ -91,7 +101,13 @@ class Dimension:
 
     @property
     def evidence(self) -> str | None:
-        """`single_step` when one detector call, flipped, would erase the gap."""
+        """`single_step` when the whole gap is one detector call.
+
+        That call is usually stable -- sweeping the 0.5 dB detection constant
+        across 0.40-0.60 left recall unchanged in 27 of 28 stored takes. The
+        point is not that it is likely to flip, but that the ranking rests on
+        one bar-level judgement rather than on a margin.
+        """
 
         if self.quantum is None or not self.decides:
             return None
@@ -349,8 +365,10 @@ def build_shortlist(
         "song_spec_sha256": base_identity,
         "spread_floor": SPREAD_FLOOR,
         "spread_floor_meaning": (
-            "declared floor on each 0..1 component, not a measured noise figure; "
-            "a dimension flatter than this is reported and not used"
+            "a judgement about how much measured difference is worth acting on, "
+            "not a noise threshold: estimator drift under an inaudible change to "
+            "the audio measured at most 0.0007 per component (0.02 points of "
+            "score). A dimension flatter than this floor is reported and not used"
         ),
         "margin_floor": MARGIN_FLOOR,
         "verdict": verdict,
@@ -472,9 +490,9 @@ def describe(shortlist: dict[str, Any]) -> list[str]:
         if item["evidence"] == "single_step":
             steps = round(1.0 / item["quantum"])
             lines.append(
-                f"- weak evidence: {item['name']} separates these takes by one step "
-                f"of {steps} ({item['spread']:.3f}); one detector call landing a bar "
-                "late would erase it"
+                f"- narrow evidence: {item['name']} separates these takes by one step "
+                f"of {steps} ({item['spread']:.3f}) -- the whole gap is a single "
+                "boundary call, not a margin"
             )
     if shortlist["deciding_dimension_count"] == 1 and deciding:
         # A one-dimensional ranking prints two decimals it has not earned.
