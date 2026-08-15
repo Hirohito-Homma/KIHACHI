@@ -83,6 +83,65 @@ class DimensionTests(unittest.TestCase):
             self.assertEqual(shortlist["deciding_dimension_count"], 1)
 
 
+class QuantisedDimensionTests(unittest.TestCase):
+    """`section_boundaries` is a recall over planned boundaries, so it steps.
+
+    Its smallest non-zero spread is one step -- 0.333 for a four-part
+    arrangement, six times `SPREAD_FLOOR`. The flatness check cannot catch it,
+    so the step is reported instead of being hidden inside a score.
+    """
+
+    def dimension(self, shortlist: dict, name: str) -> dict:
+        return next(item for item in shortlist["dimensions"] if item["name"] == name)
+
+    def test_the_step_is_read_from_this_song_s_arrangement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+            planned = json.loads(
+                (first / "audio_analysis.json").read_text(encoding="utf-8")
+            )["sections"]["planned_boundaries_after_bar"]
+            set_components(first, section_boundaries=0.0)
+            set_components(second, section_boundaries=1.0 / len(planned))
+
+            shortlist = build_shortlist(first, [second])
+
+            boundaries = self.dimension(shortlist, "section_boundaries")
+            self.assertAlmostEqual(boundaries["quantum"], 1.0 / len(planned), places=3)
+            self.assertEqual(boundaries["evidence"], "single_step")
+            self.assertIn("weak evidence", "\n".join(describe(shortlist)))
+
+    def test_a_gap_of_several_steps_is_not_called_weak(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+            set_components(first, section_boundaries=0.0)
+            set_components(second, section_boundaries=1.0)
+
+            shortlist = build_shortlist(first, [second])
+
+            self.assertEqual(
+                self.dimension(shortlist, "section_boundaries")["evidence"], "multi_step"
+            )
+            self.assertNotIn("weak evidence", "\n".join(describe(shortlist)))
+
+    def test_a_dimension_that_is_not_a_count_has_no_step(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+            set_components(first, tempo=0.20)
+            set_components(second, tempo=0.90)
+
+            shortlist = build_shortlist(first, [second])
+
+            tempo = self.dimension(shortlist, "tempo")
+            self.assertIsNone(tempo["quantum"])
+            self.assertIsNone(tempo["evidence"])
+
+
 class VerdictTests(unittest.TestCase):
     def test_a_lead_under_the_floor_is_not_called_a_winner(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -211,6 +270,45 @@ class TieBreakTests(unittest.TestCase):
 
             self.assertEqual(shortlist["tie_break"]["name"], "first")
             self.assertEqual(shortlist["ranking"][0]["score"], shortlist["ranking"][1]["score"])
+
+
+class MixedTrimTests(unittest.TestCase):
+    """Found the hard way: four re-rolls trimmed, one not, `duration` spread 1.000."""
+
+    def trim(self, project: Path) -> None:
+        source = project / "audio" / "ace-step-01.wav"
+        trimmed = source.with_name("ace-step-01.tail-trimmed.wav")
+        trimmed.write_bytes(source.read_bytes())
+        analysis_path = project / "audio_analysis.json"
+        analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+        analysis["audio_file"] = "audio/ace-step-01.tail-trimmed.wav"
+        analysis_path.write_text(json.dumps(analysis, indent=2) + "\n", encoding="utf-8")
+
+    def test_a_half_trimmed_set_says_so(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+            self.trim(second)
+
+            shortlist = build_shortlist(first, [second])
+
+            self.assertEqual(shortlist["mixed_tail_trim"]["trimmed"], ["second"])
+            self.assertEqual(shortlist["mixed_tail_trim"]["untrimmed"], ["first"])
+            self.assertIn("confounded", "\n".join(describe(shortlist)))
+
+    def test_trimming_all_of_them_is_not_a_confound(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+            self.trim(first)
+            self.trim(second)
+
+            shortlist = build_shortlist(first, [second])
+
+            self.assertIsNone(shortlist["mixed_tail_trim"])
+            self.assertNotIn("confounded", "\n".join(describe(shortlist)))
 
 
 class OutputTests(unittest.TestCase):

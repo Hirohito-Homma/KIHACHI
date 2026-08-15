@@ -203,8 +203,10 @@ def _alignment(analysis: dict[str, Any]) -> dict[str, Any]:
             "how far the *audio* follows the SongSpec, from what audio alone can "
             "establish. Harmony is scored exactly in midi_alignment instead. Not an "
             "audio-quality score, and it moves a lot with the render seed -- one "
-            "spec across three seeds spanned 28.03 to 61.21, so differences of a "
-            "few points between settings are not evidence"
+            "spec across three seeds spanned 28.03 to 61.21, and a second spec "
+            "across five seeds spanned 37.32 to 77.52 with nothing but the seed "
+            "changed, so differences of a few points between settings are not "
+            "evidence"
         ),
         "components": {
             name: {
