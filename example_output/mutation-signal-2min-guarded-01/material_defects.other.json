@@ -1,0 +1,38 @@
+{
+  "defect_scan_version": "0.2",
+  "scope": "absolute_audio_defects_not_song_spec_conformance",
+  "audio_file": "other.wav",
+  "measurements": {
+    "duration_sec": 122.182,
+    "sample_rate": 44100,
+    "channels": 2,
+    "peak_dbfs": -7.277,
+    "rms_dbfs": -29.907,
+    "crest_db": 22.63,
+    "clipped_runs": 0,
+    "dc_offset": [
+      0.001414,
+      0.001563
+    ],
+    "stereo_correlation": 0.5218,
+    "longest_silence_sec": 0.86,
+    "longest_silence_at_sec": 70.06,
+    "max_sample_jump": 0.0958,
+    "max_sample_jump_at_sec": 108.513,
+    "mean_sample_jump": 0.001465,
+    "max_sample_jump_local_mean": 0.01189,
+    "max_sample_jump_context_sec": 0.01
+  },
+  "findings": [
+    {
+      "code": "silent_gap",
+      "severity": "warning",
+      "detail": "0.86 s below -50 dBFS starting at 70.06 s",
+      "value": 0.86,
+      "threshold": 0.5
+    }
+  ],
+  "blocking": 0,
+  "warnings": 1,
+  "clean": false
+}

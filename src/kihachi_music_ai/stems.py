@@ -57,11 +57,26 @@ class SeparationPlan:
         }
 
 
-def stem_paths(project_dir: Path | str, *, stem_names: tuple[str, ...] = STEM_NAMES) -> tuple[Path, ...]:
-    """契約上のstem配置。存在は問わない。"""
+def stem_paths(
+    project_dir: Path | str,
+    *,
+    model: str = DEFAULT_MODEL,
+    stem_names: tuple[str, ...] = STEM_NAMES,
+) -> tuple[Path, ...]:
+    """見つかったstemの配置。無ければ平置きのパスを返す。
+
+    Demucsは`-o`の下に必ずモデル名のディレクトリを掘る（`--filename`が変えるのは
+    葉の名前だけで、この階層は消せない）。他の分離器は平置きで出す。どちらでも
+    取り込めるよう、平置きを先に見てからモデル名の下を見る。
+    """
 
     base = Path(project_dir) / "audio" / STEM_DIRECTORY
-    return tuple(base / f"{name}.wav" for name in stem_names)
+    resolved: list[Path] = []
+    for name in stem_names:
+        flat = base / f"{name}.wav"
+        nested = base / model / f"{name}.wav"
+        resolved.append(nested if not flat.exists() and nested.exists() else flat)
+    return tuple(resolved)
 
 
 def plan_separation(
@@ -78,8 +93,10 @@ def plan_separation(
     if not source.exists():
         raise FileNotFoundError(f"source audio not found: {source}")
     output_dir = project / "audio" / STEM_DIRECTORY
-    # Demucsはモデル名のサブディレクトリを掘るので、--filename で契約どおりの
-    # 平らな配置へ落とす。取り込み側がモデルごとの階層を知らずに済む。
+    # `--filename` names the leaf only: Demucs always digs its own <model>/
+    # directory under `-o`, and that cannot be turned off. So the command below
+    # really produces audio/stems/<model>/<stem>.wav, and the import reads both
+    # that and a flat layout -- measured 2026-08-15 rather than assumed.
     command = (
         "demucs",
         "-n",
@@ -94,7 +111,9 @@ def plan_separation(
         source_audio=source,
         output_dir=output_dir,
         model=model,
-        expected_stems=stem_paths(project, stem_names=stem_names),
+        expected_stems=tuple(
+            output_dir / model / f"{name}.wav" for name in stem_names
+        ),
         command=command,
     )
 
@@ -122,7 +141,8 @@ def import_stems(
         raise FileExistsError(f"refusing to overwrite stem manifest: {destination}")
 
     source_shape = _wav_shape(source)
-    missing = [path for path in stem_paths(project, stem_names=stem_names) if not path.exists()]
+    resolved = stem_paths(project, model=model, stem_names=stem_names)
+    missing = [path for path in resolved if not path.exists()]
     if missing:
         names = ", ".join(_display_path(path, project) for path in missing)
         raise FileNotFoundError(
@@ -130,7 +150,7 @@ def import_stems(
         )
 
     entries: list[dict[str, Any]] = []
-    for name, path in zip(stem_names, stem_paths(project, stem_names=stem_names)):
+    for name, path in zip(stem_names, resolved):
         shape = _wav_shape(path)
         _verify_against_source(name, shape, source_shape)
         entries.append(
@@ -139,6 +159,8 @@ def import_stems(
                 "path": _display_path(path, project),
                 "sha256": _file_sha256(path),
                 "duration_sec": shape["duration_sec"],
+                "sample_rate": shape["sample_rate"],
+                "resampled": shape["sample_rate"] != source_shape["sample_rate"],
             }
         )
 
@@ -172,15 +194,14 @@ def load_stem_manifest(path: Path | str) -> dict[str, Any]:
 def _verify_against_source(name: str, shape: dict[str, Any], source: dict[str, Any]) -> None:
     """分離器の出力が元Audioと同じ形かを確かめる。
 
-    尺がずれたstemは、小節グリッド上の解析を静かに狂わせる。ここで止めるほうが、
-    あとで解析結果を疑うより安い。
+    守るべきは**尺**である。ずれたstemは小節グリッド上の解析を静かに狂わせるので、
+    ここで止めるほうがあとで解析結果を疑うより安い。
+
+    sample rateは一致を求めない。htdemucsは48 kHzを渡しても44.1 kHzで返す
+    （2026-08-15実測、尺は122.1820 sで完全一致）。解析器は各ファイル自身のrateを
+    読むので測定に影響しない。事実としてmanifestに残すだけにする。
     """
 
-    if shape["sample_rate"] != source["sample_rate"]:
-        raise ValueError(
-            f"stem {name} is {shape['sample_rate']} Hz against the source's "
-            f"{source['sample_rate']} Hz"
-        )
     if shape["channels"] != source["channels"]:
         raise ValueError(
             f"stem {name} has {shape['channels']} channel(s) against the source's "
