@@ -74,10 +74,28 @@ class Dimension:
     name: str
     weight: float
     values: dict[str, float]
+    quantum: float | None = None
+    """Smallest step this dimension can take, when it is a count over a plan.
+
+    `section_boundaries` is a recall over the boundaries the SongSpec planned:
+    with three of them it can only be 0, 1/3, 2/3 or 1. Its smallest non-zero
+    spread is therefore 0.333 -- six times `SPREAD_FLOOR`, so the flatness check
+    can never catch it, and once weights are renormalised a single boundary call
+    that landed a bar late can swing the ranking by a third of its range.
+    Recording the step is what lets that be said out loud.
+    """
 
     @property
     def spread(self) -> float:
         return max(self.values.values()) - min(self.values.values()) if self.values else 0.0
+
+    @property
+    def evidence(self) -> str | None:
+        """`single_step` when one detector call, flipped, would erase the gap."""
+
+        if self.quantum is None or not self.decides:
+            return None
+        return "single_step" if self.spread <= self.quantum * 1.001 else "multi_step"
 
     @property
     def standing(self) -> str:
@@ -169,6 +187,39 @@ def _components(project_dir: Path) -> dict[str, tuple[float, float]]:
     return found
 
 
+def _quanta(project_dir: Path) -> dict[str, float]:
+    """Step sizes for the dimensions that are counts over a plan.
+
+    Read from the analysis rather than assumed: the number of planned boundaries
+    is a property of this song's arrangement, so the step is 1/3 for a four-part
+    arrangement and 1/8 for the five-minute one.
+    """
+
+    analysis_path = Path(project_dir) / "audio_analysis.json"
+    if not analysis_path.is_file():
+        return {}
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+    planned = (analysis.get("sections") or {}).get("planned_boundaries_after_bar") or []
+    return {"section_boundaries": 1.0 / len(planned)} if planned else {}
+
+
+TRIMMED_MARKER = ".tail-trimmed."
+
+
+def _is_trimmed(candidate: Candidate) -> bool:
+    """Whether the take that was analysed is a tail-trimmed copy.
+
+    This matters because `duration` scores distance from the design length and
+    saturates at zero two seconds out. Trimming a silent tail makes the take
+    genuinely shorter, so a trimmed take loses duration points to an untrimmed
+    one -- measured here at a full 1.000 of spread across five re-rolls where
+    four had been trimmed and one had not. Comparing a mixed set ranks the
+    trimming, not the music.
+    """
+
+    return candidate.audio_file is not None and TRIMMED_MARKER in candidate.audio_file.name
+
+
 def _exclusion(candidate: Candidate, identity: str | None, base_identity: str | None) -> str | None:
     if identity is None or identity != base_identity:
         return "different_song_spec"
@@ -216,6 +267,7 @@ def build_shortlist(
             )
 
     per_take = {item.name: _components(item.project_dir) for item in eligible}
+    quanta = _quanta(project_dir)
     names = sorted({name for found in per_take.values() for name in found})
     dimensions: list[Dimension] = []
     for name in names:
@@ -228,7 +280,14 @@ def build_shortlist(
             dimensions.append(Dimension(name=name, weight=0.0, values={}))
             continue
         weight = max(found[name][1] for found in per_take.values() if name in found)
-        dimensions.append(Dimension(name=name, weight=weight, values=values))
+        dimensions.append(
+            Dimension(
+                name=name,
+                weight=weight,
+                values=values,
+                quantum=quanta.get(name),
+            )
+        )
 
     deciding = [item for item in dimensions if item.decides]
     total_weight = sum(item.weight for item in deciding)
@@ -266,6 +325,23 @@ def build_shortlist(
     )
     tie_break = _tie_break(scored, tied)
 
+    trimmed = sorted(item.name for item in eligible if _is_trimmed(item))
+    mixed_trim = (
+        {
+            "trimmed": trimmed,
+            "untrimmed": sorted(
+                item.name for item in eligible if not _is_trimmed(item)
+            ),
+            "note": (
+                "some takes were tail-trimmed and some were not; `duration` measures "
+                "distance from the design length, so the trimmed ones lose points "
+                "there for a cut that removed silence. Trim all of them or none"
+            ),
+        }
+        if 0 < len(trimmed) < len(eligible)
+        else None
+    )
+
     return {
         "shortlist_version": SHORTLIST_VERSION,
         "scope": "ranks_takes_on_measured_alignment_only_adopts_nothing",
@@ -283,6 +359,7 @@ def build_shortlist(
         "margin": margin,
         "tied_with": tied,
         "tie_break": tie_break,
+        "mixed_tail_trim": mixed_trim,
         "deciding_dimension_count": len(deciding),
         "ranking": [
             {
@@ -305,6 +382,8 @@ def build_shortlist(
                 "standing": item.standing,
                 "weight": item.weight,
                 "spread": round(item.spread, 4),
+                "quantum": None if item.quantum is None else round(item.quantum, 4),
+                "evidence": item.evidence,
                 "values": {take: round(value, 4) for take, value in sorted(item.values.items())},
             }
             for item in dimensions
@@ -382,6 +461,21 @@ def describe(shortlist: dict[str, Any]) -> list[str]:
     else:
         lines.append("- no eligible take to rank; every candidate was excluded above")
 
+    if shortlist["mixed_tail_trim"] is not None:
+        mixed = shortlist["mixed_tail_trim"]
+        lines.append(
+            f"- confounded: {len(mixed['trimmed'])} of "
+            f"{len(mixed['trimmed']) + len(mixed['untrimmed'])} takes are tail-trimmed "
+            f"(untrimmed: {', '.join(mixed['untrimmed'])}). {mixed['note']}"
+        )
+    for item in deciding:
+        if item["evidence"] == "single_step":
+            steps = round(1.0 / item["quantum"])
+            lines.append(
+                f"- weak evidence: {item['name']} separates these takes by one step "
+                f"of {steps} ({item['spread']:.3f}); one detector call landing a bar "
+                "late would erase it"
+            )
     if shortlist["deciding_dimension_count"] == 1 and deciding:
         # A one-dimensional ranking prints two decimals it has not earned.
         lines.append(
