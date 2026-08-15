@@ -219,6 +219,32 @@ def _quanta(project_dir: Path) -> dict[str, float]:
     return {"section_boundaries": 1.0 / len(planned)} if planned else {}
 
 
+HARMONY_STEMS = ("other", "vocals")
+"""What is left once drums and bass are taken out: chords, pads, leads, voices."""
+
+
+def _stem_balance(project_dir: Path) -> dict[str, float] | None:
+    """Each stem's share of this take's energy, when the stems were imported.
+
+    Reported, never scored. It discriminates -- across five renders of one design
+    the harmony share ran 3.75% to 9.18%, and drums ran 57.9% to 80.6% -- but
+    there is no defensible direction to score it in. The SongSpec states no target
+    balance, and more audible harmony is not the same as a better take. So this
+    goes beside the ranking as something to listen for, not into it.
+    """
+
+    manifest_path = Path(project_dir) / "stem_manifest.json"
+    if not manifest_path.is_file():
+        return None
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    shares = {
+        entry["stem"]: entry["energy_share"]
+        for entry in manifest.get("stems", [])
+        if entry.get("energy_share") is not None
+    }
+    return shares or None
+
+
 TRIMMED_MARKER = ".tail-trimmed."
 
 
@@ -341,6 +367,37 @@ def build_shortlist(
     )
     tie_break = _tie_break(scored, tied)
 
+    balances = {
+        item.name: found
+        for item in eligible
+        if (found := _stem_balance(item.project_dir)) is not None
+    }
+    stem_balance = (
+        {
+            "scope": "reported_not_scored_no_defensible_direction",
+            "takes": {
+                name: {
+                    "drums_plus_bass": round(
+                        sum(found.get(k, 0.0) for k in ("drums", "bass")), 4
+                    ),
+                    "harmony": round(sum(found.get(k, 0.0) for k in HARMONY_STEMS), 4),
+                    "stems": {k: round(v, 4) for k, v in sorted(found.items())},
+                }
+                for name, found in sorted(balances.items())
+            },
+            "harmony_spread": round(
+                max(sum(f.get(k, 0.0) for k in HARMONY_STEMS) for f in balances.values())
+                - min(sum(f.get(k, 0.0) for k in HARMONY_STEMS) for f in balances.values()),
+                4,
+            ),
+            "missing": sorted(
+                item.name for item in eligible if item.name not in balances
+            ),
+        }
+        if balances
+        else None
+    )
+
     trimmed = sorted(item.name for item in eligible if _is_trimmed(item))
     mixed_trim = (
         {
@@ -378,6 +435,7 @@ def build_shortlist(
         "tied_with": tied,
         "tie_break": tie_break,
         "mixed_tail_trim": mixed_trim,
+        "stem_balance": stem_balance,
         "deciding_dimension_count": len(deciding),
         "ranking": [
             {
@@ -505,6 +563,20 @@ def describe(shortlist: dict[str, Any]) -> list[str]:
             f"- cleanest of the tied takes: {shortlist['tie_break']['name']} "
             f"({shortlist['tie_break']['note']})"
         )
+
+    balance = shortlist["stem_balance"]
+    if balance is not None:
+        lines.append(
+            "- stem balance, reported and not scored "
+            f"(harmony spread {balance['harmony_spread'] * 100:.1f} points):"
+        )
+        for name, row in balance["takes"].items():
+            lines.append(
+                f"    {name:<26} drums+bass {row['drums_plus_bass'] * 100:5.1f}%   "
+                f"harmony {row['harmony'] * 100:4.1f}%"
+            )
+        if balance["missing"]:
+            lines.append(f"    (no stems imported: {', '.join(balance['missing'])})")
 
     for item in shortlist["excluded"]:
         lines.append(f"- excluded {item['name']}: {item['reason']}")

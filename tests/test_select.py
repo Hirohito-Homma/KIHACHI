@@ -311,6 +311,92 @@ class MixedTrimTests(unittest.TestCase):
             self.assertNotIn("confounded", "\n".join(describe(shortlist)))
 
 
+class StemBalanceTests(unittest.TestCase):
+    """Measured across five renders of one design: harmony ran 3.75% to 9.18%.
+
+    It discriminates, so it is worth showing. It has no defensible direction --
+    the SongSpec states no target balance and louder harmony is not a better
+    take -- so it must not touch the score.
+    """
+
+    def manifest(self, project: Path, **shares: float) -> None:
+        (project / "stem_manifest.json").write_text(
+            json.dumps(
+                {
+                    "manifest_version": "stem-manifest-v2",
+                    "model": "htdemucs",
+                    "stems": [
+                        {"stem": name, "energy_share": share}
+                        for name, share in shares.items()
+                    ],
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    def test_the_balance_is_reported_for_every_take_that_has_stems(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+            self.manifest(first, drums=0.60, bass=0.35, other=0.04, vocals=0.01)
+            self.manifest(second, drums=0.62, bass=0.28, other=0.09, vocals=0.01)
+
+            shortlist = build_shortlist(first, [second])
+
+            takes = shortlist["stem_balance"]["takes"]
+            self.assertAlmostEqual(takes["first"]["harmony"], 0.05, places=4)
+            self.assertAlmostEqual(takes["second"]["harmony"], 0.10, places=4)
+            self.assertAlmostEqual(shortlist["stem_balance"]["harmony_spread"], 0.05, places=4)
+            self.assertIn("reported and not scored", "\n".join(describe(shortlist)))
+
+    def test_the_balance_does_not_move_the_ranking(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+            set_components(first, section_energy=0.95)
+            set_components(second, section_energy=0.20)
+
+            without = build_shortlist(first, [second])
+            # The loser gets by far the more audible harmony; the order must hold.
+            self.manifest(first, drums=0.70, bass=0.28, other=0.01, vocals=0.01)
+            self.manifest(second, drums=0.50, bass=0.20, other=0.28, vocals=0.02)
+            with_stems = build_shortlist(first, [second])
+
+            self.assertEqual(
+                [row["name"] for row in without["ranking"]],
+                [row["name"] for row in with_stems["ranking"]],
+            )
+            self.assertEqual(
+                [row["score"] for row in without["ranking"]],
+                [row["score"] for row in with_stems["ranking"]],
+            )
+
+    def test_takes_without_stems_are_named_rather_than_dropped(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+            self.manifest(first, drums=0.60, bass=0.35, other=0.04, vocals=0.01)
+
+            shortlist = build_shortlist(first, [second])
+
+            self.assertEqual(shortlist["stem_balance"]["missing"], ["second"])
+
+    def test_no_stems_anywhere_reports_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = make_project(root, "first")
+            second = make_project(root, "second")
+
+            shortlist = build_shortlist(first, [second])
+
+            self.assertIsNone(shortlist["stem_balance"])
+
+
 class OutputTests(unittest.TestCase):
     def test_the_file_says_what_it_did_not_judge(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
