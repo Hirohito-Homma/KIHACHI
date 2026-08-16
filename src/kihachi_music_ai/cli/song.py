@@ -16,6 +16,7 @@ from ..chunked import build_chunk_plan
 from ..edit import apply_edit_to_project, build_spec_edit
 from ..lyrics import build_lyrics
 from ..models import TRACK_NAMES
+from ..brief import read_coverage
 from ..pipeline import compose_project
 from ..preferences import compile_preferences, harvest, load as load_preferences
 from ..web import serve as serve_briefs
@@ -34,6 +35,16 @@ def compose(args: argparse.Namespace) -> int:
         overwrite=args.overwrite,
         preferences=load_preferences(args.preferences),
     )
+    coverage = read_coverage(args.prompt)
+    if coverage["unread"]:
+        # Said at compose time because that is when it can still be acted on.
+        # Measured: a real 85-character brief had six of its ten statements go
+        # unread, and nothing anywhere reported it.
+        print(
+            f"- note: {len(coverage['unread'])} of {len(coverage['clauses'])} "
+            "statements in this brief went unread; "
+            "run `read-brief` to see which"
+        )
     print(f"Generated KIHACHI project: {manifest.output_dir}")
     for path in manifest.files:
         print(f"- {path.name}")

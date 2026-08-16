@@ -45,8 +45,20 @@ SCALES = {
     "minor": (0, 2, 3, 5, 7, 8, 10),
 }
 
+#: Japanese mode words, which a brief written in Japanese naturally uses.
+#: Their absence was not a missing feature but a wrong answer: `D#マイナー`
+#: matched only `D#`, fell through to the "no quality stated" branch, and
+#: composed in **D# major**. Three shipped projects in `example_output` asked
+#: for D#マイナー and carry a major key -- harmony, MIDI and the ACE-Step
+#: prompt all built on it. Found by `brief.py` reporting that only part of the
+#: statement had been read.
+_MINOR_WORDS = ("マイナー", "短調", "moll")
+_MAJOR_WORDS = ("メジャー", "長調", "dur")
+
 _KEY_RE = re.compile(
-    r"(?<![A-Za-z])([A-Ga-g])([#b♯♭]?)(?:\s*(m|min|minor|maj|major))?(?![A-Za-z])",
+    r"(?<![A-Za-z])([A-Ga-g])([#b♯♭]?)"
+    r"(?:\s*(m|min|minor|maj|major|" + "|".join(_MINOR_WORDS + _MAJOR_WORDS) + r"))?"
+    r"(?![A-Za-z])",
     re.IGNORECASE,
 )
 
@@ -60,7 +72,11 @@ def parse_key(text: str, default: str = "C minor") -> tuple[str, str, int, str]:
     accidental = match.group(2).replace("♯", "#").replace("♭", "b")
     tonic = match.group(1).upper() + accidental
     quality = (match.group(3) or "major").lower()
-    mode = "minor" if quality in {"m", "min", "minor"} else "major"
+    mode = (
+        "minor"
+        if quality in {"m", "min", "minor"} or quality in _MINOR_WORDS
+        else "major"
+    )
     return f"{tonic} {mode}", tonic, NOTE_TO_PC[tonic], mode
 
 
