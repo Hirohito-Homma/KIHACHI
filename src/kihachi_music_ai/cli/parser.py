@@ -288,6 +288,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     cut_sample.add_argument("--overwrite", action="store_true")
 
+    review_samples = subparsers.add_parser(
+        "review-samples",
+        help="rank a project's cut samples as material (reads only)",
+    )
+    review_samples.add_argument(
+        "project", type=Path, help="project holding sample_manifest.json"
+    )
+    review_samples.add_argument(
+        "--also",
+        type=Path,
+        action="append",
+        default=[],
+        help="another project whose samples join the ranking (repeatable)",
+    )
+
     shortlist = subparsers.add_parser(
         "shortlist",
         help="rank takes on what measurably separates them (adopts nothing)",
