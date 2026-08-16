@@ -1262,6 +1262,12 @@ python -m abletongpt.cli.jobs run --plan job_plan.json
 （Drums / Bass / Chords）にクリップが0〜224拍で並びました。ドラムには実在キット
 （909 Core Kit）、ベースにはOperatorがロードされています。
 
+**2026-08-17に、素材とオートメーションを含めた16操作を一度に通しました**
+（`completed=16 failed=0`）。MIDI 3本が0〜224拍、切り出したサンプルが0〜16拍で
+同じArrangementに並び、`set_clip_parameter_envelope`の4ステップも同じ実行に含まれます。
+ノートはKIHACHIの計画ファイルからAbletonGPTが直接読むので、**1389音がどの対話にも
+乗りません**。読み戻したchordsクリップは402音・根音56/56一致で、上と同じ結果です。
+
 **取り込んだ音声もArrangementへ運びます。**当初は`import_vocal_take`の後にコピーが無く、
 素材がSessionスロットに置かれたままでした。MIDIは3本ともタイムラインに並ぶのに音声だけが
 残るという非対称で、**実機に通して見るまで気づけませんでした**（テストは全部通っていて、
