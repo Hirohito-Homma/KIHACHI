@@ -60,6 +60,18 @@ LARGE_STRENGTH = 1.5
 JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません")
 ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 
+#: Negations that count **only when they touch the mention they follow**.
+#: A verb trait negates by simply appending: ``跳ね`` + ``ない``. The list above
+#: cannot carry a bare ``ない``, because those entries attach to the nearest
+#: mention anywhere earlier in the clause, and 「サイケで切ないやつ」 would then
+#: refuse the psychedelia on the strength of an unrelated adjective. Requiring
+#: adjacency is what makes the bare form safe: in that phrase the ``ない`` is
+#: four characters away from ``サイケ`` and means nothing to it.
+JAPANESE_SUFFIX_NEGATORS = (
+    "しすぎない", "すぎない", "し過ぎない", "過ぎない",
+    "しない", "しなく", "しません", "させない", "せず", "ない", "ず",
+)
+
 #: Clause boundaries. Negation does not reach across one, which is what keeps
 #: ``"スラップじゃなくて指弾き。サイケに。"`` from turning the whole brief off.
 _CLAUSE_SPLIT = re.compile(r"[、。，．,.;；\n\r]+")
@@ -92,6 +104,12 @@ TRAIT_WORDS: dict[str, tuple[str, ...]] = {
     # leaves the genre's own darkness alone, and only 「明るい」 moves it down.
     "dark": ("暗", "ダーク", "dark", "陰鬱", "重苦し", "gloomy", "murky"),
     "bright": ("明る", "ブライト", "bright", "きらびやか", "煌", "luminous"),
+    # `groove.swing` reaches the composer's timing, and exactly one genre of the
+    # 1021 in the database ever set it (`mutation_funk`, 0.54). Every family
+    # including Jazz left it straight, and no word here could say otherwise, so
+    # 「シャッフルで」 composed straight eighths and said nothing about it.
+    "swung": ("スウィング", "スイング", "シャッフル", "跳ね", "ハネ", "swing", "swung", "shuffle"),
+    "straight": ("ストレート", "イーブン", "straight", "even ", "四つ打ち"),
 }
 
 
@@ -236,6 +254,13 @@ def _negated(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> set
             if anchor is not None:
                 negated.add(anchor)
                 negated.update(_joined_before(lowered, mentions, anchor))
+
+    for word in JAPANESE_SUFFIX_NEGATORS:
+        for match in re.finditer(re.escape(word), lowered):
+            for index, item in enumerate(mentions):
+                if item[1] == match.start():
+                    negated.add(index)
+                    negated.update(_joined_before(lowered, mentions, index))
 
     for word in ENGLISH_NEGATORS:
         for match in re.finditer(rf"(?<![a-z0-9]){re.escape(word)}", lowered):
