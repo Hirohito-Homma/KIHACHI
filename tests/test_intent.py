@@ -127,6 +127,34 @@ class DegreeTests(unittest.TestCase):
         self.assertEqual(read("very psychedelic").strength_of("psychedelic"), LARGE_STRENGTH)
         self.assertEqual(read("slightly psychedelic").strength_of("psychedelic"), SMALL_STRENGTH)
 
+    def test_a_degree_does_not_reach_past_the_mention_it_modifies(self) -> None:
+        """The bound the docstring always claimed, now actually there.
+
+        The search ran to the start of the clause, so 「かなりサイケなアルペジオ」
+        gave the arpeggio the 1.5 belonging to the psychedelia. The comma in the
+        older example hid it. Found by `compare-readings`: the model said 1.0.
+        """
+
+        traits = read("かなりサイケなアルペジオを主役に")
+
+        self.assertEqual(traits.strength_of("psychedelic"), 1.5)
+        self.assertEqual(traits.strength_of("arp"), 1.0)
+
+    def test_a_trailing_hedge_is_read(self) -> None:
+        """Japanese hedges after the thing too: 「サブベースは少しだけ」."""
+
+        self.assertEqual(read("サブベースは少しだけ").strength_of("sub"), 0.5)
+        self.assertEqual(read("サブベースとサイケを少し").strength_of("sub"), 1.0)
+        self.assertEqual(read("サブベースとサイケを少し").strength_of("psychedelic"), 0.5)
+
+    def test_a_degree_between_two_mentions_belongs_to_the_later_one(self) -> None:
+        """Reading trailing text for every mention would double-claim it."""
+
+        traits = read("サイケとかなりダブ")
+
+        self.assertEqual(traits.strength_of("psychedelic"), 1.0)
+        self.assertEqual(traits.strength_of("dub"), 1.5)
+
     def test_a_degree_belongs_to_the_mention_it_precedes(self) -> None:
         traits = read("かなりダブ、サイケも")
 
