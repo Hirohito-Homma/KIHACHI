@@ -207,7 +207,15 @@ def _read_clause(clause: str, offset: int) -> list[Trait]:
         Trait(
             name=name,
             polarity=-1 if index in negated else 1,
-            strength=_strength(lowered, start),
+            strength=_strength(
+                lowered,
+                start,
+                floor=mentions[index - 1][1] if index else 0,
+                # Only the last mention reads what trails it; anything earlier
+                # would be claiming a degree word that the next mention's own
+                # backwards search already owns.
+                ceiling=end if index == len(mentions) - 1 else None,
+            ),
             evidence=evidence,
             position=offset + start,
         )
@@ -304,21 +312,50 @@ def _joined_after(lowered: str, mentions, anchor: int) -> set[int]:
     return joined
 
 
-def _strength(lowered: str, position: int) -> float:
+def _strength(lowered: str, position: int, floor: int = 0, ceiling: int | None = None) -> float:
     """The degree word attached to this mention, if any.
 
     Both languages put the modifier first (``少しサイケ``, ``slightly
-    psychedelic``), so only the text before the mention is considered, and only
-    back to the previous mention -- ``かなり`` in ``"かなりダブ、サイケも"`` belongs
-    to dub.
+    psychedelic``), so the text before the mention is what is read -- and only
+    back to the previous mention, which is what ``floor`` is. That sentence was
+    here before the bound was: the search ran to the start of the clause, so
+    ``かなり`` in ``"かなりサイケなアルペジオ"`` reached past the psychedelia it
+    modifies and made the arpeggio insisted-on too. The docstring's own example
+    ``"かなりダブ、サイケも"`` only worked because the comma splits the clause.
+
+    Japanese also hedges *after* the thing, with the noun marked and the degree
+    trailing: ``サブベースは少しだけ``. Nothing read that, so a plainly stated
+    request came out of a sentence that asked for a little. The trailing text is
+    read only for the clause's last mention -- a degree word sitting between two
+    mentions belongs to the one that follows it, which the backwards search of
+    that next mention already claims.
+
+    Both were found by `agreement.compare_readings`: the model had them right.
     """
 
-    before = lowered[:position]
+    before = lowered[max(0, floor):position]
     large = max((before.rfind(word.casefold()) for word in LARGE_WORDS + INTENT_ONLY_LARGE), default=-1)
     small = max((before.rfind(word.casefold()) for word in SMALL_WORDS + INTENT_ONLY_SMALL), default=-1)
+    if large >= 0 or small >= 0:
+        return LARGE_STRENGTH if large > small else SMALL_STRENGTH
+    if ceiling is None:
+        return PLAIN_STRENGTH
+    after = lowered[ceiling:]
+    large = min(
+        (index for index in (after.find(word.casefold()) for word in LARGE_WORDS + INTENT_ONLY_LARGE) if index >= 0),
+        default=-1,
+    )
+    small = min(
+        (index for index in (after.find(word.casefold()) for word in SMALL_WORDS + INTENT_ONLY_SMALL) if index >= 0),
+        default=-1,
+    )
     if large < 0 and small < 0:
         return PLAIN_STRENGTH
-    return LARGE_STRENGTH if large > small else SMALL_STRENGTH
+    if small < 0:
+        return LARGE_STRENGTH
+    if large < 0:
+        return SMALL_STRENGTH
+    return LARGE_STRENGTH if large < small else SMALL_STRENGTH
 
 
 def blend(low: float, high: float, strength: float) -> float:
