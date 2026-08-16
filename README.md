@@ -991,6 +991,30 @@ python -m abletongpt.cli.jobs run --plan job_plan.json
 署名でパラメータを束ねるので、この操作は実行すれば失敗します。テストは
 **間違ったほうのキー集合を固定していました**。実機に通すまで、両方とも気づけていません。
 
+### オートメーションの値はパラメーターの単位です
+
+`--automate`の`low`/`high`は、**そのパラメーター自身の単位**で書きます。正規化された0..1ではありません。
+
+Remote Scriptは値をパラメーターの`min`/`max`で検証します。909 Core Kitの`Low Gain`は0〜127なので、
+そこへ0.38を書くと**エラーにならず、範囲の0.3%が書かれます**。38%ではありません。
+KIHACHIは以前`low`/`high`を0..1に強制していたので、範囲が0..1でないパラメーターでは
+**静かに間違った値**を書いていたことになります。
+
+`min`/`max`は`device_index`・`parameter_index`と同じ`get_track_devices`の出力にあります。
+
+```bash
+# Low Gain (0〜127) を 40〜90 の帯で動かす
+--automate chords:fx_amount:0:1:40:90
+```
+
+**sendは例外で0..1のままです。**sendは本当に0..1だからです。
+
+なお`set_clip_parameter_envelope`はSessionクリップ専用です（LiveのAPIはArrangementクリップに
+対してnullを返します）。計画はenvelopeを書いてから`copy_session_clip_to_arrangement`する順序で
+操作を並べます。
+
+この不一致はソース上で確定していますが、**修正後の実機確認は未実施**です。
+
 `first_track_index`はセットの既存トラック数に一致させます。ずれていると
 `apply_live_drum_kit`が既存トラックへキットを載せるので、AbletonGPTが適用直前に
 `TrackBaselineMismatch`で止めます（KIHACHI側はLiveを見ないので、この検査は持てません）。

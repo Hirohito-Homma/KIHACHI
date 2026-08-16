@@ -381,12 +381,35 @@ class AutomationPlanTests(unittest.TestCase):
             "set_clip_parameter_envelope", [op["op"] for op in plan["operations"]]
         )
 
-    def test_a_bad_range_is_refused(self) -> None:
-        for bad in ({"low": 0.6, "high": 0.4}, {"low": -0.1, "high": 0.5}, {"low": 0.2, "high": 1.4}):
-            with self.assertRaises(ValueError):
-                build_arrangement_plan(
-                    self.spec, self.tracks, automation=[{**ECHO_DRY_WET, **bad}]
-                )
+    def test_an_inverted_range_is_refused(self) -> None:
+        with self.assertRaises(ValueError):
+            build_arrangement_plan(
+                self.spec,
+                self.tracks,
+                automation=[{**ECHO_DRY_WET, "low": 0.6, "high": 0.4}],
+            )
+
+    def test_a_device_range_outside_zero_to_one_is_allowed(self) -> None:
+        """Live checks the value against the parameter, and few are 0..1.
+
+        A Drum Rack gain runs 0..127 and an Operator transpose -48..48. Forcing
+        the range into 0..1 is what made 0.38 land as 0.3% of a gain instead of
+        38% of it, silently, because Live accepted it.
+        """
+
+        plan = build_arrangement_plan(
+            self.spec,
+            self.tracks,
+            automation=[{**ECHO_DRY_WET, "low": -12.0, "high": 24.0}],
+        )
+
+        steps = next(
+            op["params"]["steps"]
+            for op in plan["operations"]
+            if op["op"] == "set_clip_parameter_envelope"
+        )
+        self.assertTrue(all(-12.0 <= step["value"] <= 24.0 for step in steps))
+        self.assertTrue(any(step["value"] > 1.0 for step in steps))
 
     def test_a_field_no_section_carries_is_refused_rather_than_guessed(self) -> None:
         bare = dataclasses.replace(
@@ -691,6 +714,17 @@ class SendTests(unittest.TestCase):
 
     def _sends(self, plan):
         return [op for op in plan["operations"] if op["op"] == "set_clip_send_envelope"]
+
+    def test_a_send_range_outside_zero_to_one_is_still_refused(self) -> None:
+        """Unlike a device parameter, a send really is 0..1, so the bound holds."""
+
+        for bad in ({"low": -0.1, "high": 0.5}, {"low": 0.2, "high": 1.4}):
+            with self.assertRaises(ValueError):
+                build_arrangement_plan(
+                    self.spec,
+                    self.tracks,
+                    sends=[{"part": "chords", "send_index": 0, **bad}],
+                )
 
     def test_a_send_targets_the_track_the_part_landed_on(self) -> None:
         plan = build_arrangement_plan(

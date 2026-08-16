@@ -333,6 +333,9 @@ def _send_envelope_steps(
             "high": binding.get("high", 1.0),
         },
         bar_beats,
+        # A send really is 0..1, so here the musical range and the target range
+        # are the same thing and the bound can be checked.
+        unit_range=True,
     )
 
 
@@ -342,6 +345,13 @@ def parse_automation_binding(text: str) -> dict[str, Any]:
     The device and parameter indices are facts about the Live set, not about the
     song, so they cannot be derived here -- ``get_track_devices`` in AbletonGPT is
     what reports them.
+
+    **``low``/``high`` are in that parameter's own units**, which the same
+    ``get_track_devices`` output reports as ``min`` and ``max``. They used to be
+    required to sit inside 0..1, on the assumption that an envelope value was
+    normalised; Live range-checks it against the parameter instead, so 0.38 on a
+    0..127 gain wrote 0.3% of the range without complaining. Sends are the
+    exception and stay 0..1, because a send really is.
     """
 
     parts = text.split(":")
@@ -566,7 +576,9 @@ def build_arrangement_plan(
                     },
                     "why": (
                         f"section {binding['field']} drives this parameter "
-                        f"({len(steps)} steps, one per section)"
+                        f"({len(steps)} steps, one per section); step values are in "
+                        "the parameter's own units, which Live range-checks against "
+                        "its min/max"
                     ),
                 }
             )
@@ -718,20 +730,30 @@ def _envelope_steps(
     spec: SongSpec,
     binding: Mapping[str, Any],
     bar_beats: float,
+    *,
+    unit_range: bool = False,
 ) -> list[dict[str, Any]]:
     """One envelope step per section, mapping a 0..1 SongSpec field into a range.
 
-    ``low``/``high`` exist because a musical 0..1 rarely means the parameter's
-    own 0..1: a fully wet delay at ``fx_amount`` 1.0 would erase the dry part it
-    is supposed to decorate. Sections whose field is unset are skipped rather
-    than guessed, so an incomplete arrangement leaves those bars untouched.
+    ``low``/``high`` exist because a musical 0..1 rarely means the target's own
+    0..1: a fully wet delay at ``fx_amount`` 1.0 would erase the dry part it is
+    supposed to decorate. Sections whose field is unset are skipped rather than
+    guessed, so an incomplete arrangement leaves those bars untouched.
+
+    ``unit_range`` says whether the target is itself 0..1. Sends are, and are
+    checked. **Device parameters are not**: Live range-checks an envelope value
+    against that parameter's own ``min``/``max``, so ``0.38`` on a 0..127 gain is
+    written as 0.3% of the range rather than 38% of it -- accepted, silent, and
+    wrong. This module never sees Live and so cannot scale into a range it
+    cannot read; the caller supplies ``low``/``high`` in the parameter's own
+    units, from the same ``get_track_devices`` output the indices came from.
     """
 
     field = str(binding["field"])
     low = float(binding.get("low", 0.0))
     high = float(binding.get("high", 1.0))
-    if not 0.0 <= low <= 1.0 or not 0.0 <= high <= 1.0:
-        raise ValueError("automation low/high must be between 0.0 and 1.0")
+    if unit_range and (not 0.0 <= low <= 1.0 or not 0.0 <= high <= 1.0):
+        raise ValueError("send automation low/high must be between 0.0 and 1.0")
     if high <= low:
         raise ValueError("automation high must be greater than low")
 

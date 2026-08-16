@@ -8545,6 +8545,38 @@
       "why": "402 notes covering all 56 bars"
     },
     {
+      "op": "set_clip_parameter_envelope",
+      "params": {
+        "track_index": 3,
+        "clip_index": 0,
+        "device_index": 0,
+        "parameter_index": 1,
+        "steps": [
+          {
+            "start": 0.0,
+            "length": 32.0,
+            "value": 0.38
+          },
+          {
+            "start": 32.0,
+            "length": 64.0,
+            "value": 0.41
+          },
+          {
+            "start": 96.0,
+            "length": 64.0,
+            "value": 0.572
+          },
+          {
+            "start": 160.0,
+            "length": 64.0,
+            "value": 0.62
+          }
+        ]
+      },
+      "why": "section fx_amount drives this parameter (4 steps, one per section)"
+    },
+    {
       "op": "copy_session_clip_to_arrangement",
       "params": {
         "track_index": 3,
