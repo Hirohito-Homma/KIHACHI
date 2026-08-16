@@ -51,6 +51,7 @@ from ..models import SongSpec
 from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
+from ..material import describe as describe_material, review_sample
 from ..sampler import cut_sample
 from ..select import (
     build_shortlist,
@@ -636,6 +637,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- key as designed: {record['key']} (not measured in the audio)")
             print(f"- source render left as it was: {record['source']['audio_file']}")
             print(f"- manifest: {manifest.manifest_file}")
+            return 0
+
+        if args.command == "review-samples":
+            reviews = []
+            for project in [args.project, *args.also]:
+                manifest_path = project / "sample_manifest.json"
+                if not manifest_path.is_file():
+                    raise FileNotFoundError(f"no samples cut here: {manifest_path}")
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                for record in manifest["samples"]:
+                    reviews.append(
+                        review_sample(
+                            project / record["path"],
+                            bpm=float(record["bpm"]),
+                            source_audio=record.get("source", {}).get("audio_file"),
+                            label=f"{project.name}/{record['name']}",
+                        )
+                    )
+            for line in describe_material(reviews):
+                print(line)
             return 0
 
         if args.command == "shortlist":
