@@ -27,6 +27,12 @@
       "live_track_index": 3,
       "name": "KIHACHI Chords",
       "notes": 402
+    },
+    {
+      "part": "reference",
+      "live_track_index": 4,
+      "name": "ACE-Step Ref",
+      "file": "example_output/mutation-signal-2min-guarded-01/audio/ace-step-01.wav"
     }
   ],
   "structure": [
@@ -8553,12 +8559,24 @@
         "name": "KIHACHI Chords"
       },
       "why": "place the part on the Arrangement timeline at bar 1"
+    },
+    {
+      "op": "import_vocal_take",
+      "params": {
+        "file_path": "/Users/user/MusicAI/kihachi-music-ai/example_output/mutation-signal-2min-guarded-01/audio/ace-step-01.wav",
+        "track_name": "ACE-Step Ref",
+        "clip_name": "ACE-Step Ref (take)",
+        "clip_index": 0
+      },
+      "why": "the rendered take, to write and mix against"
     }
   ],
   "clip_strategy": "one full-length clip per Live track",
   "drums_split": false,
   "clip_strategy_reason": "create_midi_clip needs an empty Session slot and a default set has eight per track; this arrangement has nine sections",
-  "warnings": [],
+  "warnings": [
+    "import_vocal_take is outside AbletonGPT's import-kihachi contract; importing this plan refuses the whole document. Run these operations through the MCP tools directly, or build the plan without them"
+  ],
   "safety": {
     "creates_tracks": 3,
     "modifies_existing_tracks": false,

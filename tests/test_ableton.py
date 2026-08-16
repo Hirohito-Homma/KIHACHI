@@ -374,6 +374,32 @@ class AutomationPlanTests(unittest.TestCase):
         )
         self.assertEqual(envelopes[0]["params"]["track_index"], chords_track)
 
+    def test_an_envelope_plan_says_the_importer_will_refuse_it(self) -> None:
+        """`import-kihachi` rejects the whole document on the first op it lacks.
+
+        Found by running it: a plan whose only unsupported operation was an
+        envelope applied nothing at all, and said so only at import time.
+        """
+
+        plan = build_arrangement_plan(
+            self.spec, self.tracks, automation=[ECHO_DRY_WET]
+        )
+
+        self.assertTrue(
+            any(
+                "set_clip_parameter_envelope" in warning
+                and "import-kihachi" in warning
+                for warning in plan["warnings"]
+            )
+        )
+
+    def test_a_plan_the_importer_accepts_carries_no_such_warning(self) -> None:
+        plan = build_arrangement_plan(self.spec, self.tracks)
+
+        self.assertFalse(
+            any("import-kihachi" in warning for warning in plan["warnings"])
+        )
+
     def test_no_automation_means_no_envelope_operations(self) -> None:
         plan = build_arrangement_plan(self.spec, self.tracks)
 
