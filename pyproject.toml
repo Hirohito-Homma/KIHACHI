@@ -8,6 +8,10 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["build>=1.2", "pytest>=8"]
+# The core stays standard-library only (ADR-0001). The intent reader is the one
+# place that talks to a model, it lives in adapters/, and it imports this inside
+# the call -- so `pip install kihachi-music-ai` still pulls nothing.
+llm = ["anthropic>=0.69"]
 
 [project.scripts]
 kihachi = "kihachi_music_ai.cli:main"
