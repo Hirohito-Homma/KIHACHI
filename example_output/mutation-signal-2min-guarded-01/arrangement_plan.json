@@ -3959,6 +3959,38 @@
       "why": "631 notes covering all 56 bars"
     },
     {
+      "op": "set_clip_parameter_envelope",
+      "params": {
+        "track_index": 1,
+        "clip_index": 0,
+        "device_index": 0,
+        "parameter_index": 1,
+        "steps": [
+          {
+            "start": 0.0,
+            "length": 32.0,
+            "value": 55.0
+          },
+          {
+            "start": 32.0,
+            "length": 64.0,
+            "value": 57.5
+          },
+          {
+            "start": 96.0,
+            "length": 64.0,
+            "value": 71.0
+          },
+          {
+            "start": 160.0,
+            "length": 64.0,
+            "value": 75.0
+          }
+        ]
+      },
+      "why": "section fx_amount drives this parameter (4 steps, one per section); step values are in the parameter's own units, which Live range-checks against its min/max"
+    },
+    {
       "op": "copy_session_clip_to_arrangement",
       "params": {
         "track_index": 1,
@@ -8575,7 +8607,7 @@
   "drums_split": false,
   "clip_strategy_reason": "create_midi_clip needs an empty Session slot and a default set has eight per track; this arrangement has nine sections",
   "warnings": [
-    "import_vocal_take is outside AbletonGPT's import-kihachi contract; importing this plan refuses the whole document. Run these operations through the MCP tools directly, or build the plan without them"
+    "import_vocal_take, set_clip_parameter_envelope is outside AbletonGPT's import-kihachi contract; importing this plan refuses the whole document. Run these operations through the MCP tools directly, or build the plan without them"
   ],
   "safety": {
     "creates_tracks": 3,

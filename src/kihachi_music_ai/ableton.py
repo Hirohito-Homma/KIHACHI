@@ -41,22 +41,23 @@ JOB_PIPELINE_COMMANDS = frozenset(
         "apply_live_drum_kit",
         "create_midi_clip",
         "set_clip_send_envelope",
+        "set_clip_parameter_envelope",
+        "import_vocal_take",
         "copy_session_clip_to_arrangement",
     }
 )
 """Operations AbletonGPT's `import-kihachi` adapter accepts, checked 2026-08-16.
 
-Its `KIHACHI_CORE_COMMANDS` is deliberately narrow -- "the adapter is
-intentionally narrow", and its executor has no handler for anything outside this
-set. Two operations this module can emit are outside it:
-`set_clip_parameter_envelope` and `import_vocal_take`. Both exist as MCP tools
-and both work when called directly; what they lack is a job-pipeline path.
+This is every operation the planner can emit, which is the point: the adapter
+rejects the **whole** document on the first operation it does not know, so a
+plan built with `--automate` or `--reference-audio` used to apply nothing at all
+and only say so after the plan had been built and a runner gone looking for.
+`set_clip_parameter_envelope` and `import_vocal_take` were outside the set until
+AbletonGPT0.2#137; both had always worked as MCP tools.
 
-Recorded here so the plan can say so up front. Importing rejects the **whole**
-document on the first unsupported operation, so a plan built with `--automate`
-or `--reference-audio` fails at the import step with nothing applied -- which is
-safe, but only tells you after you have built the plan and gone looking for the
-runner.
+The check below is kept even though nothing currently trips it. It exists for
+the next operation added here before the adapter has a handler for it -- which
+is how the last two got missed.
 """
 # AbletonGPT's create_midi_clip validator caps both of these.
 MAX_CLIP_BEATS = 4096

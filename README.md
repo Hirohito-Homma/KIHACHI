@@ -1147,15 +1147,14 @@ KIHACHIは以前`low`/`high`を0..1に強制していたので、範囲が0..1�
 
 **旧の値はエラーを返しません。**成功と報告したうえで、意図と正反対の位置に着地します。
 
-### ジョブ経路を通らない操作が2つあります
+### 取り込み契約は、planner の出力に追いつく必要があります
 
-`ableton-plan`が出しうる操作は9つですが、AbletonGPTの`import-kihachi`が受けるのは**7つ**です。
+`ableton-plan`が出しうる操作は9つで、AbletonGPTの`import-kihachi`は現在その9つを受けます。
 
-| 操作 | ジョブ経路 | MCPツール |
-|---|---|---|
-| set_tempo / create_track / apply_live_drum_kit / apply_live_instrument_selection / create_midi_clip / set_clip_send_envelope / copy_session_clip_to_arrangement | ○ | ○ |
-| `set_clip_parameter_envelope`（`--automate`） | **×** | ○ |
-| `import_vocal_take`（`--reference-audio` / `--vocal-audio`） | **×** | ○ |
+**2026-08-16まで、そのうち2つが受け付けられていませんでした** —
+`set_clip_parameter_envelope`（`--automate`）と`import_vocal_take`
+（`--reference-audio` / `--vocal-audio`）です。どちらもMCPツールとしては動いていて、
+欠けていたのはジョブ経路だけでした（AbletonGPT0.2#137で追加）。
 
 ```text
 operation 13 uses unsupported KIHACHI core command 'import_vocal_take'
@@ -1163,19 +1162,20 @@ operation 13 uses unsupported KIHACHI core command 'import_vocal_take'
 ```
 
 **取り込みは最初の未対応操作で文書ごと拒否します。**envelope1個のために計画全体が
-1操作も適用されません。AbletonGPT側は"The adapter is intentionally narrow"と明記していて、
-実行系にもハンドラがないので、これは古いのではなく設計判断です。
+1操作も適用されません。この挙動自体は正しく、危険な半端適用を防ぎます。問題は、
+受け入れ集合がplannerの出力から遅れると、**計画を作り終えて実行系を探しに行くまで
+気づけない**ことでした。
 
-そこでKIHACHIは、**計画を作った時点で警告します**（取り込みで初めて分かるのではなく）。
+そこでKIHACHIは、契約外の操作を含む計画を作った時点で警告します。
 
 ```text
-- warning: import_vocal_take is outside AbletonGPT's import-kihachi contract;
+- warning: <op> is outside AbletonGPT's import-kihachi contract;
   importing this plan refuses the whole document. Run these operations through
   the MCP tools directly, or build the plan without them
 ```
 
-該当する操作はMCPツールとしては動きます（上のLow Gainの実機確認もその経路です）。
-契約そのものを広げるかはAbletonGPT側の判断なので、KIHACHIでは直しません。
+現在この警告は出ません（9操作すべてが契約内です）。**次に操作を足したとき、
+AbletonGPT側にハンドラが無ければ発火します** — 前の2つが見過ごされたのが、まさにその形でした。
 
 `first_track_index`はセットの既存トラック数に一致させます。ずれていると
 `apply_live_drum_kit`が既存トラックへキットを載せるので、AbletonGPTが適用直前に

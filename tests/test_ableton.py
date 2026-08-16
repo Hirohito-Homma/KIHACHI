@@ -374,23 +374,20 @@ class AutomationPlanTests(unittest.TestCase):
         )
         self.assertEqual(envelopes[0]["params"]["track_index"], chords_track)
 
-    def test_an_envelope_plan_says_the_importer_will_refuse_it(self) -> None:
-        """`import-kihachi` rejects the whole document on the first op it lacks.
+    def test_an_envelope_plan_is_now_inside_the_importer_contract(self) -> None:
+        """AbletonGPT0.2#137 added the handler; before it, this plan applied nothing.
 
-        Found by running it: a plan whose only unsupported operation was an
-        envelope applied nothing at all, and said so only at import time.
+        `import-kihachi` rejects the whole document on the first operation it
+        does not know, so a plan whose only unsupported operation was an
+        envelope created nothing at all -- and said so only at import time.
         """
 
         plan = build_arrangement_plan(
             self.spec, self.tracks, automation=[ECHO_DRY_WET]
         )
 
-        self.assertTrue(
-            any(
-                "set_clip_parameter_envelope" in warning
-                and "import-kihachi" in warning
-                for warning in plan["warnings"]
-            )
+        self.assertFalse(
+            any("import-kihachi" in warning for warning in plan["warnings"])
         )
 
     def test_a_plan_the_importer_accepts_carries_no_such_warning(self) -> None:
@@ -399,6 +396,24 @@ class AutomationPlanTests(unittest.TestCase):
         self.assertFalse(
             any("import-kihachi" in warning for warning in plan["warnings"])
         )
+
+    def test_an_operation_outside_the_contract_is_still_named(self) -> None:
+        """The guard outlives the gap it was written for.
+
+        Nothing the planner emits trips it today. It is kept for the next
+        operation added here before the adapter has a handler for it, which is
+        exactly how the last two went unnoticed until a plan was run.
+        """
+
+        from kihachi_music_ai.ableton import _job_pipeline_warnings
+
+        warnings = _job_pipeline_warnings(
+            [{"op": "set_tempo", "params": {}}, {"op": "delete_track", "params": {}}]
+        )
+
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("delete_track", warnings[0])
+        self.assertNotIn("set_tempo", warnings[0])
 
     def test_no_automation_means_no_envelope_operations(self) -> None:
         plan = build_arrangement_plan(self.spec, self.tracks)
