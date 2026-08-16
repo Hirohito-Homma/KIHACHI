@@ -113,6 +113,51 @@ class DegreeTests(unittest.TestCase):
         self.assertEqual(spec.chords.dub_delay, 0.74)
 
 
+class StatedDarknessTests(unittest.TestCase):
+    """`style.darkness` was reachable only through the genre until 2026-08-17."""
+
+    @staticmethod
+    def darkness(prompt: str) -> float:
+        return MusicBrain(seed=1).analyze(prompt).style.darkness
+
+    def test_a_brief_that_says_nothing_keeps_the_genre_reading(self) -> None:
+        self.assertEqual(self.darkness("アンビエント。"), 0.48)
+
+    def test_saying_it_moves_it_and_the_degree_decides_how_far(self) -> None:
+        self.assertEqual(self.darkness("少し暗いアンビエント。"), 0.62)
+        self.assertEqual(self.darkness("暗いアンビエント。"), 0.76)
+        self.assertEqual(self.darkness("かなり暗いアンビエント。"), 0.9)
+
+    def test_brightness_is_its_own_trait_and_moves_the_other_way(self) -> None:
+        self.assertEqual(self.darkness("明るいアンビエント。"), 0.226667)
+        self.assertEqual(self.darkness("かなり明るいアンビエント。"), 0.1)
+
+    def test_a_genre_already_past_the_pole_is_left_alone(self) -> None:
+        """Reading the pole as a target made agreeing with the brief undo it.
+
+        Techno's own darkness is 1.0, and the first draft answered 「暗いテクノ」
+        with 0.93 -- less dark than 「テクノ」 said on its own.
+        """
+
+        self.assertEqual(self.darkness("テクノ。"), 1.0)
+        self.assertEqual(self.darkness("暗いテクノ。"), 1.0)
+        self.assertEqual(self.darkness("かなり暗いテクノ。"), 1.0)
+
+    def test_refusing_darkness_is_not_asking_for_brightness(self) -> None:
+        """The genre's own reading beats either pole when the brief only says no."""
+
+        self.assertEqual(self.darkness("暗くないテクノ。"), 1.0)
+        self.assertEqual(self.darkness("明るくないアンビエント。"), 0.48)
+
+    def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
+        ambient = (
+            "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"
+            "ベースは控えめで薄い。パーカッションは軽く、シェイカーとハイハット中心。"
+        )
+
+        self.assertEqual(self.darkness(ambient), 0.226667)
+
+
 if __name__ == "__main__":
     unittest.main()
 

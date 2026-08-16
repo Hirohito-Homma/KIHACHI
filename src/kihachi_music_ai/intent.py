@@ -52,8 +52,12 @@ PLAIN_STRENGTH = 1.0
 SMALL_STRENGTH = 0.5
 LARGE_STRENGTH = 1.5
 
-#: Japanese puts negation after what it negates; English puts it before.
-JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな")
+#: Japanese puts negation after what it negates; English puts it before. The
+#: ``くない`` family was added with the darkness traits: every trait before them
+#: was named by a noun, where ``じゃない`` is the negation, and an adjective
+#: negates as ``暗くない`` instead. Without it 「暗くないテクノ」 read as a
+#: request for darkness -- the exact inversion this module was written to stop.
+JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません")
 ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 
 #: Clause boundaries. Negation does not reach across one, which is what keeps
@@ -78,6 +82,16 @@ TRAIT_WORDS: dict[str, tuple[str, ...]] = {
     "synth": ("シンセ", "スタブ", "リード", "synth", "stab", "lead"),
     "arp": ("アルペジ", "シーケンス", "arp", "sequence", "sequencer"),
     "dub": ("dub", "ダブ"),
+    # Darkness is the one axis a brief could always describe and never reach.
+    # `style.darkness` has existed since v0.1 and is read by the prompt
+    # compiler, the lyric writer and the Live plan, but only the genre's mood
+    # tags and `dub` ever set it -- so 「暗くて疾走感のある」 left the SongSpec
+    # carrying its genre default of 0.48, which is what `brief.py`'s opening
+    # example is about. These two are a pair rather than one signed trait
+    # because refusing is not the same as asking for the opposite: 「暗くない」
+    # leaves the genre's own darkness alone, and only 「明るい」 moves it down.
+    "dark": ("暗", "ダーク", "dark", "陰鬱", "重苦し", "gloomy", "murky"),
+    "bright": ("明る", "ブライト", "bright", "きらびやか", "煌", "luminous"),
 }
 
 

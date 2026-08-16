@@ -27,6 +27,24 @@ class NegationTests(unittest.TestCase):
         self.assertTrue(traits.refused("slap"))
         self.assertEqual(traits.strength_of("slap"), 0.0)
 
+    def test_an_adjective_negates_differently_from_a_noun(self) -> None:
+        """Every trait before `dark` was a noun, so `くない` was never needed.
+
+        `暗くない` contains none of the noun negators, so it read as a plain
+        request for darkness -- the same inversion `スラップじゃない` used to
+        produce, still present in the corner no trait had reached yet.
+        """
+
+        for text, name in (
+            ("暗くないテクノ", "dark"),
+            ("明るくないアンビエント", "bright"),
+            ("サイケくない", "psychedelic"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertTrue(traits.refused(name))
+                self.assertEqual(traits.strength_of(name), 0.0)
+
     def test_english_negation_precedes_what_it_refuses(self) -> None:
         for text in ("without slap", "no slap", "not slap"):
             with self.subTest(text=text):

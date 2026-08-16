@@ -37,6 +37,47 @@ _METER_WORDS = {
     "waltz": "3/4",
 }
 
+#: How far a stated darkness can carry the value the genre already chose. Not
+#: 0.0 and 1.0: a brief saying 「暗い」 is describing this song, not asking for
+#: the darkest one expressible, and the extremes are where the prompt compiler's
+#: bands stop distinguishing anything.
+_DARK_POLE = 0.9
+_BRIGHT_POLE = 0.1
+
+#: A plain statement moves two thirds of the way to the pole, insistence all of
+#: it, a hedge one third. Chosen so a plainly dark brief lands near 0.76 from
+#: the 0.48 default -- next to the 0.72 that plainly-stated `dub` has always
+#: produced, rather than somewhere new.
+_STATED_DARKNESS_REACH = {0.5: 1 / 3, 1.0: 2 / 3, 1.5: 1.0}
+
+
+def _stated_darkness(base: float, traits: Traits) -> float:
+    """Let the brief move the genre's darkness, from wherever the genre put it.
+
+    Every other trait blends from a fixed refused pole, because the pole is the
+    constant the code used before the trait existed. Darkness has no such
+    constant: it is whatever the mood tags said, so this moves *from* that value
+    instead of replacing it, and a brief that says nothing leaves it untouched.
+
+    `dark` and `bright` are separate traits on purpose. `strength_of` reports a
+    refusal as 0.0, so 「暗くない」 lands here as no statement at all -- which is
+    right: refusing darkness does not ask for brightness, and the genre's own
+    reading is the better answer than either pole.
+    """
+
+    dark = traits.strength_of("dark")
+    bright = traits.strength_of("bright")
+    value = base
+    # The poles are limits, not targets. Techno's own darkness is 1.0, and
+    # reading the pole as a destination made 「暗いテクノ」 *less* dark than
+    # 「テクノ」 -- agreeing with the brief moved the value backwards. A
+    # statement that the genre already satisfies leaves it alone.
+    if dark and value < _DARK_POLE:
+        value = value + (_DARK_POLE - value) * _STATED_DARKNESS_REACH[dark]
+    if bright and value > _BRIGHT_POLE:
+        value = value + (_BRIGHT_POLE - value) * _STATED_DARKNESS_REACH[bright]
+    return round(clamp(value), 6)
+
 
 class MusicBrain:
     """Deterministic v0.1 interpreter from a music brief to SongSpec."""
@@ -126,7 +167,7 @@ class MusicBrain:
                 # old constants. The constants were the same two numbers for
                 # every unrecognised style; the tags at least distinguish a
                 # nocturnal one from a sunny one.
-                darkness=blend(db_darkness or 0.48, 0.72, dub),
+                darkness=_stated_darkness(blend(db_darkness or 0.48, 0.72, dub), traits),
                 psychedelic=blend(db_psychedelic or 0.28, 0.82, psychedelic),
             ),
             groove=GrooveSpec(
