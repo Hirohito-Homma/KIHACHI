@@ -11,6 +11,7 @@ from kihachi_music_ai.adapters.intent_llm import (
     API_KEY_ENV,
     DEFAULT_MODEL,
     STRENGTHS,
+    _explain_api_error,
     build_request,
     read_brief,
     validate_reading,
@@ -20,6 +21,19 @@ from kihachi_music_ai.cli import main
 from kihachi_music_ai.intent import TRAIT_WORDS
 
 BRIEF = "サイケデリックに。きらびやかで高域中心、繊細。ベースは控えめで薄い。"
+
+
+class _FakeStatusError(Exception):
+    """The shape `_explain_api_error` reads, without needing the SDK installed.
+
+    The tests stay runnable on a core-only install (ADR-0001), which is the whole
+    reason the SDK is imported inside the call rather than at module level.
+    """
+
+    def __init__(self, status_code: int, body: dict | None) -> None:
+        super().__init__(f"status {status_code}")
+        self.status_code = status_code
+        self.body = body
 
 
 class RequestTests(unittest.TestCase):
@@ -119,6 +133,48 @@ class CallTests(unittest.TestCase):
     def test_the_command_reports_it_without_a_traceback(self) -> None:
         with mock.patch.dict(os.environ, {API_KEY_ENV: ""}, clear=False):
             self.assertEqual(main(["intent", "read", BRIEF]), 2)
+
+    def test_a_refused_call_says_what_to_fix_rather_than_dumping_a_stack(self) -> None:
+        """The real 400 that prompted this arrived as 25 lines of traceback."""
+
+        refusal = _explain_api_error(
+            _FakeStatusError(
+                400,
+                {"error": {"message": "Your credit balance is too low to access "
+                                      "the Anthropic API."}},
+            )
+        )
+
+        self.assertIn("credit balance is too low", refusal)
+        self.assertIn("400", refusal)
+        self.assertEqual(refusal.count("\n"), 0)
+
+    def test_a_rejected_key_is_told_apart_from_a_missing_one(self) -> None:
+        """A placeholder is set, so `is it set` is the wrong question for a 401."""
+
+        refusal = _explain_api_error(
+            _FakeStatusError(401, {"error": {"message": "invalid x-api-key"}})
+        )
+
+        self.assertIn(API_KEY_ENV, refusal)
+        self.assertIn("placeholder", refusal)
+
+    def test_an_unknown_model_names_the_one_that_was_asked_for(self) -> None:
+        """Naming DEFAULT_MODEL here reported a model the caller had overridden."""
+
+        refusal = _explain_api_error(
+            _FakeStatusError(404, {"error": {"message": "model: made-up-7"}}),
+            "made-up-7",
+        )
+
+        self.assertIn("made-up-7", refusal)
+        self.assertNotIn(DEFAULT_MODEL, refusal)
+
+    def test_an_error_with_no_body_still_reads_as_a_sentence(self) -> None:
+        refusal = _explain_api_error(_FakeStatusError(529, None))
+
+        self.assertIn("529", refusal)
+        self.assertIn("retrying", refusal)
 
     def test_prepare_needs_no_key_at_all(self) -> None:
         with mock.patch.dict(os.environ, {API_KEY_ENV: ""}, clear=False):

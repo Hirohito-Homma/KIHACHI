@@ -159,6 +159,52 @@ def validate_reading(reading: dict[str, Any], brief: str) -> dict[str, Any]:
     return reading
 
 
+def _api_error_message(exc: Any) -> str:
+    """Dig the API's own sentence out of an SDK error, or fall back to str()."""
+
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        error = body.get("error")
+        if isinstance(error, dict):
+            message = error.get("message")
+            if isinstance(message, str) and message:
+                return message
+    return str(exc)
+
+
+def _explain_api_error(exc: Any, model: str = DEFAULT_MODEL) -> str:
+    """Say what the caller has to fix, in one line.
+
+    The SDK raises these with a full traceback through `client.messages.create`,
+    which reads as a crash in KIHACHI. None of them are: every one is something
+    the caller changes outside this program. A refused call is reported the same
+    way a refused brief is -- named, not dumped. Measured on a real 400 for an
+    empty credit balance, which arrived as 25 lines of traceback.
+    """
+
+    status = getattr(exc, "status_code", None)
+    message = _api_error_message(exc)
+    hints = {
+        400: "the request was rejected; if this mentions the credit balance, "
+        "the account needs credit before any brief can be read",
+        401: f"{API_KEY_ENV} was not accepted. Check the value rather than "
+        "whether it is set -- a placeholder is set too",
+        403: "this key is not allowed to make this request",
+        # The model has to be the one that was asked for. Naming DEFAULT_MODEL
+        # here instead reported a model the caller had just overridden, which is
+        # a wrong answer dressed as a helpful one -- caught by sending a bogus
+        # --model at the real API.
+        404: f"the API does not know the model {model!r}; --model picks another",
+        429: "rate limited; the brief is unchanged, so this can simply be run "
+        "again",
+    }
+    hint = hints.get(status if isinstance(status, int) else -1)
+    if hint is None and isinstance(status, int) and status >= 500:
+        hint = "the API is having trouble; this is worth retrying unchanged"
+    prefix = f"the API refused the request ({status})" if status else "the API refused the request"
+    return f"{prefix}: {message}" + (f". {hint}" if hint else "")
+
+
 def read_brief(brief: str, *, model: str = DEFAULT_MODEL) -> dict[str, Any]:
     """Ask the model, validate what comes back, and return the artifact.
 
@@ -182,7 +228,15 @@ def read_brief(brief: str, *, model: str = DEFAULT_MODEL) -> dict[str, Any]:
         ) from exc
 
     client = anthropic.Anthropic()
-    response = client.messages.create(**request)
+    try:
+        response = client.messages.create(**request)
+    except anthropic.APIStatusError as exc:
+        raise RuntimeError(_explain_api_error(exc, model)) from exc
+    except anthropic.APIConnectionError as exc:
+        raise RuntimeError(
+            f"could not reach the API: {exc}. Nothing was read; "
+            "`intent prepare` still works offline"
+        ) from exc
     if response.stop_reason == "refusal":
         raise RuntimeError("the model declined to read this brief")
     text = next((block.text for block in response.content if block.type == "text"), "")
