@@ -171,7 +171,9 @@ def build_parser() -> argparse.ArgumentParser:
             "bind a per-section SongSpec field to a Live device parameter as "
             "part:field:device_index:parameter_index[:low:high], e.g. "
             "chords:fx_amount:1:52:0.18:0.52 (repeatable). The indices come from "
-            "get_track_devices; low/high keep a musical 0..1 off the parameter's extremes"
+            "get_track_devices, and so do low/high: they are in that parameter's "
+            "own units (its min/max), not a normalised 0..1, and they keep the "
+            "musical curve off the parameter's extremes"
         ),
     )
     ableton_plan.add_argument(

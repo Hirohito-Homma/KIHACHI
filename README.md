@@ -991,6 +991,51 @@ python -m abletongpt.cli.jobs run --plan job_plan.json
 署名でパラメータを束ねるので、この操作は実行すれば失敗します。テストは
 **間違ったほうのキー集合を固定していました**。実機に通すまで、両方とも気づけていません。
 
+### オートメーションの値はパラメーターの単位です
+
+`--automate`の`low`/`high`は、**そのパラメーター自身の単位**で書きます。正規化された0..1ではありません。
+
+Remote Scriptは値をパラメーターの`min`/`max`で検証します。909 Core Kitの`Low Gain`は0〜127なので、
+そこへ0.38を書くと**エラーにならず、範囲の0.3%が書かれます**。38%ではありません。
+KIHACHIは以前`low`/`high`を0..1に強制していたので、範囲が0..1でないパラメーターでは
+**静かに間違った値**を書いていたことになります。
+
+`min`/`max`は`device_index`・`parameter_index`と同じ`get_track_devices`の出力にあります。
+
+```bash
+# Low Gain (0〜127) を 40〜90 の帯で動かす
+--automate chords:fx_amount:0:1:40:90
+```
+
+**sendは例外で0..1のままです。**sendは本当に0..1だからです。
+
+なお`set_clip_parameter_envelope`はSessionクリップ専用です（LiveのAPIはArrangementクリップに
+対してnullを返します）。計画はenvelopeを書いてから`copy_session_clip_to_arrangement`する順序で
+操作を並べます。
+
+2026-08-16に実機で確認しました。`909 Core Kit`の`Low Gain`（`min 0 / max 127`、既定63.35＝0 dB）へ、
+旧KIHACHIが送っていた値をそのまま書くとこうなります。
+
+| 送った値 | 書き込み | 実際の位置 |
+|---|---|---|
+| 0.38 / 0.41 / 0.572 / 0.62 | **全て成功**（`matches: true`） | 範囲の0.3〜0.5%＝低域ほぼ全カット |
+| 55 / 57.5 / 71 / 75（修正後） | 全て成功 | 範囲の43〜59%、セクションごとに上昇 |
+
+**旧の値はエラーを返しません。**成功と報告したうえで、意図と正反対の位置に着地します。
+
+### `set_clip_parameter_envelope`はジョブ経路を通りません
+
+AbletonGPTの`import-kihachi`は、この操作を**許可リストに持っていません**
+（`set_clip_send_envelope`はあります）。`--automate`を付けた計画は取り込み時に弾かれます。
+
+```text
+operation 8 uses unsupported KIHACHI core command 'set_clip_parameter_envelope'
+```
+
+MCPツールとしては存在し、上の実機確認もそれで通しています。したがって現状、
+**device parameterの自動化はジョブ経路では展開できません**。sendの自動化（`--automate-send`）は通ります。
+これはAbletonGPT側の許可リストの問題なので、KIHACHIでは直しません。
+
 `first_track_index`はセットの既存トラック数に一致させます。ずれていると
 `apply_live_drum_kit`が既存トラックへキットを載せるので、AbletonGPTが適用直前に
 `TrackBaselineMismatch`で止めます（KIHACHI側はLiveを見ないので、この検査は持てません）。
