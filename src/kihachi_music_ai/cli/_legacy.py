@@ -51,6 +51,7 @@ from ..models import SongSpec
 from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
+from ..sampler import cut_sample
 from ..select import (
     build_shortlist,
     describe as describe_shortlist,
@@ -590,6 +591,51 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"- current listening decision: {decision['selected']['name']} "
                     f"({decision['reason']}); audio {decision['audio_status']['status']}"
                 )
+            return 0
+
+        if args.command == "cut-sample":
+            try:
+                start_text, end_text = args.bars.split(":", 1)
+                start_bar, end_bar = int(start_text), int(end_text)
+            except ValueError:
+                raise ValueError(
+                    f"--bars must be START:END with whole bars, got {args.bars!r}"
+                ) from None
+            spec_path = args.project / "song_spec.json"
+            spec = SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
+            manifest = cut_sample(
+                args.project,
+                spec=spec,
+                start_bar=start_bar,
+                end_bar=end_bar,
+                name=args.name,
+                audio_file=(args.project / args.audio) if args.audio else None,
+                overwrite=args.overwrite,
+            )
+            record = manifest.record
+            print(f"Cut KIHACHI sample: {manifest.sample_file}")
+            print(
+                f"- bars {record['bars']['start']}:{record['bars']['end']} "
+                f"({record['bars']['count']} bars, {record['duration_sec']:.3f} s "
+                f"at {record['bpm']} BPM)"
+            )
+            edges = record["edges"]
+            for edge in ("start", "end"):
+                offset = edges[f"{edge}_offset_sec"]
+                if edges[f"{edge}_snapped_to_zero_crossing"]:
+                    print(f"- {edge}: snapped to a zero crossing ({offset * 1000:+.2f} ms)")
+                else:
+                    print(f"- {edge}: no zero crossing nearby; faded instead")
+            for defect in record["known_defects_inside"]:
+                print(
+                    f"- carries a known {defect['severity']} {defect['code']} at "
+                    f"{defect['at_sec_in_sample']:.3f} s into the sample "
+                    f"({defect['at_sec_in_render']:.3f} s in the render); "
+                    "the cut did not make it, but the window kept it"
+                )
+            print(f"- key as designed: {record['key']} (not measured in the audio)")
+            print(f"- source render left as it was: {record['source']['audio_file']}")
+            print(f"- manifest: {manifest.manifest_file}")
             return 0
 
         if args.command == "shortlist":
