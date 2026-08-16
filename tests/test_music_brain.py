@@ -149,6 +149,23 @@ class StatedDarknessTests(unittest.TestCase):
         self.assertEqual(self.darkness("暗くないテクノ。"), 1.0)
         self.assertEqual(self.darkness("明るくないアンビエント。"), 0.48)
 
+    def test_swing_was_reachable_by_one_genre_of_a_thousand(self) -> None:
+        """`groove.swing` drives the composer's timing, so this reaches the MIDI.
+
+        Only `mutation_funk` ever set it. Every family including Jazz left it at
+        0.5, so 「シャッフルで」 and 「ジャズ」 both composed straight eighths.
+        """
+
+        def swing(prompt: str) -> float:
+            return MusicBrain(seed=1).analyze(prompt).groove.swing
+
+        self.assertEqual(swing("テクノ。"), 0.5)
+        self.assertEqual(swing("少し跳ねるテクノ。"), 0.553333)
+        self.assertEqual(swing("シャッフルで、テクノ。"), 0.606667)
+        self.assertEqual(swing("かなりスウィングさせて、テクノ。"), 0.66)
+        self.assertEqual(swing("スウィングしないテクノ。"), 0.5)
+        self.assertEqual(swing("ストレートなテクノ。"), 0.5)
+
     def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
         ambient = (
             "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"

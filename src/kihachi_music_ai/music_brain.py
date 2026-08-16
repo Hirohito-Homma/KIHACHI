@@ -37,46 +37,88 @@ _METER_WORDS = {
     "waltz": "3/4",
 }
 
-#: How far a stated darkness can carry the value the genre already chose. Not
-#: 0.0 and 1.0: a brief saying 「暗い」 is describing this song, not asking for
-#: the darkest one expressible, and the extremes are where the prompt compiler's
-#: bands stop distinguishing anything.
+#: How far a stated preference can carry a value the genre already chose. Not
+#: the field's own 0 and 1: a brief saying 「暗い」 is describing this song, not
+#: asking for the darkest one expressible, and the extremes are where the prompt
+#: compiler's bands stop distinguishing anything.
 _DARK_POLE = 0.9
 _BRIGHT_POLE = 0.1
+
+#: 0.5 is straight and 0.667 is triplet swing, so these are not symmetrical
+#: around anything: the whole usable range sits above the straight end, and
+#: `prompt_compiler` calls everything at or below 0.52 straight.
+_SWUNG_POLE = 0.66
+_STRAIGHT_POLE = 0.5
 
 #: A plain statement moves two thirds of the way to the pole, insistence all of
 #: it, a hedge one third. Chosen so a plainly dark brief lands near 0.76 from
 #: the 0.48 default -- next to the 0.72 that plainly-stated `dub` has always
 #: produced, rather than somewhere new.
-_STATED_DARKNESS_REACH = {0.5: 1 / 3, 1.0: 2 / 3, 1.5: 1.0}
+_STATED_REACH = {0.5: 1 / 3, 1.0: 2 / 3, 1.5: 1.0}
 
 
-def _stated_darkness(base: float, traits: Traits) -> float:
-    """Let the brief move the genre's darkness, from wherever the genre put it.
+def _stated_axis(
+    base: float,
+    traits: Traits,
+    *,
+    up: str,
+    up_pole: float,
+    down: str,
+    down_pole: float,
+) -> float:
+    """Let the brief move a value the genre chose, from wherever the genre put it.
 
-    Every other trait blends from a fixed refused pole, because the pole is the
-    constant the code used before the trait existed. Darkness has no such
-    constant: it is whatever the mood tags said, so this moves *from* that value
-    instead of replacing it, and a brief that says nothing leaves it untouched.
+    Every ordinary trait blends from a fixed refused pole, because the pole is
+    the constant the code used before the trait existed. These axes have no such
+    constant -- the value is whatever the genre said -- so this moves *from* it
+    and leaves it untouched when the brief says nothing.
 
-    `dark` and `bright` are separate traits on purpose. `strength_of` reports a
-    refusal as 0.0, so 「暗くない」 lands here as no statement at all -- which is
-    right: refusing darkness does not ask for brightness, and the genre's own
-    reading is the better answer than either pole.
+    The two directions are separate traits on purpose. `strength_of` reports a
+    refusal as 0.0, so 「暗くない」 arrives as no statement at all, which is
+    right: refusing one direction does not request the other, and the genre's
+    own reading beats both poles.
     """
 
-    dark = traits.strength_of("dark")
-    bright = traits.strength_of("bright")
+    raised = traits.strength_of(up)
+    lowered = traits.strength_of(down)
     value = base
     # The poles are limits, not targets. Techno's own darkness is 1.0, and
     # reading the pole as a destination made 「暗いテクノ」 *less* dark than
     # 「テクノ」 -- agreeing with the brief moved the value backwards. A
-    # statement that the genre already satisfies leaves it alone.
-    if dark and value < _DARK_POLE:
-        value = value + (_DARK_POLE - value) * _STATED_DARKNESS_REACH[dark]
-    if bright and value > _BRIGHT_POLE:
-        value = value + (_BRIGHT_POLE - value) * _STATED_DARKNESS_REACH[bright]
+    # statement the genre already satisfies leaves it alone.
+    if raised and value < up_pole:
+        value = value + (up_pole - value) * _STATED_REACH[raised]
+    if lowered and value > down_pole:
+        value = value + (down_pole - value) * _STATED_REACH[lowered]
     return round(clamp(value), 6)
+
+
+def _stated_darkness(base: float, traits: Traits) -> float:
+    return _stated_axis(
+        base, traits, up="dark", up_pole=_DARK_POLE, down="bright", down_pole=_BRIGHT_POLE
+    )
+
+
+def _stated_swing(base: float, traits: Traits) -> float:
+    """Whether this song swings, which until now only one genre could say.
+
+    `groove.swing` reaches the composer's own timing, so it is one of the few
+    style numbers that survives into Live as MIDI rather than as prompt text.
+    It was set by `mutation_funk` alone -- every family including Jazz left it
+    at 0.5 -- and no word in a brief touched it, so 「シャッフルで」 and
+    「ジャズ」 both composed straight eighths. The comment on `_METER_WORDS`
+    declines to read `swing` as a time signature on the grounds that this field
+    already carries the feel; that is only true as of now.
+    """
+
+    return _stated_axis(
+        base,
+        traits,
+        up="swung",
+        up_pole=_SWUNG_POLE,
+        down="straight",
+        down_pole=_STRAIGHT_POLE,
+    )
 
 
 class MusicBrain:
@@ -171,7 +213,7 @@ class MusicBrain:
                 psychedelic=blend(db_psychedelic or 0.28, 0.82, psychedelic),
             ),
             groove=GrooveSpec(
-                swing=pick(profile.swing, 0.5),
+                swing=_stated_swing(pick(profile.swing, 0.5), traits),
                 syncopation=tune("groove.syncopation", blend(0.58, 0.82, slap)),
                 humanize=pick(profile.humanize, 0.18),
             ),

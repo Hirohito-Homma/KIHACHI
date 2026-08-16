@@ -45,6 +45,42 @@ class NegationTests(unittest.TestCase):
                 self.assertTrue(traits.refused(name))
                 self.assertEqual(traits.strength_of(name), 0.0)
 
+    def test_a_verb_negates_by_touching_what_it_follows(self) -> None:
+        for text, name in (
+            ("スウィングしないテクノ", "swung"),
+            ("跳ねないテクノ", "swung"),
+            ("スラップせず指弾きで", "slap"),
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).refused(name))
+
+    def test_too_much_of_something_is_a_refusal_not_a_request(self) -> None:
+        """Found by disagreeing with the LLM reader on the same brief.
+
+        `intent read` returned 「暗すぎない感じで」 as a refusal while this read
+        it as a plain request for darkness -- opposite answers from the two
+        readers of one vocabulary, and the model's was the right one.
+        """
+
+        self.assertTrue(read("暗すぎない感じで").refused("dark"))
+        self.assertTrue(read("スウィングしすぎない").refused("swung"))
+        # 「暗すぎる」 is the opposite statement and stays a request.
+        self.assertEqual(read("暗すぎる").strength_of("dark"), 1.0)
+
+    def test_a_bare_negative_reaches_only_what_it_touches(self) -> None:
+        """Why the suffix list is separate: `ない` is a common ending.
+
+        The ordinary negators attach to the nearest mention anywhere earlier in
+        the clause, so a bare `ない` there would read 「サイケで切ないやつ」 as a
+        refusal of psychedelia on the strength of an unrelated adjective.
+        """
+
+        for text, name in (("サイケで切ないやつ", "psychedelic"), ("スラップと少ないノート", "slap")):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertFalse(traits.refused(name))
+                self.assertEqual(traits.strength_of(name), 1.0)
+
     def test_english_negation_precedes_what_it_refuses(self) -> None:
         for text in ("without slap", "no slap", "not slap"):
             with self.subTest(text=text):
