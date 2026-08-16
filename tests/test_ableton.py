@@ -724,6 +724,46 @@ class AudioTrackTests(unittest.TestCase):
             self.assertEqual(rows[-1]["live_track_index"], len(rows) - 1)
             self.assertTrue(all("notes" in row for row in rows[:-1]))
 
+    def test_imported_audio_reaches_the_arrangement_like_every_part(self) -> None:
+        """It did not, and only running a plan into Live showed it.
+
+        Three MIDI clips landed on the timeline and the imported sample stayed in
+        its Session slot, because `import_vocal_take` had no copy after it. The
+        tests all passed: none of them looked.
+        """
+
+        with tempfile.TemporaryDirectory() as temp:
+            take = Path(temp) / "groove-a.wav"
+            take.write_bytes(b"RIFF....WAVEfmt ")
+
+            plan = build_arrangement_plan(
+                self.spec,
+                self.tracks,
+                audio_tracks=[{"role": "reference", "name": "ACE-Step Ref", "file": take}],
+            )
+
+            ops = [op["op"] for op in plan["operations"]]
+            imported = ops.index("import_vocal_take")
+            self.assertEqual(ops[imported + 1], "copy_session_clip_to_arrangement")
+            copy = plan["operations"][imported + 1]["params"]
+            audio_row = plan["tracks"][-1]
+            self.assertEqual(copy["track_index"], audio_row["live_track_index"])
+            self.assertEqual(copy["destination_time_beats"], 0.0)
+
+    def test_an_empty_audio_track_has_no_clip_to_copy(self) -> None:
+        plan = build_arrangement_plan(
+            self.spec, self.tracks, audio_tracks=[{"role": "fx", "name": "KIHACHI FX"}]
+        )
+
+        copies = [
+            op for op in plan["operations"]
+            if op["op"] == "copy_session_clip_to_arrangement"
+        ]
+        audio_row = plan["tracks"][-1]
+        self.assertNotIn(
+            audio_row["live_track_index"], [op["params"]["track_index"] for op in copies]
+        )
+
     def test_a_reference_import_names_a_file_that_exists(self) -> None:
         with self.assertRaises(FileNotFoundError):
             build_arrangement_plan(

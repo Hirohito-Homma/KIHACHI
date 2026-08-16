@@ -687,6 +687,27 @@ def build_arrangement_plan(
                 "why": entry.get("why", "bring the rendered audio in alongside the MIDI"),
             }
         )
+        # Every MIDI part gets copied out to the Arrangement; imported audio did
+        # not, and stopped in a Session slot. Found by running a plan into Live
+        # and looking: three MIDI clips on the timeline and the sample nowhere
+        # near it. `duplicate_clip_to_arrangement` does not care which kind of
+        # clip it is -- verified on this audio clip before the operation was
+        # emitted -- so the asymmetry was in the plan, not in Live.
+        operations.append(
+            {
+                "op": "copy_session_clip_to_arrangement",
+                "params": {
+                    "track_index": index,
+                    "clip_index": session_slot,
+                    "destination_time_beats": 0.0,
+                    "name": label,
+                },
+                "why": (
+                    "put the imported audio on the timeline beside the parts, "
+                    "where the Session slot alone would leave it out of the song"
+                ),
+            }
+        )
 
     # A binding that matched nothing is a silent no-op in the Live set, and the
     # likeliest cause is the drum split: "drums" names the whole kit in the
