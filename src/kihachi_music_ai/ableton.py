@@ -32,6 +32,32 @@ from .midi import MidiNote, read_midi
 from .models import TRACK_NAMES, SongSpec
 
 ARRANGEMENT_PLAN_VERSION = "0.1"
+
+JOB_PIPELINE_COMMANDS = frozenset(
+    {
+        "set_tempo",
+        "create_track",
+        "apply_live_instrument_selection",
+        "apply_live_drum_kit",
+        "create_midi_clip",
+        "set_clip_send_envelope",
+        "copy_session_clip_to_arrangement",
+    }
+)
+"""Operations AbletonGPT's `import-kihachi` adapter accepts, checked 2026-08-16.
+
+Its `KIHACHI_CORE_COMMANDS` is deliberately narrow -- "the adapter is
+intentionally narrow", and its executor has no handler for anything outside this
+set. Two operations this module can emit are outside it:
+`set_clip_parameter_envelope` and `import_vocal_take`. Both exist as MCP tools
+and both work when called directly; what they lack is a job-pipeline path.
+
+Recorded here so the plan can say so up front. Importing rejects the **whole**
+document on the first unsupported operation, so a plan built with `--automate`
+or `--reference-audio` fails at the import step with nothing applied -- which is
+safe, but only tells you after you have built the plan and gone looking for the
+runner.
+"""
 # AbletonGPT's create_midi_clip validator caps both of these.
 MAX_CLIP_BEATS = 4096
 MAX_NOTES_PER_CLIP = 4096
@@ -703,7 +729,7 @@ def build_arrangement_plan(
             "create_midi_clip needs an empty Session slot and a default set has "
             "eight per track; this arrangement has nine sections"
         ),
-        "warnings": warnings,
+        "warnings": warnings + _job_pipeline_warnings(operations),
         # Counted from the operations rather than recomputed from the parts. The
         # two are not the same number and drifted apart twice: --split-drums turns
         # one composed part into three Live tracks, and an audio track without a
@@ -724,6 +750,30 @@ def build_arrangement_plan(
             "sets_tempo": True,
         },
     }
+
+
+def _job_pipeline_warnings(operations: Sequence[Mapping[str, Any]]) -> list[str]:
+    """Say which operations `import-kihachi` will refuse, before it refuses them.
+
+    Naming them at plan time rather than at import time, because the import
+    rejects the whole document on the first one it does not know: a plan whose
+    only unsupported operation is an envelope still applies nothing at all.
+    """
+
+    outside = sorted(
+        {
+            str(operation["op"])
+            for operation in operations
+            if str(operation["op"]) not in JOB_PIPELINE_COMMANDS
+        }
+    )
+    if not outside:
+        return []
+    return [
+        f"{', '.join(outside)} is outside AbletonGPT's import-kihachi contract; "
+        "importing this plan refuses the whole document. Run these operations "
+        "through the MCP tools directly, or build the plan without them"
+    ]
 
 
 def _envelope_steps(
