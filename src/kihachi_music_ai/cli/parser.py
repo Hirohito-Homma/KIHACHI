@@ -288,6 +288,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     cut_sample.add_argument("--overwrite", action="store_true")
 
+    read_brief = subparsers.add_parser(
+        "read-brief",
+        help="show which statements in a brief this vocabulary acts on",
+    )
+    read_brief.add_argument("prompt", help="the brief, as you would pass it to compose")
+
     transcribe_sample = subparsers.add_parser(
         "transcribe-sample",
         help="read a monophonic sample into MIDI notes (writes a .mid beside it)",

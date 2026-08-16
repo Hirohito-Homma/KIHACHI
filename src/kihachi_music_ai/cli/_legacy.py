@@ -51,6 +51,7 @@ from ..models import SongSpec
 from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
+from ..brief import describe as describe_brief, read_coverage
 from ..material import describe as describe_material, review_sample
 from ..transcribe import transcribe_sample_file
 from ..sampler import cut_sample
@@ -638,6 +639,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- key as designed: {record['key']} (not measured in the audio)")
             print(f"- source render left as it was: {record['source']['audio_file']}")
             print(f"- manifest: {manifest.manifest_file}")
+            return 0
+
+        if args.command == "read-brief":
+            for line in describe_brief(read_coverage(args.prompt)):
+                print(line)
             return 0
 
         if args.command == "transcribe-sample":
