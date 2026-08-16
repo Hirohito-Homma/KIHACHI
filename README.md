@@ -1013,7 +1013,28 @@ KIHACHIは以前`low`/`high`を0..1に強制していたので、範囲が0..1�
 対してnullを返します）。計画はenvelopeを書いてから`copy_session_clip_to_arrangement`する順序で
 操作を並べます。
 
-この不一致はソース上で確定していますが、**修正後の実機確認は未実施**です。
+2026-08-16に実機で確認しました。`909 Core Kit`の`Low Gain`（`min 0 / max 127`、既定63.35＝0 dB）へ、
+旧KIHACHIが送っていた値をそのまま書くとこうなります。
+
+| 送った値 | 書き込み | 実際の位置 |
+|---|---|---|
+| 0.38 / 0.41 / 0.572 / 0.62 | **全て成功**（`matches: true`） | 範囲の0.3〜0.5%＝低域ほぼ全カット |
+| 55 / 57.5 / 71 / 75（修正後） | 全て成功 | 範囲の43〜59%、セクションごとに上昇 |
+
+**旧の値はエラーを返しません。**成功と報告したうえで、意図と正反対の位置に着地します。
+
+### `set_clip_parameter_envelope`はジョブ経路を通りません
+
+AbletonGPTの`import-kihachi`は、この操作を**許可リストに持っていません**
+（`set_clip_send_envelope`はあります）。`--automate`を付けた計画は取り込み時に弾かれます。
+
+```text
+operation 8 uses unsupported KIHACHI core command 'set_clip_parameter_envelope'
+```
+
+MCPツールとしては存在し、上の実機確認もそれで通しています。したがって現状、
+**device parameterの自動化はジョブ経路では展開できません**。sendの自動化（`--automate-send`）は通ります。
+これはAbletonGPT側の許可リストの問題なので、KIHACHIでは直しません。
 
 `first_track_index`はセットの既存トラック数に一致させます。ずれていると
 `apply_live_drum_kit`が既存トラックへキットを載せるので、AbletonGPTが適用直前に
