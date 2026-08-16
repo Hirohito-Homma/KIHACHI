@@ -460,12 +460,14 @@ def build_arrangement_plan(
             operations.append(
                 {
                     "op": "apply_live_drum_kit",
+                    # No `live_edition` here, unlike instrument selection: the
+                    # drum-kit tool does not take one, and AbletonGPT binds
+                    # parameters by signature, so sending it fails the call.
                     "params": {
                         "track_index": track_index,
                         "role": kit_role,
                         "genre": instrument_genre,
                         "mood": instrument_mood,
-                        "live_edition": "unknown",
                     },
                     "why": (
                         f"AbletonGPT resolves an installed drum kit for the {name} role and "

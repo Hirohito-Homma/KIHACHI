@@ -118,12 +118,16 @@ class ArrangementPlanTests(unittest.TestCase):
 
     def test_kihachi_never_names_a_live_preset_or_browser_path(self) -> None:
         # The boundary this whole operation exists to keep: musical intent only.
+        # The key set is also AbletonGPT's `apply_live_drum_kit` signature, which
+        # takes no `live_edition` -- sending one failed the call, and this test
+        # pinned the wrong set until the plan was run against a real Live Set on
+        # 2026-08-16. Instrument selection is the tool that takes an edition.
         for op in self.plan["operations"]:
             if op["op"] != "apply_live_drum_kit":
                 continue
             self.assertEqual(
                 set(op["params"]),
-                {"track_index", "role", "genre", "mood", "live_edition"},
+                {"track_index", "role", "genre", "mood"},
             )
         serialised = json.dumps(self.plan)
         for leaked in ("Core Kit", ".adg", "query:", "Drum Rack", "Impulse"):
