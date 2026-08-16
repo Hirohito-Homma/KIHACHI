@@ -288,6 +288,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     cut_sample.add_argument("--overwrite", action="store_true")
 
+    transcribe_sample = subparsers.add_parser(
+        "transcribe-sample",
+        help="read a monophonic sample into MIDI notes (writes a .mid beside it)",
+    )
+    transcribe_sample.add_argument(
+        "project", type=Path, help="project holding sample_manifest.json"
+    )
+    transcribe_sample.add_argument("--name", required=True, help="sample to transcribe")
+    transcribe_sample.add_argument("--overwrite", action="store_true")
+
     review_samples = subparsers.add_parser(
         "review-samples",
         help="rank a project's cut samples as material (reads only)",
