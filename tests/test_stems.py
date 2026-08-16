@@ -30,11 +30,12 @@ def write_wav(
     frequency: float = 220.0,
     sample_rate: int = 8000,
     channels: int = 1,
+    amplitude: float = 0.4,
 ) -> None:
     frames = round(sample_rate * seconds)
     samples = array("h")
     for index in range(frames):
-        value = round(0.4 * math.sin(2.0 * math.pi * frequency * index / sample_rate) * 32767.0)
+        value = round(amplitude * math.sin(2.0 * math.pi * frequency * index / sample_rate) * 32767.0)
         for _ in range(channels):
             samples.append(value)
     if sys.byteorder != "little":
@@ -96,6 +97,55 @@ class ImportStemsTests(unittest.TestCase):
                 self.assertEqual(entry["path"], f"audio/stems/{entry['stem']}.wav")
             written = load_stem_manifest(project / "stem_manifest.json")
             self.assertEqual(written["stems"], manifest["stems"])
+
+    def test_every_stem_carries_its_share_of_the_take_s_energy(self) -> None:
+        """Recorded here because the file is already being read and verified."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            # A loud rhythm section and a quiet harmony, which is the shape the
+            # real takes have: drums+bass around 90%, harmony under 10%.
+            project = build_project(
+                temp,
+                drums={"amplitude": 0.6},
+                bass={"amplitude": 0.5},
+                other={"amplitude": 0.1},
+                vocals={"amplitude": 0.02},
+            )
+
+            manifest = import_stems(project)
+
+            shares = {entry["stem"]: entry["energy_share"] for entry in manifest["stems"]}
+            self.assertAlmostEqual(sum(shares.values()), 1.0, places=5)
+            self.assertEqual(
+                sorted(shares, key=shares.get, reverse=True),
+                ["drums", "bass", "other", "vocals"],
+            )
+            # Power, not amplitude: 0.6^2 / (0.6^2+0.5^2+0.1^2+0.02^2) = 0.586.
+            # Not exact -- the tone is quantised to 16 bit and does not run a
+            # whole number of cycles -- so this checks the ratio, not the sample.
+            self.assertAlmostEqual(shares["drums"], 0.586, delta=0.01)
+            self.assertIn("not a judgement", manifest["energy_share_scope"])
+
+    def test_a_v1_manifest_still_loads_without_shares(self) -> None:
+        """The reader treats a missing share as not measured, not as zero."""
+
+        with tempfile.TemporaryDirectory() as temp:
+            project = build_project(temp)
+            path = project / "stem_manifest.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "manifest_version": "stem-manifest-v1",
+                        "stems": [{"stem": "drums", "sha256": "0" * 64}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            loaded = load_stem_manifest(path)
+
+            self.assertEqual(loaded["manifest_version"], "stem-manifest-v1")
+            self.assertNotIn("energy_share", loaded["stems"][0])
 
     def test_the_render_and_the_stems_are_left_untouched(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

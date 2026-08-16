@@ -22,7 +22,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-MANIFEST_VERSION = "stem-manifest-v1"
+MANIFEST_VERSION = "stem-manifest-v2"
+"""v2 records each stem's energy share. v1 manifests still load — they simply
+carry no shares, and every reader treats a missing share as "not measured"."""
+
+SUPPORTED_MANIFEST_VERSIONS = ("stem-manifest-v1", MANIFEST_VERSION)
 
 DEFAULT_MODEL = "htdemucs"
 """4 stemモデル。KIHACHIが分ける必要があるのはbassとotherで、htdemucsはその2つを
@@ -150,9 +154,11 @@ def import_stems(
         )
 
     entries: list[dict[str, Any]] = []
+    power: dict[str, float] = {}
     for name, path in zip(stem_names, resolved):
         shape = _wav_shape(path)
         _verify_against_source(name, shape, source_shape)
+        power[name] = _mean_square(path)
         entries.append(
             {
                 "stem": name,
@@ -161,7 +167,13 @@ def import_stems(
                 "duration_sec": shape["duration_sec"],
                 "sample_rate": shape["sample_rate"],
                 "resampled": shape["sample_rate"] != source_shape["sample_rate"],
+                "mean_square": round(power[name], 10),
             }
+        )
+    total = sum(power.values())
+    for entry in entries:
+        entry["energy_share"] = (
+            round(power[entry["stem"]] / total, 6) if total > 0 else None
         )
 
     manifest = {
@@ -176,6 +188,11 @@ def import_stems(
             "channels": source_shape["channels"],
         },
         "stems": entries,
+        "energy_share_scope": (
+            "mean square per stem over the whole take, normalised across the four "
+            "stems. A description of the balance, not a judgement about it: nothing "
+            "here says which balance is better, and the SongSpec states no target"
+        ),
     }
     destination.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -186,9 +203,32 @@ def import_stems(
 def load_stem_manifest(path: Path | str) -> dict[str, Any]:
     manifest = json.loads(Path(path).read_text(encoding="utf-8"))
     version = manifest.get("manifest_version")
-    if version != MANIFEST_VERSION:
+    if version not in SUPPORTED_MANIFEST_VERSIONS:
         raise ValueError(f"unsupported stem manifest version: {version!r}")
     return manifest
+
+
+def _mean_square(path: Path) -> float:
+    """Mean square of one stem, read in blocks so a five-minute take stays cheap.
+
+    Mean square rather than peak or RMS-in-dB because the shares have to add up:
+    the question it answers is what fraction of the take's energy each stem holds.
+    """
+
+    with wave.open(str(path), "rb") as source:
+        if source.getsampwidth() != 2:
+            raise ValueError(f"expected 16-bit stem audio: {path}")
+        total = 0.0
+        count = 0
+        while True:
+            raw = source.readframes(120_000)
+            if not raw:
+                break
+            for offset in range(0, len(raw) - 1, 2):
+                value = int.from_bytes(raw[offset : offset + 2], "little", signed=True)
+                total += (value / 32768.0) ** 2
+            count += len(raw) // 2
+    return total / count if count else 0.0
 
 
 def _verify_against_source(name: str, shape: dict[str, Any], source: dict[str, Any]) -> None:
