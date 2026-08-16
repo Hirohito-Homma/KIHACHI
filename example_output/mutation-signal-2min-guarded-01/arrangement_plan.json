@@ -12,27 +12,27 @@
   "tracks": [
     {
       "part": "drums",
-      "live_track_index": 1,
+      "live_track_index": 5,
       "name": "KIHACHI Drums",
       "notes": 631
     },
     {
       "part": "bass",
-      "live_track_index": 2,
+      "live_track_index": 6,
       "name": "KIHACHI Bass",
       "notes": 356
     },
     {
       "part": "chords",
-      "live_track_index": 3,
+      "live_track_index": 7,
       "name": "KIHACHI Chords",
       "notes": 402
     },
     {
       "part": "reference",
-      "live_track_index": 4,
+      "live_track_index": 8,
       "name": "ACE-Step Ref",
-      "file": "example_output/mutation-signal-2min-guarded-01/audio/ace-step-01.wav"
+      "file": "example_output/mutation-signal-2min-guarded-01/audio/samples/build-a.wav"
     }
   ],
   "structure": [
@@ -131,7 +131,7 @@
     {
       "op": "apply_live_drum_kit",
       "params": {
-        "track_index": 1,
+        "track_index": 5,
         "role": "drums",
         "genre": "edm",
         "mood": "dark"
@@ -141,7 +141,7 @@
     {
       "op": "apply_live_instrument_selection",
       "params": {
-        "track_index": 2,
+        "track_index": 6,
         "role": "bass",
         "genre": "edm",
         "mood": "dark",
@@ -152,7 +152,7 @@
     {
       "op": "apply_live_instrument_selection",
       "params": {
-        "track_index": 3,
+        "track_index": 7,
         "role": "chords",
         "genre": "edm",
         "mood": "dark",
@@ -163,7 +163,7 @@
     {
       "op": "create_midi_clip",
       "params": {
-        "track_index": 1,
+        "track_index": 5,
         "clip_index": 0,
         "name": "KIHACHI Drums (full)",
         "length_beats": 224.0,
@@ -3959,41 +3959,9 @@
       "why": "631 notes covering all 56 bars"
     },
     {
-      "op": "set_clip_parameter_envelope",
-      "params": {
-        "track_index": 1,
-        "clip_index": 0,
-        "device_index": 0,
-        "parameter_index": 1,
-        "steps": [
-          {
-            "start": 0.0,
-            "length": 32.0,
-            "value": 55.0
-          },
-          {
-            "start": 32.0,
-            "length": 64.0,
-            "value": 57.5
-          },
-          {
-            "start": 96.0,
-            "length": 64.0,
-            "value": 71.0
-          },
-          {
-            "start": 160.0,
-            "length": 64.0,
-            "value": 75.0
-          }
-        ]
-      },
-      "why": "section fx_amount drives this parameter (4 steps, one per section); step values are in the parameter's own units, which Live range-checks against its min/max"
-    },
-    {
       "op": "copy_session_clip_to_arrangement",
       "params": {
-        "track_index": 1,
+        "track_index": 5,
         "clip_index": 0,
         "destination_time_beats": 0.0,
         "name": "KIHACHI Drums"
@@ -4003,7 +3971,7 @@
     {
       "op": "create_midi_clip",
       "params": {
-        "track_index": 2,
+        "track_index": 6,
         "clip_index": 0,
         "name": "KIHACHI Bass (full)",
         "length_beats": 224.0,
@@ -6151,7 +6119,7 @@
     {
       "op": "copy_session_clip_to_arrangement",
       "params": {
-        "track_index": 2,
+        "track_index": 6,
         "clip_index": 0,
         "destination_time_beats": 0.0,
         "name": "KIHACHI Bass"
@@ -6161,7 +6129,7 @@
     {
       "op": "create_midi_clip",
       "params": {
-        "track_index": 3,
+        "track_index": 7,
         "clip_index": 0,
         "name": "KIHACHI Chords (full)",
         "length_beats": 224.0,
@@ -8585,7 +8553,7 @@
     {
       "op": "copy_session_clip_to_arrangement",
       "params": {
-        "track_index": 3,
+        "track_index": 7,
         "clip_index": 0,
         "destination_time_beats": 0.0,
         "name": "KIHACHI Chords"
@@ -8595,24 +8563,32 @@
     {
       "op": "import_vocal_take",
       "params": {
-        "file_path": "/Users/user/MusicAI/kihachi-music-ai/example_output/mutation-signal-2min-guarded-01/audio/ace-step-01.wav",
+        "file_path": "/Users/user/MusicAI/kihachi-music-ai/example_output/mutation-signal-2min-guarded-01/audio/samples/build-a.wav",
         "track_name": "ACE-Step Ref",
         "clip_name": "ACE-Step Ref (take)",
         "clip_index": 0
       },
       "why": "the rendered take, to write and mix against"
+    },
+    {
+      "op": "copy_session_clip_to_arrangement",
+      "params": {
+        "track_index": 8,
+        "clip_index": 0,
+        "destination_time_beats": 0.0,
+        "name": "ACE-Step Ref"
+      },
+      "why": "put the imported audio on the timeline beside the parts, where the Session slot alone would leave it out of the song"
     }
   ],
   "clip_strategy": "one full-length clip per Live track",
   "drums_split": false,
   "clip_strategy_reason": "create_midi_clip needs an empty Session slot and a default set has eight per track; this arrangement has nine sections",
-  "warnings": [
-    "import_vocal_take, set_clip_parameter_envelope is outside AbletonGPT's import-kihachi contract; importing this plan refuses the whole document. Run these operations through the MCP tools directly, or build the plan without them"
-  ],
+  "warnings": [],
   "safety": {
     "creates_tracks": 3,
     "modifies_existing_tracks": false,
-    "first_track_index": 1,
+    "first_track_index": 5,
     "deletes_nothing": true,
     "sets_tempo": true
   }

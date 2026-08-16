@@ -1135,6 +1135,12 @@ python -m abletongpt.cli.jobs run --plan job_plan.json
 （Drums / Bass / Chords）にクリップが0〜224拍で並びました。ドラムには実在キット
 （909 Core Kit）、ベースにはOperatorがロードされています。
 
+**取り込んだ音声もArrangementへ運びます。**当初は`import_vocal_take`の後にコピーが無く、
+素材がSessionスロットに置かれたままでした。MIDIは3本ともタイムラインに並ぶのに音声だけが
+残るという非対称で、**実機に通して見るまで気づけませんでした**（テストは全部通っていて、
+どれもそこを見ていませんでした）。`duplicate_clip_to_arrangement`はクリップ種別を問わないので、
+欠けていたのは計画の側です。
+
 **設計した進行がそのまま鳴っています。**Live上のchordsクリップを読み戻すと、
 根音は全56小節で`Eb → B → F# → C#`（Eb = D#の異名同音）。SongSpecの
 `D#m - B - F# - C#`と**56/56で一致**します。同じ設計の音声レンダーは
