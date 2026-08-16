@@ -156,9 +156,10 @@ roll-202のサンプルが持つ無音は、レンダー最大の無音（32.36�
 - **`shortlist`の4次元は素材の選別に使えない。**duration・tempo・section_boundaries・
   section_energyはいずれもアレンジの整合を測るもので、4小節のループには意味がない。
   素材の選別指標は別に要る（未着手）。
-- 素材をLiveへ持ち込む経路が要る。`import_vocal_take`がそれに当たるが、
-  AbletonGPTの`import-kihachi`は現在この操作を受け付けない。**この設計を進めるなら、
-  その契約を広げることが前提条件になる。**
+- 素材をLiveへ持ち込む経路が要る。`import_vocal_take`がそれに当たる。この文書を書いた
+  時点でAbletonGPTの`import-kihachi`はこの操作を受け付けておらず、設計の前提条件として
+  挙げていた。**AbletonGPT0.2#137で解消済み**（`set_clip_parameter_envelope`も同時に追加）。
+  ただしジョブ経路経由での実機適用はまだ確認していない。
 - 中央を切り出せば端の問題は避けられるが、**素材が元から持つ不連続は引き継ぐ**。
   実際に切り出した4小節は、カットが作ったものではない`discontinuity` warningを含んでいた。
   切り出し後も`scan_material`で測ること。
