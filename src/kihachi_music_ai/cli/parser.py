@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 
 from ..adapters.ace_step import AUDIO_FORMATS, DEFAULT_REQUEST_TIMEOUT
+from ..adapters.intent_llm import DEFAULT_MODEL as INTENT_DEFAULT_MODEL
 from ..chunked import DEFAULT_CHUNK_BARS
 from ..revision import DEFAULT_ROUNDS
 from ..select import SHORTLIST_NAME
@@ -287,6 +288,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="render to cut from, relative to the project; defaults to audio/ace-step-01.wav",
     )
     cut_sample.add_argument("--overwrite", action="store_true")
+
+    intent = subparsers.add_parser(
+        "intent",
+        help="translate a brief into the brain's vocabulary with a model (ADR-0011)",
+    )
+    intent_commands = intent.add_subparsers(dest="intent_command", required=True)
+
+    intent_prepare = intent_commands.add_parser(
+        "prepare",
+        help="write exactly what would be sent, without a network call or a key",
+    )
+    intent_prepare.add_argument("prompt", help="the brief to translate")
+    intent_prepare.add_argument(
+        "--model", default=INTENT_DEFAULT_MODEL, help="model to address the request to"
+    )
+
+    intent_read = intent_commands.add_parser(
+        "read",
+        help="ask the model and write intent_reading.json (needs ANTHROPIC_API_KEY)",
+    )
+    intent_read.add_argument("prompt", help="the brief to translate")
+    intent_read.add_argument(
+        "--output", type=Path, help="project directory to write the reading into"
+    )
+    intent_read.add_argument("--model", default=INTENT_DEFAULT_MODEL)
+    intent_read.add_argument("--overwrite", action="store_true")
 
     read_brief = subparsers.add_parser(
         "read-brief",

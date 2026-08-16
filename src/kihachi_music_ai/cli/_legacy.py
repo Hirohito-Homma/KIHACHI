@@ -51,6 +51,11 @@ from ..models import SongSpec
 from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
+from ..adapters.intent_llm import (
+    build_request as build_intent_request,
+    read_brief as read_brief_with_model,
+    write_reading,
+)
 from ..brief import describe as describe_brief, read_coverage
 from ..material import describe as describe_material, review_sample
 from ..transcribe import transcribe_sample_file
@@ -641,6 +646,35 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- manifest: {manifest.manifest_file}")
             return 0
 
+        if args.command == "intent":
+            if args.intent_command == "prepare":
+                request = build_intent_request(args.prompt, model=args.model)
+                # Printed rather than sent, like `ace-step prepare`: the whole
+                # request is checkable before anything leaves the machine.
+                print(json.dumps(request, indent=2, ensure_ascii=False))
+                print(
+                    "- nothing sent. The API key is read from the environment "
+                    "only and never appears here",
+                    file=sys.stderr,
+                )
+                return 0
+            reading = read_brief_with_model(args.prompt, model=args.model)
+            print(f"Read the brief with {reading['model']}:")
+            for trait in reading["traits"]:
+                sign = "+" if trait["polarity"] > 0 else "-"
+                print(
+                    f"  {sign}{trait['name']:<14} strength {trait['strength']:g}"
+                    f"   from {trait['evidence']!r}"
+                )
+            for phrase in reading["unmapped"]:
+                print(f"  (no trait says this) {phrase!r}")
+            if not reading["unmapped"]:
+                print("- the vocabulary covered every musical statement in this brief")
+            if args.output is not None:
+                written = write_reading(args.output, reading, overwrite=args.overwrite)
+                print(f"- reading: {written}")
+            return 0
+
         if args.command == "read-brief":
             for line in describe_brief(read_coverage(args.prompt)):
                 print(line)
@@ -1093,6 +1127,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         for path in render.audio_files:
             print(f"- {path}")
         return 0
-    except (AceStepError, FileExistsError, FileNotFoundError, OSError, ValueError) as exc:
+    # RuntimeError covers the intent reader's two refusals to proceed: a missing
+    # API key and a missing optional SDK. Both are things the caller fixes, not
+    # bugs, so they read as one-line errors rather than tracebacks.
+    except (
+        AceStepError,
+        FileExistsError,
+        FileNotFoundError,
+        OSError,
+        RuntimeError,
+        ValueError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
