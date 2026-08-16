@@ -1,0 +1,79 @@
+{
+  "manifest_version": "sample-manifest-v1",
+  "scope": "cut_from_renders_never_replaces_them",
+  "samples": [
+    {
+      "name": "build-a",
+      "path": "audio/samples/build-a.wav",
+      "sha256": "c8176b2f32f7104d80f9432be31884fe28b4e9354fb4e3478ca97447df486ca6",
+      "bars": {
+        "start": 27,
+        "end": 31,
+        "count": 4
+      },
+      "bpm": 110.0,
+      "key": "D# minor",
+      "time_signature": "4/4",
+      "duration_sec": 8.72775,
+      "grid_duration_sec": 8.727273,
+      "edges": {
+        "start_snapped_to_zero_crossing": true,
+        "end_snapped_to_zero_crossing": true,
+        "start_offset_sec": 0.0,
+        "end_offset_sec": 0.000479,
+        "faded_edges": []
+      },
+      "source": {
+        "project": "mutation-signal-2min-guarded-01",
+        "audio_file": "audio/ace-step-01.wav",
+        "audio_sha256": "85f885261b61338a26f0bf07d8334f069a74904bd8176dd5eb3b0a81983518e2",
+        "seed": 8,
+        "song_spec_sha256": "2067585b5d367e8b85e16ea179b5b90467ad364be0bfa84731ec85a0fe7eaea1",
+        "task_id": "e61dd8b4-5e4d-4045-b609-16b5c0479a17",
+        "model": null
+      },
+      "known_defects_inside": [
+        {
+          "code": "discontinuity",
+          "severity": "warning",
+          "at_sec_in_render": 61.55,
+          "at_sec_in_sample": 4.823
+        }
+      ],
+      "scope": "material cut from a render, not the render's design: the key and bpm here are what was asked for, not what was measured in the audio"
+    },
+    {
+      "name": "groove-a",
+      "path": "audio/samples/groove-a.wav",
+      "sha256": "9f092c32b53a6d296eb8e0955c55e90778eb9a9727f45c1689d9f71578384e59",
+      "bars": {
+        "start": 9,
+        "end": 13,
+        "count": 4
+      },
+      "bpm": 110.0,
+      "key": "D# minor",
+      "time_signature": "4/4",
+      "duration_sec": 8.727333,
+      "grid_duration_sec": 8.727273,
+      "edges": {
+        "start_snapped_to_zero_crossing": true,
+        "end_snapped_to_zero_crossing": true,
+        "start_offset_sec": 4.2e-05,
+        "end_offset_sec": 0.000104,
+        "faded_edges": []
+      },
+      "source": {
+        "project": "mutation-signal-2min-guarded-01",
+        "audio_file": "audio/ace-step-01.wav",
+        "audio_sha256": "85f885261b61338a26f0bf07d8334f069a74904bd8176dd5eb3b0a81983518e2",
+        "seed": 8,
+        "song_spec_sha256": "2067585b5d367e8b85e16ea179b5b90467ad364be0bfa84731ec85a0fe7eaea1",
+        "task_id": "e61dd8b4-5e4d-4045-b609-16b5c0479a17",
+        "model": null
+      },
+      "known_defects_inside": [],
+      "scope": "material cut from a render, not the render's design: the key and bpm here are what was asked for, not what was measured in the audio"
+    }
+  ]
+}

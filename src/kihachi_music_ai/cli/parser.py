@@ -265,6 +265,29 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--output", type=Path, help="page path; defaults to candidates.html")
     report.add_argument("--overwrite", action="store_true")
 
+    cut_sample = subparsers.add_parser(
+        "cut-sample",
+        help="cut bar-aligned material out of a render (never replaces it)",
+    )
+    cut_sample.add_argument("project", type=Path, help="project holding the render")
+    cut_sample.add_argument(
+        "--bars",
+        required=True,
+        metavar="START:END",
+        help=(
+            "1-based bar window, end exclusive, e.g. 9:13 for four bars from bar 9. "
+            "Take the middle: the opening ramp and the tail the guard cannot reach "
+            "are where the model is least steady"
+        ),
+    )
+    cut_sample.add_argument("--name", required=True, help="sample file name, without suffix")
+    cut_sample.add_argument(
+        "--audio",
+        type=Path,
+        help="render to cut from, relative to the project; defaults to audio/ace-step-01.wav",
+    )
+    cut_sample.add_argument("--overwrite", action="store_true")
+
     shortlist = subparsers.add_parser(
         "shortlist",
         help="rank takes on what measurably separates them (adopts nothing)",
