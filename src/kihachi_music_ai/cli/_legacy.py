@@ -52,6 +52,7 @@ from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_ren
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
 from ..material import describe as describe_material, review_sample
+from ..transcribe import transcribe_sample_file
 from ..sampler import cut_sample
 from ..select import (
     build_shortlist,
@@ -637,6 +638,31 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- key as designed: {record['key']} (not measured in the audio)")
             print(f"- source render left as it was: {record['source']['audio_file']}")
             print(f"- manifest: {manifest.manifest_file}")
+            return 0
+
+        if args.command == "transcribe-sample":
+            written, transcription = transcribe_sample_file(
+                args.project, name=args.name, overwrite=args.overwrite
+            )
+            coverage = transcription.coverage
+            print(f"Transcribed KIHACHI sample: {written}")
+            print(
+                f"- {coverage['notes']} notes from {coverage['voiced_frames']} voiced "
+                f"frames of {coverage['frames']} ({coverage['voiced_fraction']:.0%})"
+            )
+            print(
+                f"- {coverage['starts_snapped_to_onsets']} note starts snapped to a "
+                "detected onset; the rest sit on the tracker's 128 ms hop"
+            )
+            print("- monophonic only: a chord arrives as one note")
+            if not coverage["notes"]:
+                # Measured: the full-mix cut of this very project reads 1% voiced
+                # and yields nothing, while its separated bass gives five notes.
+                print(
+                    "- nothing came back. A full mix reads as unvoiced to a "
+                    "monophonic tracker; separate it first (`stems`) and "
+                    "transcribe one stem"
+                )
             return 0
 
         if args.command == "review-samples":
