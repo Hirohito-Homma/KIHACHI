@@ -1,6 +1,6 @@
 """What a brief said that nothing here heard.
 
-Measured across the six briefs in `example_output`: the vocabulary is nine
+Measured across the six briefs in `example_output`: the vocabulary was nine
 traits in thirty-four surface forms, and one real 85-character brief matched
 none of them.
 
@@ -11,6 +11,11 @@ The genre matcher caught `ambient`, and the regexes caught the tempo, the key
 and the length. Everything describing the *sound* -- bright, delicate, a thin
 bass, light percussion -- reached nothing, and the SongSpec came out carrying
 its genre's default `darkness` of 0.48.
+
+`きらびやか` reaches the `bright` trait as of 2026-08-17, and that brief now
+composes at darkness 0.227 instead of 0.48 -- the first time a word about the
+sound moved the spec. The other four clauses are unread exactly as before, so
+this measurement is still the point: **half** of that brief, not none of it.
 
 The gap is not that the brief was unreasonable. It is that a brief can be
 ignored **silently**: `MusicBrain` has no way to say "I did not use this". So

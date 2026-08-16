@@ -27,18 +27,22 @@ class CoverageTests(unittest.TestCase):
         self.assertIn("genre", acted)
         self.assertTrue(any(label.startswith("trait:") for label in acted))
 
-    def test_the_ambient_brief_loses_everything_about_the_sound(self) -> None:
-        """The measurement this module exists for, pinned.
+    def test_the_ambient_brief_still_loses_most_of_the_sound(self) -> None:
+        """The measurement this module exists for, pinned as it now stands.
 
-        Tempo, key, length and the genre name are read. Every statement about
-        how it should sound is not, and the song is composed anyway.
+        `きらびやかで高域中心` used to be here too -- it is the clause the module
+        docstring opens with. The `bright` trait reads it now, and the SongSpec
+        moves off its genre default of 0.48 because of it. Everything else about
+        the sound is still lost, and the song is still composed anyway.
         """
 
         coverage = read_coverage(AMBIENT)
 
-        self.assertIn("きらびやかで高域中心", coverage["unread"])
+        self.assertNotIn("きらびやかで高域中心", coverage["unread"])
         self.assertIn("ベースは控えめで薄い", coverage["unread"])
-        self.assertLess(coverage["read_fraction"], 0.5)
+        self.assertIn("繊細", coverage["unread"])
+        # Half, up from 0.4: one more clause of ten is now heard.
+        self.assertLessEqual(coverage["read_fraction"], 0.5)
         # It still composes -- silently, which is the problem being reported.
         self.assertEqual(MusicBrain(seed=8).analyze(AMBIENT).song.bpm, 110.0)
 
@@ -92,7 +96,7 @@ class ReportTests(unittest.TestCase):
 
         self.assertIn("nothing acted on this", lines)
         self.assertIn("繊細", lines)
-        self.assertIn("34 surface forms", lines)
+        self.assertIn("47 surface forms", lines)
 
     def test_a_fully_read_brief_says_nothing_about_gaps(self) -> None:
         lines = "\n".join(describe(read_coverage("110 BPM、D#m")))
