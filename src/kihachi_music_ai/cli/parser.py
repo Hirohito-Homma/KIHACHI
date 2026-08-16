@@ -321,6 +321,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     read_brief.add_argument("prompt", help="the brief, as you would pass it to compose")
 
+    compare_readings = subparsers.add_parser(
+        "compare-readings",
+        help=(
+            "compare a stored intent_reading.json with what the rules read in "
+            "the same brief (calls nothing, decides nothing)"
+        ),
+    )
+    compare_readings.add_argument(
+        "reading",
+        type=Path,
+        help=(
+            "an intent_reading.json, or the project directory holding one. The "
+            "brief travels inside it, so no key and no second call are needed"
+        ),
+    )
+
     transcribe_sample = subparsers.add_parser(
         "transcribe-sample",
         help="read a monophonic sample into MIDI notes (writes a .mid beside it)",

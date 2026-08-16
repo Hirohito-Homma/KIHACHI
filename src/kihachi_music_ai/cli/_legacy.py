@@ -52,10 +52,12 @@ from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_ren
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..revision import describe as describe_revisions, run_revision_loop
 from ..adapters.intent_llm import (
+    INTENT_READING_NAME,
     build_request as build_intent_request,
     read_brief as read_brief_with_model,
     write_reading,
 )
+from ..agreement import compare_readings, describe as describe_agreement
 from ..brief import describe as describe_brief, read_coverage
 from ..material import describe as describe_material, review_sample
 from ..transcribe import transcribe_sample_file
@@ -677,6 +679,17 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         if args.command == "read-brief":
             for line in describe_brief(read_coverage(args.prompt)):
+                print(line)
+            return 0
+
+        if args.command == "compare-readings":
+            path = Path(args.reading)
+            if path.is_dir():
+                path = path / INTENT_READING_NAME
+            if not path.is_file():
+                raise FileNotFoundError(f"no intent reading here: {path}")
+            comparison = compare_readings(json.loads(path.read_text(encoding="utf-8")))
+            for line in describe_agreement(comparison):
                 print(line)
             return 0
 
