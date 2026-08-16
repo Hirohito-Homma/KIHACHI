@@ -963,6 +963,38 @@ trim済みのテイクは未trimのテイクに対して`duration`で不利に�
 `not_judged`（音色、歌唱、音楽的な面白さ、ハーモニーの当否）を必ず並べます。ここにある数字が
 答えていない問いを、答えたように見せないためです。選ぶのは`decide`で、理由は聴いた人が書きます。
 
+## Live展開（v0.2: 実機で通しました）
+
+`ableton-plan`が出す操作リストを、2026-08-16に**実際のLiveセットへ通しました**。
+経路はKIHACHIがMCPツールを直接叩くのではなく、AbletonGPT側の検証器です。
+
+```bash
+python3 -m kihachi_music_ai ableton-plan projects/my-song --first-track-index 1
+# AbletonGPT側（別リポジトリ）で検証 → 適用
+python -m abletongpt.cli.jobs import-kihachi --arrangement-plan .../arrangement_plan.json --out job_plan.json
+python -m abletongpt.cli.jobs run --plan job_plan.json
+```
+
+56小節・1389ノート・13操作が`completed=13 failed=0`で通り、3トラック
+（Drums / Bass / Chords）にクリップが0〜224拍で並びました。ドラムには実在キット
+（909 Core Kit）、ベースにはOperatorがロードされています。
+
+**設計した進行がそのまま鳴っています。**Live上のchordsクリップを読み戻すと、
+根音は全56小節で`Eb → B → F# → C#`（Eb = D#の異名同音）。SongSpecの
+`D#m - B - F# - C#`と**56/56で一致**します。同じ設計の音声レンダーは
+一致率0.0でした（「v0.1の既知の限界」参照）。**MIDI経路は設計を保持し、音声経路は失います。**
+
+### 実機で見つかった不一致
+
+計画は`apply_live_drum_kit`に`live_edition`を渡していました。**このツールは
+その引数を取りません**（`apply_live_instrument_selection`は取ります）。AbletonGPTは
+署名でパラメータを束ねるので、この操作は実行すれば失敗します。テストは
+**間違ったほうのキー集合を固定していました**。実機に通すまで、両方とも気づけていません。
+
+`first_track_index`はセットの既存トラック数に一致させます。ずれていると
+`apply_live_drum_kit`が既存トラックへキットを載せるので、AbletonGPTが適用直前に
+`TrackBaselineMismatch`で止めます（KIHACHI側はLiveを見ないので、この検査は持てません）。
+
 ## stem分離（v0.2）
 
 **KIHACHIはstemを作りません。**作る道具（Demucs等）はtorchと数百MBの重みを要求し、
