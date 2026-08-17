@@ -9,7 +9,7 @@ import wave
 from array import array
 from pathlib import Path
 
-from kihachi_music_ai.composer import compose_tracks
+from kihachi_music_ai.composer import compose_tracks, swing_for_offbeat
 from kihachi_music_ai.groove import UNRELIABLE_DEVIATION_MS, grid_timing
 from kihachi_music_ai.midi_review import groove_report
 from kihachi_music_ai.music_brain import MusicBrain
@@ -140,6 +140,43 @@ class MidiGrooveTests(unittest.TestCase):
 
         self.assertGreater(report["written_offbeat_delay_ms"], 7.0)
         self.assertLess(report["straight_jitter_ms"], 2.0)
+
+    def test_a_triplet_shuffle_leaves_nothing_between_the_triplets(self) -> None:
+        """The 8th-note tests above pass while the 16ths are still straight.
+
+        `_groove` decides what to swing with `int(round(start * 2))`, which only
+        names the 8th grid: 0.25 rounds to subdivision 0 and 0.75 to subdivision
+        2, so both are read as beats and neither is pushed. The parts that write
+        16ths then play a swung 8th at 0.667 *and* a straight 16th at 0.75, one
+        twelfth of a beat apart -- a flam, not a shuffle. Every earlier test asks
+        whether the 8ths moved, and they do, so this passed unheard until the
+        chords were soloed in Live.
+
+        The grid asked for is the **sextuplet**, not the triplet. A shuffled beat
+        divides in three, so a 16th has no slot of its own in it; six is the
+        coarsest division that holds both the swung 8th (4/6) and a 16th either
+        side of it. Asking for thirds here would fail a correct fix as surely as
+        the broken one.
+
+        So this says nothing about *where* a 16th should land -- that is the open
+        design question -- only that the written grid has to be one grid. 0.25
+        and 0.75 are on no division of a shuffled beat at all.
+        """
+
+        spec = self._spec(swing=swing_for_offbeat(2 / 3), humanize=0.0)
+
+        stray: dict[str, set[float]] = {}
+        for part, notes in compose_tracks(spec).items():
+            for note in notes:
+                position = note.start_beats % 1.0
+                if min(abs(position - sixth / 6) for sixth in range(7)) > 1e-4:
+                    stray.setdefault(part, set()).add(round(position, 4))
+
+        self.assertEqual(
+            {part: sorted(positions) for part, positions in stray.items()},
+            {},
+            msg="onsets between the triplets, by part",
+        )
 
 
 if __name__ == "__main__":
