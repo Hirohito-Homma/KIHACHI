@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import unittest
 
-from kihachi_music_ai.derive import FAMILY_PROFILES, Profile, pick, pick_str, profile_for
+from kihachi_music_ai.derive import (
+    FAMILY_PROFILES,
+    Profile,
+    TRIPLET_SWING,
+    pick,
+    pick_str,
+    profile_for,
+)
+from kihachi_music_ai.genres import family_of, load_database
 from kihachi_music_ai.music_brain import MusicBrain
 
 
@@ -93,6 +101,58 @@ class ThawTests(unittest.TestCase):
         self.assertEqual(spec.bass.role, "dominant")
         self.assertEqual(spec.chords.articulation, "short_offbeat_stabs")
         self.assertEqual(spec.drums.pattern, "four_on_floor")
+
+
+class MeterDerivedSwingTests(unittest.TestCase):
+    """The one groove the database states in its own words."""
+
+    def test_a_twelve_eight_row_swings(self) -> None:
+        spec = MusicBrain(seed=8).analyze("ブルース。8小節。")
+
+        self.assertEqual(spec.groove.swing, TRIPLET_SWING)
+
+    def test_every_twelve_eight_row_is_blues_and_blues_stated_nothing(self) -> None:
+        """Why this is worth deriving rather than hand-writing: it is 28 rows,
+        all in one family, and that family's profile said `None` -- straight."""
+
+        twelve_eight = [
+            genre for genre in load_database() if "12/8" in (genre.meter or "")
+        ]
+
+        self.assertEqual(len(twelve_eight), 28)
+        self.assertEqual({family_of(genre.slug) for genre in twelve_eight}, {"Blues"})
+        self.assertIsNone(FAMILY_PROFILES["Blues"].swing)
+
+    def test_six_eight_is_not_read_as_swing(self) -> None:
+        """81 rows carry 6/8. A bar of six is a different bar, not a swung four."""
+
+        six_eight = [
+            genre.slug
+            for genre in load_database()
+            if "6/8" in (genre.meter or "") and "12/8" not in (genre.meter or "")
+        ]
+
+        self.assertEqual(len(six_eight), 81)
+        for slug in six_eight[:5]:
+            with self.subTest(slug=slug):
+                self.assertIsNone(profile_for([(slug, 1.0)]).swing)
+
+    def test_a_hand_written_row_still_outranks_the_database(self) -> None:
+        """`mutation_funk` is someone disagreeing with the data on purpose."""
+
+        self.assertEqual(profile_for([("mutation_funk", 1.0)]).swing, 0.54)
+
+    def test_the_brief_can_still_straighten_it(self) -> None:
+        spec = MusicBrain(seed=8).analyze("かなりストレートなブルース。8小節。")
+
+        self.assertEqual(spec.groove.swing, 0.5)
+
+    def test_jazz_is_left_straight_because_the_database_says_nothing(self) -> None:
+        """The uncomfortable half. Every Jazz row reads `4/4; 3/4; odd meters
+        possible`, including the genre literally called `swing`."""
+
+        self.assertEqual(MusicBrain(seed=8).analyze("ジャズ。").groove.swing, 0.5)
+        self.assertIsNone(profile_for([("swing", 1.0)]).swing)
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields as dataclass_fields, replace
 from typing import Sequence
 
-from .genres import family_of
+from .genres import family_of, find
 
 
 @dataclass(frozen=True)
@@ -113,6 +113,33 @@ music belongs.
 """
 
 
+#: A bar of four subdivided in three. `groove.swing` at 0.667 is exactly that:
+#: the offbeat lands two thirds of the way through the beat instead of halfway.
+TRIPLET_SWING = 0.667
+
+
+def _meter_profile(slug: str) -> Profile | None:
+    """What a genre's own meter string says about its feel, if it says anything.
+
+    The database has no articulation and no density (see the module docstring),
+    which is why everything else here is hand-written. It does carry a `meter`,
+    and 28 of the 1020 rows declare `4/4; 12/8` -- a four-beat bar subdivided in
+    three, which is a shuffle. That is the database stating a groove in its own
+    words, so reading it is not the same as inventing a mapping from mood tags.
+
+    **`6/8` is deliberately not read.** 81 rows carry it, and a bar of six is a
+    different bar rather than a swung four -- the composer works in the parsed
+    time signature, so calling it swing would apply a triplet feel to a meter the
+    row never claimed. Every one of the 28 is in the Blues family, and Blues
+    stated no swing at all before this.
+    """
+
+    record = find(slug)
+    if record is None or "12/8" not in (record.meter or ""):
+        return None
+    return Profile(swing=TRIPLET_SWING)
+
+
 def profile_for(genres: Sequence[tuple[str, float]]) -> Profile:
     """The heaviest genre's family numbers, with per-genre opinions on top.
 
@@ -134,6 +161,13 @@ def profile_for(genres: Sequence[tuple[str, float]]) -> Profile:
         if family and family in FAMILY_PROFILES:
             profile = FAMILY_PROFILES[family]
             break
+    # The meter is the genre's own statement, so it outranks its family -- and
+    # `GENRE_PROFILES` outranks it in turn, because a row written by hand is
+    # someone disagreeing with the database on purpose.
+    for name, _weight in sorted(genres, key=lambda item: item[1]):
+        derived = _meter_profile(name)
+        if derived is not None:
+            profile = profile.overlaid_with(derived)
     for name, _weight in sorted(genres, key=lambda item: item[1]):
         stated = GENRE_PROFILES.get(name)
         if stated is not None:
