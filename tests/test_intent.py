@@ -105,6 +105,50 @@ class NegationTests(unittest.TestCase):
             with self.subTest(text=text, why=why):
                 self.assertFalse(read(text).refused(name), msg=why)
 
+    def test_a_second_refusal_cancels_the_first(self) -> None:
+        """Refusals were a set of indices, so two of them marked a mention once.
+
+        Both of these read as flat refusals of the thing they ask for.
+        """
+
+        for text, name in (("スラップ抜きじゃない。", "slap"), ("暗くなくはない。", "dark")):
+            with self.subTest(text=text):
+                self.assertFalse(read(text).refused(name))
+                self.assertGreater(read(text).strength_of(name), 0.0)
+
+    def test_one_refusal_spelled_two_ways_is_still_one_refusal(self) -> None:
+        """The reason the fix counts spans and not matches.
+
+        ``ではない`` is found by both ``ではない`` and ``はない`` at overlapping
+        positions. Counting matches would have made every 「〜ではない」 in the
+        vocabulary come out affirmed -- the ordinary case, broken by the fix for
+        the rare one. Touching is not overlapping, which is what still separates
+        「なくはない」 into two.
+        """
+
+        for text, name in (
+            ("スラップではない。", "slap"),
+            ("サイケではないやつ。", "psychedelic"),
+            ("メリハリの無いテクノ。", "contrast"),
+            ("暗くない。", "dark"),
+            ("跳ねすぎない。", "swung"),
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).refused(name))
+                self.assertEqual(read(text).strength_of(name), 0.0)
+
+    def test_a_negation_on_an_antonym_is_still_misread(self) -> None:
+        """Pinned as known-wrong, so the next reader is not surprised twice.
+
+        「手数は少なくない」 fires one negator, ``くない``, and it belongs to
+        「少なく」 rather than to the only mention in the clause. Reading it right
+        means knowing 少ない is the opposite of 手数, which this module does not
+        know. Recorded rather than guessed at -- change this test when it is
+        fixed, and do not treat it as a licence to invent the antonym table.
+        """
+
+        self.assertTrue(read("手数は少なくない。").refused("busy"))
+
     def test_an_adjective_negates_differently_from_a_noun(self) -> None:
         """Every trait before `dark` was a noun, so `くない` was never needed.
 
