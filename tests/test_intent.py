@@ -300,6 +300,19 @@ class DrumDensityWordTests(unittest.TestCase):
         self.assertTrue(read("手数が多すぎない").refused("busy"))
 
 
+class HarmonicRhythmWordTests(unittest.TestCase):
+    def test_both_poles_are_readable(self) -> None:
+        for text in ("展開が速いテクノ", "目まぐるしく変わるハウス", "fast changes"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("fast_changes"))
+        for text in ("ワンコードのテクノ", "コードを引っ張って", "one chord"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("slow_changes"))
+
+    def test_refusing_reads_as_a_refusal(self) -> None:
+        self.assertTrue(read("ワンコードじゃないテクノ").refused("slow_changes"))
+
+
 class SharedVocabularyTests(unittest.TestCase):
     """`edit` and the brief must agree on what "少し" means."""
 

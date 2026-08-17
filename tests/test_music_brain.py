@@ -248,6 +248,41 @@ class StatedDarknessTests(unittest.TestCase):
         self.assertEqual(drums("ダブ。8小節。"), 240)
         self.assertEqual(drums("手数の多いダブ。8小節。"), 272)
 
+    def test_harmonic_rhythm_steps_a_ladder_instead_of_blending(self) -> None:
+        """The first stated field that is an integer, so degrees work differently.
+
+        There is no value between one bar per chord and two, so a hedge and a
+        plain statement both move one rung and only insistence goes to the end.
+        """
+
+        def bars(prompt: str) -> int:
+            return MusicBrain(seed=1).analyze(prompt).harmony.harmonic_rhythm_bars
+
+        self.assertEqual(bars("テクノ。"), 2)
+        self.assertEqual(bars("展開が速いテクノ。"), 1)
+        self.assertEqual(bars("少し展開が速いテクノ。"), 1)
+        self.assertEqual(bars("ワンコードのテクノ。"), 4)
+        # Drum & bass starts at 4, so one rung down is 2 rather than 1.
+        self.assertEqual(bars("ドラムンベース。"), 4)
+        self.assertEqual(bars("展開が速いドラムンベース。"), 2)
+        self.assertEqual(bars("かなり目まぐるしく変わるドラムンベース。"), 1)
+        self.assertEqual(bars("ワンコードじゃないテクノ。"), 2)
+
+    def test_harmonic_rhythm_reaches_every_pitched_part_and_no_drum(self) -> None:
+        from kihachi_music_ai.composer import COMPOSERS
+
+        base = MusicBrain(seed=8).analyze("テクノ。8小節。")
+        fast = MusicBrain(seed=8).analyze("展開が速いテクノ。8小節。")
+        for part in ("bass", "chords", "synth", "arp", "vocoder"):
+            with self.subTest(part=part):
+                before, after = COMPOSERS[part](base), COMPOSERS[part](fast)
+                changed = sum(1 for x, y in zip(before, after) if x.pitch != y.pitch)
+                self.assertEqual(changed, len(before) // 2)
+        # The sub follows the chord itself, so it gains notes rather than moving.
+        self.assertEqual(len(COMPOSERS["sub"](base)), 16)
+        self.assertEqual(len(COMPOSERS["sub"](fast)), 32)
+        self.assertEqual(COMPOSERS["drums"](base), COMPOSERS["drums"](fast))
+
     def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
         ambient = (
             "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"
