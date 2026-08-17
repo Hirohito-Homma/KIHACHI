@@ -64,6 +64,14 @@ _ON_GRID_POLE = 0.2
 _LOOSE_POLE = 0.7
 _TIGHT_POLE = 0.02
 
+#: Kick density runs 0.38 (Reggae) to 0.9 (Hardcore Electronic) across the
+#: families and hats 0.45 to 0.95, so both poles sit outside every family's
+#: value. `composer` multiplies these by the section's own density, so the
+#: sparse pole is not 0.0: silence is a section that does not play drums, which
+#: the arrangement already decides.
+_BUSY_POLE = 0.95
+_SPARSE_POLE = 0.3
+
 #: A plain statement moves two thirds of the way to the pole, insistence all of
 #: it, a hedge one third. Chosen so a plainly dark brief lands near 0.76 from
 #: the 0.48 default -- next to the 0.72 that plainly-stated `dub` has always
@@ -132,6 +140,20 @@ def _stated_swing(base: float, traits: Traits) -> float:
         up_pole=_SWUNG_POLE,
         down="straight",
         down_pole=_STRAIGHT_POLE,
+    )
+
+
+def _stated_density(base: float, traits: Traits) -> float:
+    """How many drum notes exist, which only the arrangement could influence.
+
+    `drums.kick_density` and `drums.hat_density` decide the note count itself.
+    The nearest word was `minimal`, and it does something else: it gates the
+    `minimal` flag on the opening two sections and never reaches a density. So
+    a brief could ask for a minimal *opening* and not for a sparse *kit*.
+    """
+
+    return _stated_axis(
+        base, traits, up="busy", up_pole=_BUSY_POLE, down="sparse", down_pole=_SPARSE_POLE
     )
 
 
@@ -295,13 +317,13 @@ class MusicBrain:
                 # with the rest of the genre numbers, rather than as an ``if``
                 # here on one slug.
                 pattern=pick_str(profile.drum_pattern, "four_on_floor"),
-                kick_density=pick(profile.kick_density, 0.72),
+                kick_density=_stated_density(pick(profile.kick_density, 0.72), traits),
                 # Left pinned at 0.78 for every genre until the composer
                 # stopped thresholding it at 0.3 to pick one of two hat grids.
                 # While it was a switch, varying it here would have looked like
                 # control without being any; now each step of it removes or
                 # restores a hat, so the families may speak.
-                hat_density=pick(profile.hat_density, 0.78),
+                hat_density=_stated_density(pick(profile.hat_density, 0.78), traits),
                 dub_space=tune("drums.dub_space", blend(0.2, 0.62, dub)),
             ),
             chords=ChordSpec(

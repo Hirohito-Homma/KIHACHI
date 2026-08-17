@@ -214,6 +214,40 @@ class StatedDarknessTests(unittest.TestCase):
         self.assertEqual(humanize("かっちりしたテクノ。"), 0.033333)
         self.assertEqual(humanize("ヨレないテクノ。"), 0.06)
 
+    def test_drum_density_is_sayable_and_minimal_is_a_different_word(self) -> None:
+        def kit(prompt: str) -> tuple[float, float]:
+            drums = MusicBrain(seed=1).analyze(prompt).drums
+            return drums.kick_density, drums.hat_density
+
+        self.assertEqual(kit("テクノ。"), (0.85, 0.92))
+        self.assertEqual(kit("少しスカスカなテクノ。"), (0.666667, 0.713333))
+        self.assertEqual(kit("かなり余白のあるダブ。"), (0.3, 0.3))
+        self.assertEqual(kit("ダブ。"), (0.38, 0.45))
+        # `minimal` gates the arrangement's opening sections and nothing here.
+        self.assertEqual(kit("ミニマルなテクノ。"), (0.85, 0.92))
+        self.assertEqual(kit("スカスカじゃないテクノ。"), (0.85, 0.92))
+
+    def test_asking_a_saturated_kit_for_more_changes_the_number_and_not_the_notes(self) -> None:
+        """The honest half of this: upwards, the pattern hits its own ceiling.
+
+        Techno already sits at 0.85/0.92 and `build_pattern` is already at
+        `groove.kick_steps[1]`, so 「かなり手数の多いテクノ」 raises the spec to
+        0.95 and composes the same 381 drum notes. Downwards it works from the
+        same starting point, and upwards it works from a genre with room.
+        """
+
+        from kihachi_music_ai.composer import COMPOSERS
+
+        def drums(prompt: str) -> int:
+            spec = MusicBrain(seed=8).analyze(prompt)
+            return len(COMPOSERS["drums"](spec))
+
+        self.assertEqual(drums("テクノ。8小節。"), 381)
+        self.assertEqual(drums("かなり手数の多いテクノ。8小節。"), 381)
+        self.assertEqual(drums("スカスカなテクノ。8小節。"), 320)
+        self.assertEqual(drums("ダブ。8小節。"), 240)
+        self.assertEqual(drums("手数の多いダブ。8小節。"), 272)
+
     def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
         ambient = (
             "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"

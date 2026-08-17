@@ -57,7 +57,12 @@ LARGE_STRENGTH = 1.5
 #: was named by a noun, where ``じゃない`` is the negation, and an adjective
 #: negates as ``暗くない`` instead. Without it 「暗くないテクノ」 read as a
 #: request for darkness -- the exact inversion this module was written to stop.
-JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません")
+#: ``すぎない`` sits here rather than in the suffix list below because it is
+#: never an ordinary word ending -- unlike a bare ``ない``, which is why that one
+#: has to touch what it negates. Requiring adjacency for ``すぎない`` missed the
+#: shape a noun trait naturally takes: 「手数が多すぎない」 puts a particle and an
+#: adjective between the trait and the negation, and it read as a request.
+JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません", "すぎない", "過ぎない", "すぎず", "過ぎず")
 ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 
 #: Negations that count **only when they touch the mention they follow**.
@@ -68,7 +73,6 @@ ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 #: adjacency is what makes the bare form safe: in that phrase the ``ない`` is
 #: four characters away from ``サイケ`` and means nothing to it.
 JAPANESE_SUFFIX_NEGATORS = (
-    "しすぎない", "すぎない", "し過ぎない", "過ぎない",
     "しない", "しなく", "しません", "させない", "せず", "ない", "ず",
 )
 
@@ -127,6 +131,13 @@ TRAIT_WORDS: dict[str, tuple[str, ...]] = {
     # put it rather than from a constant.
     "loose": ("ヨレ", "よれ", "人間っぽ", "人間的", "手弾き", "生っぽ", "ルーズ", "loose", "human", "hand-played"),
     "tight": ("タイト", "カッチリ", "かっちり", "きっちり", "機械的", "マシンライク", "ジャスト", "tight", "machine", "quantiz"),
+    # `drums.kick_density` and `drums.hat_density` decide how many drum notes
+    # exist at all, and both are stated by every family (kick 0.38 Reggae to 0.9
+    # Hardcore, hat 0.45 to 0.95). The one word that came close was `minimal`,
+    # and it does something else entirely: it gates the `minimal` flag on the
+    # opening two sections of the arrangement and never touches a density.
+    "busy": ("手数", "ぎっしり", "詰め込", "詰まった", "密度が高", "せわしな", "busy", "dense", "relentless"),
+    "sparse": ("スカスカ", "疎ら", "まばら", "余白", "間を空け", "隙間", "sparse", "spacious"),
 }
 
 
