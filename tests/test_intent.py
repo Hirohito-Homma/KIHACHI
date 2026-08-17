@@ -12,6 +12,7 @@ from kihachi_music_ai.intent import (
     SMALL_STRENGTH,
     SECOND_HALF,
     SMALL_WORDS,
+    TRAIT_WORDS,
     blend,
     read,
 )
@@ -30,6 +31,79 @@ class NegationTests(unittest.TestCase):
 
         self.assertTrue(traits.refused("slap"))
         self.assertEqual(traits.strength_of("slap"), 0.0)
+
+    def test_every_word_can_be_refused_in_the_ordinary_ways(self) -> None:
+        """The sweep, not the example. Four gaps were found one at a time.
+
+        `くない`, `すぎない`, the bare `ない` and the particle forms each turned up
+        by writing one brief and being surprised. Reading the negator list never
+        found any of them, because what is missing from a list is exactly what
+        reading it does not show. So this asks the whole vocabulary at once: 155
+        surface forms against the refusals that work for any part of speech, 655
+        briefs in all.
+        """
+
+        japanese = ("{w}は無しで。", "{w}は要らない。", "{w}抜きで。", "{w}は不要。", "{w}じゃなくて。")
+        english = ("without {w}.", "no {w}.", "avoid {w}.")
+
+        misread: list[str] = []
+        for name, words in TRAIT_WORDS.items():
+            for word in words:
+                ascii_only = all(character < "\x80" for character in word)
+                for template in english if ascii_only else japanese:
+                    brief = template.format(w=word)
+                    trait = read(brief).find(name)
+                    if trait is not None and trait.polarity > 0:
+                        misread.append(f"{brief} -> {name} asked for")
+
+        self.assertEqual(misread, [], msg="refusals read as requests")
+
+    def test_a_refusal_can_be_a_verb_rather_than_a_grammatical_negation(self) -> None:
+        """`avoid` was an English negator from v0.1 and had no Japanese twin.
+
+        Nothing in the list covered 「避ける」「排除」「厳禁」「省く」, so a brief
+        that turned a trait down in the most direct words available got it.
+        """
+
+        for text, name in (
+            ("スラップは避けて。", "slap"),
+            ("サイケは避けたい。", "psychedelic"),
+            ("スラップを排除。", "slap"),
+            ("暗いのは厳禁。", "dark"),
+            ("ボコーダーは省く。", "vocoder"),
+            ("暗いのを省いて。", "dark"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertTrue(traits.refused(name))
+                self.assertEqual(traits.strength_of(name), 0.0)
+
+    def test_the_continuative_negative_refuses_like_the_plain_one(self) -> None:
+        """`ない` was in the suffix list and `なく` was not.
+
+        So 「跳ねないで」 was refused and 「跳ねなくて」 was read as a request for
+        the same thing, one inflection apart.
+        """
+
+        for text in ("跳ねないで。", "跳ねなくて。", "跳ねないように。"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).refused("swung"))
+
+    def test_the_words_left_out_do_not_refuse_an_ordinary_brief(self) -> None:
+        """Each of these was a candidate and each earns a false refusal.
+
+        Kept as a test rather than a comment because the next person to sweep
+        the vocabulary will find them again and they look reasonable.
+        """
+
+        for text, name, why in (
+            ("暗くしてテンポをはやめて。", "dark", "はやめて is speed up, and contains やめて"),
+            ("サイケ以外は暗くして。", "psychedelic", "以外 names a span, not a refusal"),
+            ("ミニマル以外の要素も入れて。", "minimal", "以外 here asks for more"),
+            ("サイケなsongを。", "psychedelic", "NG would fire inside song"),
+        ):
+            with self.subTest(text=text, why=why):
+                self.assertFalse(read(text).refused(name), msg=why)
 
     def test_an_adjective_negates_differently_from_a_noun(self) -> None:
         """Every trait before `dark` was a noun, so `くない` was never needed.

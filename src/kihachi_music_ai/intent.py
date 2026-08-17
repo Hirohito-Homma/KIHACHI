@@ -68,7 +68,33 @@ LARGE_STRENGTH = 1.5
 #: has to touch what it negates. Requiring adjacency for ``すぎない`` missed the
 #: shape a noun trait naturally takes: 「手数が多すぎない」 puts a particle and an
 #: adjective between the trait and the negation, and it read as a request.
-JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません", "の無い", "のない", "が無い", "がない", "は無い", "はない", "すぎない", "過ぎない", "すぎず", "過ぎず")
+#: ``避け``, ``排除``, ``厳禁``, ``省い`` and ``省く`` are **verbs of refusal**
+#: rather than grammatical negation, and the list had none of them although
+#: ENGLISH_NEGATORS has carried ``avoid`` since v0.1. 「スラップは避けて」 read as
+#: a request for slap. They were found by sweeping the vocabulary rather than by
+#: reading this list -- see the module tests.
+#:
+#: Three near neighbours were **deliberately left out**, each because it earns a
+#: false refusal on an ordinary brief:
+#:
+#: * ``やめ`` -- 「テンポをはやめて」 is *speed up*, and it contains ``やめて``.
+#: * ``以外`` -- 「サイケ以外は暗くして」 names a span to treat differently; it is
+#:   not a refusal of the psychedelia, and 「ミニマル以外の要素も入れて」 asks for
+#:   *more*.
+#: * ``カット`` -- 「フィルターのカットオフ」 is a parameter, not a removal.
+#:
+#: ``NG`` is worse than any of them and is not a candidate at all: matching is
+#: case-folded, so it would fire inside ``song``, ``swing`` and ``strong``.
+#:
+#: **A second negator does not cancel the first, and nothing here notices.**
+#: 「手数は少なくない」, 「暗くなくはない」 and 「スラップ抜きじゃない」 all read as
+#: plain refusals of the very thing they are asking for. Negation is a set of
+#: indices here, so finding two marks the mention once. Counting them would not
+#: be enough either: 「暗くなくはない」 is a hedge -- *somewhat* dark -- not a
+#: plain request, so a correct reading needs a strength as well as a polarity.
+#: Left alone deliberately; found by sweeping, like everything else in this
+#: list, and worth its own change rather than a flag flipped here.
+JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません", "の無い", "のない", "が無い", "がない", "は無い", "はない", "すぎない", "過ぎない", "すぎず", "過ぎず", "避け", "排除", "厳禁", "省い", "省く")
 ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 
 #: Negations that count **only when they touch the mention they follow**.
@@ -78,8 +104,13 @@ ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 #: refuse the psychedelia on the strength of an unrelated adjective. Requiring
 #: adjacency is what makes the bare form safe: in that phrase the ``ない`` is
 #: four characters away from ``サイケ`` and means nothing to it.
+#: ``なく`` is the bare ``ない`` in its continuative form and was missing while
+#: the bare ``ない`` was present, so 「跳ねないで」 was refused and 「跳ねなくて」 was
+#: not. Adjacency is what keeps it safe, exactly as for ``ない``: in
+#: 「せわしなく変わる」 the ``なく`` overlaps the ``せわしな`` mention rather than
+#: starting where it ends, and in 「手数を少なく」 it is three characters past it.
 JAPANESE_SUFFIX_NEGATORS = (
-    "しない", "しなく", "しません", "させない", "せず", "ない", "ず",
+    "しない", "しなく", "しません", "させない", "せず", "ない", "なく", "ず",
 )
 
 #: Clause boundaries. Negation does not reach across one, which is what keeps
