@@ -237,6 +237,39 @@ class SyncopationWordTests(unittest.TestCase):
         self.assertTrue(read("syncopated house, not on-grid").refused("on_grid"))
 
 
+class HumanizeWordTests(unittest.TestCase):
+    """The one every genre states and no brief could reach.
+
+    `groove.humanize` is the mirror of syncopation: all 23 families set it,
+    from Hardcore Electronic's 0.04 to Jazz's 0.45, and a brief still had no
+    way to disagree with the family it landed in.
+    """
+
+    def test_both_poles_are_readable(self) -> None:
+        for text in ("手弾きっぽいテクノ", "少しヨレたテクノ", "人間っぽい演奏", "loose house"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("loose"))
+        for text in ("タイトなジャズ", "かっちりしたテクノ", "ジャストで", "machine tight house"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("tight"))
+
+    def test_refusing_either_pole_reads_as_a_refusal(self) -> None:
+        self.assertTrue(read("ヨレないテクノ").refused("loose"))
+        self.assertTrue(read("タイトすぎない").refused("tight"))
+
+    def test_the_two_poles_do_not_read_each_other(self) -> None:
+        """`tight` and `on_grid` are different questions on the same bar.
+
+        One is how far a note sits from the grid on purpose, the other is how
+        far it sits from it by hand, so a brief may ask for either alone.
+        """
+
+        loose = read("手弾きっぽいテクノ")
+        self.assertEqual(loose.strength_of("syncopated"), 0.0)
+        self.assertEqual(loose.strength_of("on_grid"), 0.0)
+        self.assertEqual(read("オンビートで").strength_of("tight"), 0.0)
+
+
 class SharedVocabularyTests(unittest.TestCase):
     """`edit` and the brief must agree on what "少し" means."""
 

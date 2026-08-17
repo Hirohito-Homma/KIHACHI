@@ -56,6 +56,14 @@ _STRAIGHT_POLE = 0.5
 _SYNCOPATED_POLE = 0.88
 _ON_GRID_POLE = 0.2
 
+#: Every family states a humanize between Hardcore Electronic's 0.04 and Jazz's
+#: 0.45, so the loose pole sits above all of them -- otherwise a brief could
+#: agree with Jazz and move nothing. 0.7 is +/-6.6 ms of jitter at 110 BPM
+#: against the 0.18 default's +/-1.7 ms, and it reaches `prompt_compiler`'s top
+#: band. The tight pole is not 0.0: that is a quantiser, not a preference.
+_LOOSE_POLE = 0.7
+_TIGHT_POLE = 0.02
+
 #: A plain statement moves two thirds of the way to the pole, insistence all of
 #: it, a hedge one third. Chosen so a plainly dark brief lands near 0.76 from
 #: the 0.48 default -- next to the 0.72 that plainly-stated `dub` has always
@@ -124,6 +132,20 @@ def _stated_swing(base: float, traits: Traits) -> float:
         up_pole=_SWUNG_POLE,
         down="straight",
         down_pole=_STRAIGHT_POLE,
+    )
+
+
+def _stated_humanize(base: float, traits: Traits) -> float:
+    """How hand-played the timing is, which every genre states and no brief could.
+
+    The mirror of `_stated_syncopation`: all 23 families set `groove.humanize`
+    and none set syncopation, yet neither was reachable from a brief. It feeds
+    the composer's jitter directly, so 「手弾きっぽく」 changes the MIDI rather
+    than the prompt, and `midi_review` reads the result back out.
+    """
+
+    return _stated_axis(
+        base, traits, up="loose", up_pole=_LOOSE_POLE, down="tight", down_pole=_TIGHT_POLE
     )
 
 
@@ -245,7 +267,7 @@ class MusicBrain:
                     "groove.syncopation",
                     _stated_syncopation(blend(0.58, 0.82, slap), traits),
                 ),
-                humanize=pick(profile.humanize, 0.18),
+                humanize=_stated_humanize(pick(profile.humanize, 0.18), traits),
             ),
             arrangement=sections,
             harmony=HarmonySpec(

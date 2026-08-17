@@ -119,6 +119,14 @@ TRAIT_WORDS: dict[str, tuple[str, ...]] = {
     # the feel was sayable *after* a render and not in the brief that made it.
     "syncopated": ("シンコペ", "syncopat", "食い気味", "食い込", "うねら", "うねる", "うねり", "うねっ", "裏打ち", "offbeat", "off-beat"),
     "on_grid": ("オンビート", "表打ち", "頭打ち", "on-beat", "on the beat", "on-grid"),
+    # `groove.humanize` is the opposite case to the two above: every one of the
+    # 23 families states it, from Hardcore Electronic's 0.04 to Jazz's 0.45, and
+    # still no brief could say it. It reaches the composer's jitter directly --
+    # `groove.py` measures the 0.18 default as +/-1.7 ms at 110 BPM -- so it is
+    # MIDI, not prompt text, and `_stated_axis` moves it from wherever the genre
+    # put it rather than from a constant.
+    "loose": ("ヨレ", "よれ", "人間っぽ", "人間的", "手弾き", "生っぽ", "ルーズ", "loose", "human", "hand-played"),
+    "tight": ("タイト", "カッチリ", "かっちり", "きっちり", "機械的", "マシンライク", "ジャスト", "tight", "machine", "quantiz"),
 }
 
 

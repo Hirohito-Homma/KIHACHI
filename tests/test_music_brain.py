@@ -193,6 +193,27 @@ class StatedDarknessTests(unittest.TestCase):
         self.assertEqual(spec.groove.syncopation, 0.406667)
         self.assertEqual(spec.bass.syncopation, 0.42)
 
+    def test_humanize_moves_from_whatever_the_family_stated(self) -> None:
+        """Every family states this one, and no brief could disagree with it.
+
+        Hardcore Electronic sits at 0.04 and Jazz at 0.45, so the loose pole is
+        above all of them: a brief that agrees with Jazz still has somewhere to
+        go, and the tight pole is 0.02 rather than 0.0 because a quantiser is
+        not a preference.
+        """
+
+        def humanize(prompt: str) -> float:
+            return MusicBrain(seed=1).analyze(prompt).groove.humanize
+
+        self.assertEqual(humanize("テクノ。"), 0.06)
+        self.assertEqual(humanize("少しヨレたテクノ。"), 0.273333)
+        self.assertEqual(humanize("手弾きっぽいテクノ。"), 0.486667)
+        self.assertEqual(humanize("ジャズ。"), 0.45)
+        self.assertEqual(humanize("かなり人間っぽいジャズ。"), 0.7)
+        self.assertEqual(humanize("タイトなジャズ。"), 0.163333)
+        self.assertEqual(humanize("かっちりしたテクノ。"), 0.033333)
+        self.assertEqual(humanize("ヨレないテクノ。"), 0.06)
+
     def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
         ambient = (
             "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"
