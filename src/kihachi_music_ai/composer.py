@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import random
+from bisect import bisect_right
 from dataclasses import replace
+from functools import wraps
+from typing import Callable
 
 from .groove_tables import KICK, bass_role, chord_articulation, drum_pattern, hat_positions
 from .midi import PPQ, MidiNote
@@ -573,6 +576,43 @@ def compose_sub(spec: SongSpec) -> tuple[MidiNote, ...]:
     return tuple(_monophonic(notes))
 
 
+SHORTEST_NOTE_BEATS = 0.02
+"""Floor for a shortened note. At 110 BPM this is 11 ms -- short enough to read
+as a click and long enough that a synth still opens its envelope. Below it a
+"note" is an event nothing can play."""
+
+
+def _shaped(notes: tuple[MidiNote, ...], note_length: float) -> tuple[MidiNote, ...]:
+    """Hold every note for `note_length` times as long as its part wrote it.
+
+    Lengthening is capped at the next note **in the same part**, which is what
+    legato means and what keeps a held chord from crossing into the next one.
+    `compose_bass` and `compose_sub` already trim themselves monophonically, so
+    the cap is doing the same job here for the polyphonic parts.
+    """
+
+    if note_length == 1.0:
+        return notes
+    starts = sorted({note.start_beats for note in notes})
+    shaped: list[MidiNote] = []
+    for note in notes:
+        duration = note.duration_beats * note_length
+        if note_length > 1.0:
+            index = bisect_right(starts, note.start_beats)
+            if index < len(starts):
+                duration = min(duration, starts[index] - note.start_beats)
+        shaped.append(replace(note, duration_beats=max(duration, SHORTEST_NOTE_BEATS)))
+    return tuple(shaped)
+
+
+def _holding(compose: Callable[[SongSpec], tuple[MidiNote, ...]]):
+    @wraps(compose)
+    def composed(spec: SongSpec) -> tuple[MidiNote, ...]:
+        return _shaped(compose(spec), spec.groove.note_length)
+
+    return composed
+
+
 COMPOSERS = {
     "bass": compose_bass,
     "sub": compose_sub,
@@ -582,3 +622,4 @@ COMPOSERS = {
     "arp": compose_arp,
     "vocoder": compose_vocoder,
 }
+COMPOSERS = {name: _holding(compose) for name, compose in COMPOSERS.items()}

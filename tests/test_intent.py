@@ -313,6 +313,20 @@ class HarmonicRhythmWordTests(unittest.TestCase):
         self.assertTrue(read("ワンコードじゃないテクノ").refused("slow_changes"))
 
 
+class NoteLengthWordTests(unittest.TestCase):
+    def test_both_poles_are_readable(self) -> None:
+        for text in ("歯切れのいいテクノ", "スタッカート気味に", "短く切って", "staccato"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("staccato"))
+        for text in ("レガートなアンビエント", "繋げて弾く", "伸ばして", "legato"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("legato"))
+
+    def test_refusing_reads_as_a_refusal(self) -> None:
+        self.assertTrue(read("歯切れよくないテクノ").refused("staccato"))
+        self.assertTrue(read("レガートすぎない").refused("legato"))
+
+
 class SharedVocabularyTests(unittest.TestCase):
     """`edit` and the brief must agree on what "少し" means."""
 

@@ -227,7 +227,14 @@ def _groove(spec: SongSpec) -> str:
         ("machine-tight", "controlled human feel", "loose and hand-played"),
     )
     swing = "straight" if spec.groove.swing <= 0.52 else f"swung {spec.groove.swing:.2f}"
-    return f"{syncopation}, {swing}, {humanize}"
+    parts = [syncopation, swing, humanize]
+    # Only when the brief asked. 1.0 is the length every part was already
+    # written with, and naming it would change a prompt that has not changed.
+    if spec.groove.note_length < 1.0:
+        parts.append("short, clipped notes")
+    elif spec.groove.note_length > 1.0:
+        parts.append("long, connected notes")
+    return ", ".join(parts)
 
 
 def _bass(spec: SongSpec) -> str:

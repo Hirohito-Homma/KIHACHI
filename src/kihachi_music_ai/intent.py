@@ -146,6 +146,15 @@ TRAIT_WORDS: dict[str, tuple[str, ...]] = {
     # rather than interpolating.
     "fast_changes": ("コードチェンジが速", "展開が速", "目まぐるし", "せわしなく変わ", "どんどん変わ", "fast changes", "fast-moving chords"),
     "slow_changes": ("ワンコード", "一発もの", "コードを引っ張", "同じコードで", "ずっと同じ和音", "static harmony", "one chord"),
+    # `groove.note_length` is the one field in this list that did not exist
+    # before the word did. Every other trait here found a number with consumers
+    # and no path from the brief; note length had no number at all -- each part
+    # carried a duration constant written into `composer` (bass 0.3, kick 0.16,
+    # synth 0.18) and nothing could scale them. It is *half* of 疾走感: the
+    # other half is how often notes arrive, which `busy` and `swung` already
+    # reach, so neither word claims the whole thing.
+    "staccato": ("歯切れ", "スタッカート", "短く切", "ぶつ切り", "キレのある", "staccato", "clipped"),
+    "legato": ("レガート", "繋げ", "つなげ", "伸ばし", "滑らか", "legato", "sustained"),
 }
 
 
