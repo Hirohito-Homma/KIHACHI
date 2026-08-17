@@ -106,17 +106,51 @@ class MidiGrooveTests(unittest.TestCase):
         )
 
     def test_the_requested_swing_comes_back_out(self) -> None:
-        for swing in (0.50, 0.54, 0.62, 0.75):
+        """The triplet is in this list because stopping short of it hid a bug.
+
+        This ran to 0.75 and passed while the report was blind at 0.9762 -- the
+        value `derive` gives every 12/8 row. The old matcher measured from the
+        nearest eighth and dropped anything beyond a quarter of one, a window of
+        0.125 beats; a triplet shuffle displaces the offbeat by 0.1667, so the
+        swung notes all fell out and `written_offbeat_delay_ms` was `None`.
+        """
+
+        for swing in (0.50, 0.54, 0.62, 0.75, swing_for_offbeat(2 / 3)):
             spec = self._spec(swing=swing, humanize=0.0)
 
             report = groove_report(spec, compose_tracks(spec))
 
+            self.assertIsNotNone(
+                report["written_offbeat_delay_ms"], msg=f"swing {swing}: nothing measured"
+            )
             self.assertAlmostEqual(
                 report["written_offbeat_delay_ms"],
                 report["expected_offbeat_delay_ms"],
                 delta=0.01,
                 msg=f"swing {swing}",
             )
+
+    def test_no_note_falls_out_of_the_groove_measurement(self) -> None:
+        """A dropped note is worse than a wrong number: it is a silent one.
+
+        The old matcher skipped whatever sat too far from an eighth, so a groove
+        it could not classify simply shrank the sample it averaged. Every note
+        belongs to some slot now, and a note that drifts has to move the figure
+        rather than leave it.
+        """
+
+        for swing in (0.5, 0.54, swing_for_offbeat(2 / 3)):
+            for humanize in (0.0, 0.9):
+                spec = self._spec(swing=swing, humanize=humanize)
+                tracks = compose_tracks(spec)
+
+                report = groove_report(spec, tracks)
+
+                self.assertEqual(
+                    report["swung_notes"] + report["straight_notes"],
+                    sum(len(notes) for notes in tracks.values()),
+                    msg=f"swing {swing}, humanize {humanize}",
+                )
 
     def test_humanize_shows_up_as_jitter_on_the_straight_positions(self) -> None:
         quiet = groove_report(

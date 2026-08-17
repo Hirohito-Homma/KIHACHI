@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .composer import swung_position
 from .midi import MidiNote, read_midi
 from .models import SongSpec
 from .theory import NOTE_TO_PC, SCALES, chord_pitches, chord_root
@@ -73,25 +74,52 @@ def review_project_midi(project_dir: Path) -> MidiReviewManifest:
 def groove_report(spec: SongSpec, tracks: Mapping[str, Sequence[MidiNote]]) -> dict[str, Any]:
     """What the written notes do with time, against what the SongSpec asked for.
 
-    Exact, unlike the audio measurement. The composer delays eighth-note
-    offbeats by ``(swing - 0.5) * 0.35`` beats and jitters every note by
+    Exact, unlike the audio measurement. The composer warps each beat around its
+    offbeat by ``(swing - 0.5) * 0.35`` beats and jitters every note by
     ``humanize``; both are single-digit milliseconds at 110 BPM, which the audio
     analyzer cannot resolve on a real mix -- its onsets land some 35 ms from the
     grid, so its offbeat figure is noise. Here the note starts are the data.
+
+    Each note is matched to the straight grid position it was written from, by
+    warping the grid the same way the composer does and taking the nearest slot.
+    The earlier version instead measured from the nearest *eighth* and dropped
+    anything more than a quarter of an eighth away -- a window of 0.125 beats.
+    A triplet shuffle displaces the offbeat by 0.1667, so every swung note fell
+    outside it and the report went blank at exactly the value 12/8 uses:
+    ``written_offbeat_delay_ms`` came back ``None`` from zero swung notes while
+    ``expected_offbeat_delay_ms`` said 90.9. Nothing caught it because
+    ``test_the_requested_swing_comes_back_out`` stopped at swing 0.75.
+
+    There is no window now. Every note belongs to some slot, so a note that
+    drifts cannot leave the measurement -- it moves the figure instead, which is
+    what a measurement is for.
     """
+
+    # Where each straight grid position is expected to be written, once the
+    # beat is warped. Ending at 1.0 matters: a 0.75 pushed late by humanize can
+    # cross into the next beat, and without the endpoint it would be measured
+    # against the wrong slot.
+    expected = [
+        (straight, swung_position(straight, spec.groove.swing))
+        for straight in (0.0, 0.25, 0.5, 0.75, 1.0)
+    ]
 
     swing_positions: list[float] = []
     straight_positions: list[float] = []
-    for name, notes in tracks.items():
+    for notes in tracks.values():
         for note in notes:
-            eighths = note.start_beats * 2.0
-            nearest = round(eighths)
-            deviation = (eighths - nearest) / 2.0
-            # The composer swings a position when round(start * 2) is odd, so
-            # sixteenth offbeats are not swung and must not be averaged in.
-            if abs(eighths - nearest) > 0.25:
-                continue
-            (swing_positions if nearest % 2 else straight_positions).append(deviation)
+            beat = int(note.start_beats // 1)
+            written = note.start_beats - beat
+            straight, target = min(expected, key=lambda pair: abs(written - pair[1]))
+            if straight == 0.5:
+                # Measured from the *straight* eighth, so this stays comparable
+                # with `expected_offbeat_delay_ms`: it is the displacement swing
+                # asked for, not the error against it.
+                swing_positions.append(written - straight)
+            else:
+                # Measured from the warped position, so the warp a sixteenth now
+                # inherits is not read back as humanize.
+                straight_positions.append(written - target)
 
     beat_ms = 60_000.0 / spec.song.bpm
     expected_ms = max(0.0, spec.groove.swing - 0.5) * 0.35 * beat_ms
