@@ -189,11 +189,16 @@ def match_genres(prompt: str) -> tuple[GenreMatch, ...]:
     A form contained inside a longer match is dropped, so "Tech House" yields
     tech house alone rather than tech house *and* house.
     """
+    # Every surface form is case-folded by `_surface_forms`, so every search has
+    # to run against a case-folded prompt. This used to fold the prompt only for
+    # forms that are pure Latin, which left the four mixed-script aliases
+    # unmatchable: 「Jポップ」 is stored as 「jポップ」 and was looked for in a
+    # prompt still carrying its capital J. Japanese is caseless, so folding
+    # costs the other forms nothing.
     lowered = prompt.lower()
     hits: list[tuple[int, int, str, Genre]] = []
     for form, genre in _surface_forms():
-        haystack = lowered if _LATIN.match(form) else prompt
-        for start, end in _spans(haystack, form):
+        for start, end in _spans(lowered, form):
             hits.append((start, end, form, genre))
 
     kept: list[tuple[int, int, str, Genre]] = []
