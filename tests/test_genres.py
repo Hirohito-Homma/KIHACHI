@@ -334,3 +334,107 @@ class NumericLinkTests(unittest.TestCase):
 
         self.assertEqual(spec.style.psychedelic, 0.82)
         self.assertEqual(self._spec("ダブ。Am。").style.darkness, 0.72)
+
+
+class AliasSafetyTests(unittest.TestCase):
+    """Invariants that hold whatever `genres.json` grows into.
+
+    Aliases are data, so they are added without touching a line of code -- which
+    means nothing stops a new one from colliding with something already here.
+    These are the collisions worth failing on, and each has already happened
+    once: `ラップ` (Hip-Hop) lives inside `スラップ` (the slap trait) and was
+    matched from it, which is why `_continues_run` exists at all.
+    """
+
+    def _japanese_aliases(self) -> list[tuple[str, str]]:
+        return [
+            (alias, genre.name)
+            for genre in load_database()
+            for alias in genre.aliases
+            if not alias.isascii()
+        ]
+
+    def test_no_alias_is_buried_in_a_word_this_project_says_often(self) -> None:
+        """A genre name inside a trait word is a genre nobody asked for.
+
+        `_continues_run` refuses these at match time, so a collision here is not
+        a live bug -- it is a name that can never be matched next to that trait
+        word, which is worth knowing before adding it rather than after.
+        """
+
+        from kihachi_music_ai.intent import TRAIT_WORDS
+
+        buried = [
+            f"{alias} ({name}) inside {word} ({trait})"
+            for alias, name in self._japanese_aliases()
+            for trait, words in TRAIT_WORDS.items()
+            for word in words
+            if alias != word and alias in word
+        ]
+
+        self.assertEqual(
+            sorted(buried),
+            [
+                "スカ (Reggae / Dub / Ska) inside スカスカ (sparse)",
+                "スカ (Ska) inside スカスカ (sparse)",
+                "ラップ (Hip-Hop / Rap) inside スラップ (slap)",
+            ],
+            msg="a new alias collides with the trait vocabulary",
+        )
+
+    def test_two_rows_claiming_one_spelling_are_a_family_and_its_member(self) -> None:
+        """24 forms are claimed twice, and `_surface_forms` resolves them.
+
+        That is intended -- 「ダブ」 names both the `Reggae / Dub / Ska` family
+        and the `Dub` style inside it, and the style wins because a family is a
+        grouping rather than something a person asks for. What must not appear
+        is a spelling claimed by two rows that are *unrelated*, where whichever
+        one wins is an accident of iteration order.
+        """
+
+        from kihachi_music_ai.genres import load_database
+
+        claims: dict[str, list] = {}
+        for genre in load_database():
+            for alias in genre.aliases:
+                if not alias.isascii():
+                    claims.setdefault(alias, []).append(genre)
+
+        unrelated = []
+        for alias, rows in claims.items():
+            names = {row.name for row in rows}
+            if len(names) < 2:
+                continue
+            parents = {row.parent for row in rows if row.parent} | {
+                row.name for row in rows if row.parent is None
+            }
+            if not (names & parents):
+                unrelated.append(f"{alias}: {sorted(names)}")
+
+        self.assertEqual(sorted(unrelated), [], msg="one spelling, two unrelated genres")
+
+    def test_matching_an_alias_returns_the_row_the_table_gave_it_to(self) -> None:
+        """The surface-form table already decides who owns a spelling.
+
+        So the only question left is whether matching reproduces that decision.
+        It did not for the four aliases that mix scripts: the table stores keys
+        case-folded, and `match_genres` searched the *un-folded* prompt for
+        anything that was not pure Latin. 「Jポップ」 was stored as 「jポップ」 and
+        never found, so the shorter 「ポップ」 won and a J-Pop brief came back as
+        Pop -- a different genre, reported as if it were the one asked for.
+        """
+
+        from kihachi_music_ai.genres import _surface_forms
+
+        owner = {form: genre.name for form, genre in _surface_forms()}
+        wrong = []
+        for genre in load_database():
+            for alias in genre.aliases:
+                if alias.isascii():
+                    continue
+                expected = owner.get(alias.strip().lower())
+                found = [match.genre.name for match in match_genres(alias)]
+                if expected is not None and found[:1] != [expected]:
+                    wrong.append(f"{alias}: table says {expected}, matching says {found}")
+
+        self.assertEqual(sorted(wrong), [], msg="matching disagrees with the table")
