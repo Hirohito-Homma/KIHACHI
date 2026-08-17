@@ -1,0 +1,122 @@
+{
+  "spec_version": "0.1",
+  "source_prompt": "ブルース。100 BPM、Am。16小節。",
+  "seed": 8,
+  "song": {
+    "title": "KIHACHI Sketch",
+    "bpm": 100.0,
+    "key": "A minor",
+    "tonic": "A",
+    "tonic_pitch_class": 9,
+    "mode": "minor",
+    "time_signature": "4/4",
+    "total_bars": 32,
+    "target_duration_sec": 76.8
+  },
+  "style": {
+    "genres": [
+      {
+        "name": "blues",
+        "weight": 1.0
+      }
+    ],
+    "darkness": 1.0,
+    "psychedelic": 0.28
+  },
+  "groove": {
+    "swing": 0.9762,
+    "syncopation": 0.58,
+    "humanize": 0.42
+  },
+  "arrangement": [
+    {
+      "name": "minimal_intro",
+      "start_bar": 0,
+      "length_bars": 8,
+      "energy": 0.25,
+      "minimal": false,
+      "psychedelic": 0.08,
+      "bass_density": 0.18,
+      "drum_density": 0.45,
+      "chord_density": 0.15,
+      "fx_amount": 0.3,
+      "vocal_probability": 0.0,
+      "mutation": 0.15
+    },
+    {
+      "name": "minimal_groove",
+      "start_bar": 8,
+      "length_bars": 8,
+      "energy": 0.44,
+      "minimal": false,
+      "psychedelic": 0.18,
+      "bass_density": 0.52,
+      "drum_density": 0.62,
+      "chord_density": 0.32,
+      "fx_amount": 0.35,
+      "vocal_probability": 0.2,
+      "mutation": 0.28
+    },
+    {
+      "name": "mutation_build",
+      "start_bar": 16,
+      "length_bars": 8,
+      "energy": 0.66,
+      "minimal": false,
+      "psychedelic": 0.58,
+      "bass_density": 0.7,
+      "drum_density": 0.82,
+      "chord_density": 0.55,
+      "fx_amount": 0.62,
+      "vocal_probability": 0.45,
+      "mutation": 0.7
+    },
+    {
+      "name": "psychedelic_drop",
+      "start_bar": 24,
+      "length_bars": 8,
+      "energy": 0.88,
+      "minimal": false,
+      "psychedelic": 0.58,
+      "bass_density": 1.0,
+      "drum_density": 0.92,
+      "chord_density": 0.66,
+      "fx_amount": 0.7,
+      "vocal_probability": 0.6,
+      "mutation": 0.88
+    }
+  ],
+  "harmony": {
+    "progression": [
+      "Am7",
+      "Dm7",
+      "Am7",
+      "E7"
+    ],
+    "harmonic_rhythm_bars": 1
+  },
+  "bass": {
+    "role": "present",
+    "technique": "fingered",
+    "syncopation": 0.58,
+    "mutation": 0.35,
+    "octave_jump_probability": 0.18,
+    "ghost_note_probability": 0.12
+  },
+  "drums": {
+    "pattern": "shuffle",
+    "kick_density": 0.35,
+    "hat_density": 0.6,
+    "dub_space": 0.2
+  },
+  "chords": {
+    "instrument": "synth_chord",
+    "articulation": "comped_chords",
+    "dub_delay": 0.18
+  },
+  "vocal": {
+    "enabled": false,
+    "vocoder": false,
+    "character": "none"
+  }
+}

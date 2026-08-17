@@ -43,9 +43,33 @@ def _section_at(spec: SongSpec, bar: int) -> SectionSpec:
     raise ValueError(f"bar {bar} is outside the arrangement")
 
 
+SWING_REACH_BEATS = 0.35
+"""How far `groove.swing` can push an offbeat, in beats, at its maximum.
+
+`groove.swing` is a **lean, not a position**: 1.0 delays an offbeat by 0.35 of a
+beat, not to two thirds of one. The scale is what every measurement in this
+repository was taken against (`mutation_funk`'s 0.54 is 7.6 ms at 110 BPM), and
+what `intent`'s poles were calibrated to, so it stays -- but it has to be named,
+because reading 0.667 as "a triplet" is exactly the mistake #59 made.
+"""
+
+
+def swing_for_offbeat(fraction: float) -> float:
+    """The `groove.swing` value that puts an offbeat `fraction` into the beat.
+
+    `swing_for_offbeat(2 / 3)` is a triplet shuffle. Without this the two scales
+    look alike -- both are numbers a little above 0.5 -- and 0.667 reads as the
+    triplet it is not.
+    """
+
+    return round(0.5 + (fraction - 0.5) / SWING_REACH_BEATS, 4)
+
+
 def _groove(start: float, spec: SongSpec, rng: random.Random) -> float:
     subdivision = int(round(start * 2))
-    swing_delay = max(0.0, spec.groove.swing - 0.5) * 0.35 if subdivision % 2 else 0.0
+    swing_delay = (
+        max(0.0, spec.groove.swing - 0.5) * SWING_REACH_BEATS if subdivision % 2 else 0.0
+    )
     jitter = (rng.random() - 0.5) * spec.groove.humanize * 0.035
     return max(0.0, start + swing_delay + jitter)
 

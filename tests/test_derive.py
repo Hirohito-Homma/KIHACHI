@@ -10,6 +10,7 @@ from kihachi_music_ai.derive import (
     pick_str,
     profile_for,
 )
+from kihachi_music_ai.composer import COMPOSERS, SWING_REACH_BEATS
 from kihachi_music_ai.genres import family_of, load_database
 from kihachi_music_ai.music_brain import MusicBrain
 
@@ -110,6 +111,34 @@ class MeterDerivedSwingTests(unittest.TestCase):
         spec = MusicBrain(seed=8).analyze("ブルース。8小節。")
 
         self.assertEqual(spec.groove.swing, TRIPLET_SWING)
+
+    def test_the_derived_value_is_a_position_not_the_number_that_looks_like_one(
+        self,
+    ) -> None:
+        """0.667 is the offbeat's *position*; `groove.swing` is a lean.
+
+        The first version of this constant was 0.667 on the strength of the
+        name, which puts the offbeat at 0.558 -- a third of the way to a
+        shuffle. Heard, not read.
+        """
+
+        self.assertEqual(TRIPLET_SWING, 0.9762)
+        self.assertNotEqual(TRIPLET_SWING, 0.667)
+        self.assertAlmostEqual(
+            0.5 + (TRIPLET_SWING - 0.5) * SWING_REACH_BEATS, 2 / 3, places=3
+        )
+
+    def test_the_shuffle_lands_on_the_triplet_in_the_notes(self) -> None:
+        spec = MusicBrain(seed=8).analyze("ブルース。100 BPM、Am。")
+        offbeats = [
+            note.start_beats % 1.0
+            for note in COMPOSERS["drums"](spec)
+            if 0.3 < note.start_beats % 1.0 < 0.9
+        ]
+
+        self.assertTrue(offbeats)
+        for position in offbeats:
+            self.assertAlmostEqual(position, 2 / 3, places=1)
 
     def test_every_twelve_eight_row_is_blues_and_blues_stated_nothing(self) -> None:
         """Why this is worth deriving rather than hand-writing: it is 28 rows,

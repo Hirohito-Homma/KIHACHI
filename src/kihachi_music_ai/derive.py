@@ -30,6 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields as dataclass_fields, replace
 from typing import Sequence
 
+from .composer import swing_for_offbeat
 from .genres import family_of, find
 
 
@@ -113,9 +114,16 @@ music belongs.
 """
 
 
-#: A bar of four subdivided in three. `groove.swing` at 0.667 is exactly that:
-#: the offbeat lands two thirds of the way through the beat instead of halfway.
-TRIPLET_SWING = 0.667
+#: A bar of four subdivided in three: the offbeat lands two thirds of the way
+#: through the beat instead of halfway.
+#:
+#: **Not 0.667.** `groove.swing` is a lean rather than a position -- the
+#: composer delays an offbeat by `(swing - 0.5) * SWING_REACH_BEATS` -- so 0.667
+#: puts the offbeat at 0.558 of the beat, a third of the way to a shuffle. The
+#: first version of this constant was 0.667 on the strength of the name alone,
+#: and it took playing a blues to hear that it was not shuffling. Asking the
+#: composer for the conversion is what keeps the two scales apart.
+TRIPLET_SWING = swing_for_offbeat(2 / 3)
 
 
 def _meter_profile(slug: str) -> Profile | None:
