@@ -28,7 +28,14 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .composer import compose_tracks
-from .intent import LARGE_WORDS, SMALL_WORDS, contains as _contains, matches as _matches
+from .intent import (
+    EARLIER_HALF_WORDS,
+    LARGE_WORDS,
+    LATER_HALF_WORDS,
+    SMALL_WORDS,
+    contains as _contains,
+    matches as _matches,
+)
 from .midi import MidiNote, write_midi
 from .models import DENSITY_FIELDS, TRACK_NAMES, SectionSpec, SongSpec
 from .prompt_compiler import compile_audio_prompt, render_brief
@@ -78,9 +85,10 @@ DECREASE_WORDS = ("抑え", "減ら", "弱く", "下げ", "less", "reduce", "low
 # when correcting it. The magnitudes below stay here: how far an edit moves is
 # an edit's business.
 
-# "後半" / "前半" select a span of the arrangement rather than one section.
-LATER_HALF_WORDS = ("後半", "second half", "later half", "終盤")
-EARLIER_HALF_WORDS = ("前半", "first half", "earlier half", "序盤")
+# "後半" / "前半" select a span of the arrangement rather than one section. They
+# live in `intent` now, with the degree words and for the same reason: a brief
+# can name a place too, and 「後半」 must not mean one span when asking for a
+# song and another when correcting it.
 
 
 class EditInstructionError(ValueError):

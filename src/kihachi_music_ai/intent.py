@@ -91,6 +91,25 @@ _CLAUSE_SPLIT = re.compile(r"[、。，．,.;；\n\r]+")
 #: means they are separate statements and only the nearest one is refused.
 _JOINERS = re.compile(r"^[\sとやおよびまたは・/／&＆+＋and or,]*$", re.IGNORECASE)
 
+#: Where in the song a clause is talking about. These are `edit`'s own words --
+#: it has resolved 「後半」 and 「序盤」 into arrangement spans since v0.1, so a
+#: person could name a place when *correcting* a song and not when asking for
+#: one. `edit` imports them from here now, the way it imports the degree words,
+#: because two lists would let 「後半」 mean different spans in the two commands.
+LATER_HALF_WORDS = ("後半", "second half", "later half", "終盤")
+EARLIER_HALF_WORDS = ("前半", "first half", "earlier half", "序盤")
+
+SECOND_HALF = "second_half"
+FIRST_HALF = "first_half"
+
+#: Traits that can be asked for in one part of the song. A scope is only
+#: meaningful where the value it moves exists per section: `SectionSpec` carries
+#: densities and an energy, and nothing else in `SongSpec` is written per
+#: section. A brief that scopes anything else is not refused -- the trait still
+#: applies to the whole song, which is what it meant before scopes existed --
+#: and `brief` reports the span word as unread so nobody is told otherwise.
+SCOPABLE_TRAITS = frozenset({"busy", "sparse", "contrast", "flat"})
+
 #: The traits a brief can state, and the words that state them. Lifted verbatim
 #: from the flags and instrument cues ``MusicBrain`` already had: recognising
 #: strictly less than before would be a regression, so nothing was dropped.
@@ -184,6 +203,9 @@ class Trait:
     #: The surface form actually found, so a person can see why we heard this.
     evidence: str
     position: int
+    #: Which part of the song the clause was talking about, or ``None`` for the
+    #: whole of it. Only set for :data:`SCOPABLE_TRAITS`.
+    scope: str | None = None
 
 
 @dataclass(frozen=True)
@@ -197,6 +219,22 @@ class Traits:
             if trait.name == name:
                 return trait
         return None
+
+    def unscoped(self) -> "Traits":
+        """Only what was said about the whole song.
+
+        Every song-level field reads this rather than the whole set, so a brief
+        that scopes a statement to one half does not also apply it everywhere.
+        A brief with no span words is unchanged, which is why every song made
+        before scopes existed still composes byte for byte.
+        """
+
+        return Traits(tuple(trait for trait in self.traits if trait.scope is None))
+
+    def within(self, scope: str) -> "Traits":
+        """Only what was said about ``scope``, read as if it were the whole brief."""
+
+        return Traits(tuple(trait for trait in self.traits if trait.scope == scope))
 
     def strength_of(self, name: str) -> float:
         """How much of ``name`` this brief asks for, on a 0-1.5 scale.
@@ -249,6 +287,23 @@ def _clauses(prompt: str) -> list[tuple[int, str]]:
     return clauses
 
 
+def _clause_scope(lowered: str) -> str | None:
+    """Which half of the song this clause names, if it names one.
+
+    Deliberately per clause, like negation: 「前半は淡々と、後半でメリハリを」 is
+    two statements about two places, and a scope that reached across the comma
+    would make the second one overwrite the first.
+    """
+
+    for word in LATER_HALF_WORDS:
+        if word in lowered:
+            return SECOND_HALF
+    for word in EARLIER_HALF_WORDS:
+        if word in lowered:
+            return FIRST_HALF
+    return None
+
+
 def _read_clause(clause: str, offset: int) -> list[Trait]:
     lowered = clause.casefold()
     mentions: list[tuple[int, int, str, str]] = []  # start, end, trait, evidence
@@ -262,6 +317,7 @@ def _read_clause(clause: str, offset: int) -> list[Trait]:
     mentions.sort()
 
     negated = _negated(lowered, mentions)
+    scope = _clause_scope(lowered)
     return [
         Trait(
             name=name,
@@ -277,6 +333,7 @@ def _read_clause(clause: str, offset: int) -> list[Trait]:
             ),
             evidence=evidence,
             position=offset + start,
+            scope=scope if name in SCOPABLE_TRAITS else None,
         )
         for index, (start, end, name, evidence) in enumerate(mentions)
     ]

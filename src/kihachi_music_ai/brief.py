@@ -36,7 +36,14 @@ from dataclasses import dataclass
 from typing import Any
 
 from .genres import match_genres
-from .intent import TRAIT_WORDS, read as read_intent
+from .intent import (
+    EARLIER_HALF_WORDS,
+    FIRST_HALF,
+    LATER_HALF_WORDS,
+    SECOND_HALF,
+    TRAIT_WORDS,
+    read as read_intent,
+)
 from .theory import _KEY_RE
 
 BRIEF_COVERAGE_VERSION = "0.1"
@@ -102,10 +109,30 @@ def _spans(prompt: str) -> list[tuple[int, int, str]]:
             found.append((match.start(), match.end(), label))
     for match in match_genres(prompt):
         found.append((match.position, match.position + len(match.matched), "genre"))
-    for trait in read_intent(prompt).traits:
+    traits = read_intent(prompt).traits
+    for trait in traits:
         found.append(
             (trait.position, trait.position + len(trait.evidence), f"trait:{trait.name}")
         )
+    # A span word is only read when a trait in its clause could use it. 「後半は
+    # 暗く」 scopes nothing -- darkness is one number for the whole song -- and
+    # reporting 「後半」 as read there would tell a person their placement
+    # arrived when it did not.
+    lowered = prompt.casefold()
+    words_for = {SECOND_HALF: LATER_HALF_WORDS, FIRST_HALF: EARLIER_HALF_WORDS}
+    for clause_start, clause in _clauses(prompt):
+        clause_end = clause_start + len(clause)
+        here = {
+            trait.scope
+            for trait in traits
+            if trait.scope is not None and clause_start <= trait.position < clause_end
+        }
+        for scope in here:
+            for word in words_for[scope]:
+                start = lowered.find(word, clause_start, clause_end)
+                while start != -1:
+                    found.append((start, start + len(word), f"scope:{scope}"))
+                    start = lowered.find(word, start + 1, clause_end)
     return found
 
 
