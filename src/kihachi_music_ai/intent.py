@@ -110,6 +110,15 @@ TRAIT_WORDS: dict[str, tuple[str, ...]] = {
     # 「シャッフルで」 composed straight eighths and said nothing about it.
     "swung": ("スウィング", "スイング", "シャッフル", "跳ね", "ハネ", "swing", "swung", "shuffle"),
     "straight": ("ストレート", "イーブン", "straight", "even ", "四つ打ち"),
+    # `groove.syncopation` reaches the notes twice -- the mutation amount and the
+    # drum placement -- and `bass.syncopation` reaches the bass line, so like
+    # swing this survives into Live as MIDI. **No** genre of the 1021 sets it:
+    # `derive.Profile` has no field for it, and the only thing that ever moved it
+    # was the `slap` trait. So 「シンコペを効かせて」 composed the same 0.58 as
+    # 「シンコペ無しで」. `edit.py` has had words for it since v0.1, which means
+    # the feel was sayable *after* a render and not in the brief that made it.
+    "syncopated": ("シンコペ", "syncopat", "食い気味", "食い込", "うねら", "うねる", "うねり", "うねっ", "裏打ち", "offbeat", "off-beat"),
+    "on_grid": ("オンビート", "表打ち", "頭打ち", "on-beat", "on the beat", "on-grid"),
 }
 
 

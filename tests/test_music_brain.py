@@ -166,6 +166,33 @@ class StatedDarknessTests(unittest.TestCase):
         self.assertEqual(swing("スウィングしないテクノ。"), 0.5)
         self.assertEqual(swing("ストレートなテクノ。"), 0.5)
 
+    def test_syncopation_was_reachable_by_no_genre_at_all(self) -> None:
+        """Swing had one genre of a thousand; this had none.
+
+        `derive.Profile` has no syncopation field, so all 1021 genres leave both
+        values at the constant, and the only thing that ever moved them was the
+        `slap` trait. Both reach the composed notes.
+        """
+
+        def groove(prompt: str) -> float:
+            return MusicBrain(seed=1).analyze(prompt).groove.syncopation
+
+        self.assertEqual(groove("テクノ。"), 0.58)
+        self.assertEqual(groove("少しだけシンコペを効かせたテクノ。"), 0.68)
+        self.assertEqual(groove("シンコペを効かせたテクノ。"), 0.78)
+        self.assertEqual(groove("かなりうねるテクノ。"), 0.88)
+        self.assertEqual(groove("オンビートで、テクノ。"), 0.326667)
+        self.assertEqual(groove("かなり表打ちのテクノ。"), 0.2)
+        # A refusal is not a request for the other pole, here as everywhere.
+        self.assertEqual(groove("シンコペ無しのテクノ。"), 0.58)
+
+    def test_the_bass_hears_the_same_word_as_the_groove(self) -> None:
+        """`bass.syncopation` is the twin field, and slap starts it higher."""
+
+        spec = MusicBrain(seed=1).analyze("スラップベースのファンク。オンビートで。")
+        self.assertEqual(spec.groove.syncopation, 0.406667)
+        self.assertEqual(spec.bass.syncopation, 0.42)
+
     def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
         ambient = (
             "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"

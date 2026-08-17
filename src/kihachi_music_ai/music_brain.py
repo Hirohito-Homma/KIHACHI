@@ -50,6 +50,12 @@ _BRIGHT_POLE = 0.1
 _SWUNG_POLE = 0.66
 _STRAIGHT_POLE = 0.5
 
+#: `prompt_compiler` splits syncopation into four bands at 0.25/0.5/0.75, and
+#: these sit one step inside the outer two: far enough to change the band a
+#: brief lands in, not so far that every stated preference reads as the extreme.
+_SYNCOPATED_POLE = 0.88
+_ON_GRID_POLE = 0.2
+
 #: A plain statement moves two thirds of the way to the pole, insistence all of
 #: it, a hedge one third. Chosen so a plainly dark brief lands near 0.76 from
 #: the 0.48 default -- next to the 0.72 that plainly-stated `dub` has always
@@ -118,6 +124,27 @@ def _stated_swing(base: float, traits: Traits) -> float:
         up_pole=_SWUNG_POLE,
         down="straight",
         down_pole=_STRAIGHT_POLE,
+    )
+
+
+def _stated_syncopation(base: float, traits: Traits) -> float:
+    """Whether this song pushes off the grid, which no genre could ever say.
+
+    `groove.syncopation` reaches the notes twice -- it scales the mutation amount
+    and the drum placement -- and its `bass.syncopation` twin phrases the bass
+    line, so this is MIDI rather than prompt text. `derive.Profile` has no field
+    for it, so all 1021 genres leave it at the constant, and the only thing that
+    ever moved it was `slap`. `edit.py` could already change it after a render;
+    now the brief can ask for it before one.
+    """
+
+    return _stated_axis(
+        base,
+        traits,
+        up="syncopated",
+        up_pole=_SYNCOPATED_POLE,
+        down="on_grid",
+        down_pole=_ON_GRID_POLE,
     )
 
 
@@ -214,7 +241,10 @@ class MusicBrain:
             ),
             groove=GrooveSpec(
                 swing=_stated_swing(pick(profile.swing, 0.5), traits),
-                syncopation=tune("groove.syncopation", blend(0.58, 0.82, slap)),
+                syncopation=tune(
+                    "groove.syncopation",
+                    _stated_syncopation(blend(0.58, 0.82, slap), traits),
+                ),
                 humanize=pick(profile.humanize, 0.18),
             ),
             arrangement=sections,
@@ -225,7 +255,10 @@ class MusicBrain:
             bass=BassSpec(
                 role=pick_str(profile.bass_role, "dominant"),
                 technique="slap" if slap_requested else "fingered",
-                syncopation=tune("bass.syncopation", blend(0.58, 0.86, slap)),
+                syncopation=tune(
+                    "bass.syncopation",
+                    _stated_syncopation(blend(0.58, 0.86, slap), traits),
+                ),
                 mutation=tune("bass.mutation", blend(0.35, 0.78, mutation)),
                 octave_jump_probability=tune(
                     "bass.octave_jump_probability", blend(0.18, 0.45, slap)

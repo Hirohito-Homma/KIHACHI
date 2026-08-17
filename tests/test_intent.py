@@ -205,6 +205,38 @@ class RecognitionTests(unittest.TestCase):
         self.assertEqual(read("ファンキーなスラップベース").strength_of("slap"), PLAIN_STRENGTH)
 
 
+class SyncopationWordTests(unittest.TestCase):
+    """The feel `edit` could already change, said in the brief instead.
+
+    `edit.py` has carried words for syncopation since v0.1, so this was sayable
+    about a finished render and not about the brief that produced it.
+    """
+
+    def test_both_poles_are_readable(self) -> None:
+        self.assertEqual(read("シンコペを効かせて").strength_of("syncopated"), PLAIN_STRENGTH)
+        self.assertEqual(read("裏打ち中心のハウス").strength_of("syncopated"), PLAIN_STRENGTH)
+        self.assertEqual(read("オンビートで").strength_of("on_grid"), PLAIN_STRENGTH)
+        self.assertEqual(read("表打ちのテクノ").strength_of("on_grid"), PLAIN_STRENGTH)
+
+    def test_the_verb_is_matched_in_every_form_a_brief_uses(self) -> None:
+        """Found by running briefs: 「うねる」 read as nothing at all.
+
+        The word list started at the stem `うねら` alone, which catches
+        「うねらせて」 and misses the plain dictionary form a person is far more
+        likely to write.
+        """
+
+        for text in ("かなりうねるテクノ", "うねりのあるテクノ", "うねらせて", "うねったベース"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("syncopated"))
+
+    def test_refusing_either_pole_reads_as_a_refusal(self) -> None:
+        self.assertTrue(read("シンコペしないテクノ").refused("syncopated"))
+        self.assertTrue(read("うねらないテクノ").refused("syncopated"))
+        self.assertTrue(read("シンコペ無しで").refused("syncopated"))
+        self.assertTrue(read("syncopated house, not on-grid").refused("on_grid"))
+
+
 class SharedVocabularyTests(unittest.TestCase):
     """`edit` and the brief must agree on what "少し" means."""
 
