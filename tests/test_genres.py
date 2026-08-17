@@ -238,13 +238,24 @@ class AliasCoverageTests(unittest.TestCase):
     """What a Japanese brief can and cannot name (measured, not fixed here)."""
 
     def test_a_japanese_brief_can_only_name_the_rows_that_carry_an_alias(self) -> None:
+        """Still the shape of the gap, with a smaller number in front of it.
+
+        131 rows of 1020 carried an alias when this was written, and 「シカゴ
+        ブルース」 matched nothing while 「chicago blues」 worked. 130 more rows
+        have one now -- the five families this project actually composes -- so
+        that particular brief works, and 759 rows still cannot be named in
+        Japanese at all. The count is asserted so that adding aliases stays a
+        deliberate act with a number attached.
+        """
+
         database = load_database()
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 131)
-        # 「シカゴブルース」 is not one of them, and nothing matches it.
-        self.assertEqual(match_genres("シカゴブルース。"), ())
+        self.assertEqual(len(with_alias), 261)
+        self.assertEqual(
+            [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
+        )
         self.assertEqual(
             [m.genre.slug for m in match_genres("chicago blues。")], ["chicago_blues"]
         )
