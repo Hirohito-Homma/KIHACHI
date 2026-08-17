@@ -65,11 +65,21 @@ class GrooveSpec:
     swing: float
     syncopation: float
     humanize: float
+    #: How long each note is held, as a multiple of the length the part was
+    #: written with. Not a unit interval and not optional-because-unfinished:
+    #: 1.0 is every duration the composers have always used, so a spec written
+    #: before this field existed loads as the song it already was. The bounds
+    #: are wide enough for a staccato that still sounds and a legato that still
+    #: articulates; `composer` caps a lengthened note at the next note in its
+    #: own part, so "2.0" cannot smear one part over itself.
+    note_length: float = 1.0
 
     def __post_init__(self) -> None:
         _unit_interval("swing", self.swing)
         _unit_interval("syncopation", self.syncopation)
         _unit_interval("humanize", self.humanize)
+        if not 0.25 <= self.note_length <= 2.0:
+            raise ValueError("note_length must be between 0.25 and 2.0")
 
 
 CORE_TRACKS = ("bass", "drums", "chords")
@@ -305,6 +315,12 @@ class SongSpec:
             payload["instruments"] = list(self.instruments)
         if self.preferences_fingerprint is None:
             del payload["preferences_fingerprint"]
+        # 1.0 is the length every part was already written with, so saying it
+        # would rewrite specs that have not changed -- `example_output`'s
+        # pre-engine spec is pinned to its digest byte for byte. Same reason
+        # `instruments` and `preferences_fingerprint` drop out above.
+        if self.groove.note_length == 1.0:
+            del payload["groove"]["note_length"]
         return payload
 
     def to_json(self, *, indent: int = 2) -> str:

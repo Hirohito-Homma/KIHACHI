@@ -87,6 +87,7 @@ def _stated_axis(
     up_pole: float,
     down: str,
     down_pole: float,
+    ceiling: float = 1.0,
 ) -> float:
     """Let the brief move a value the genre chose, from wherever the genre put it.
 
@@ -112,7 +113,10 @@ def _stated_axis(
         value = value + (up_pole - value) * _STATED_REACH[raised]
     if lowered and value > down_pole:
         value = value + (down_pole - value) * _STATED_REACH[lowered]
-    return round(clamp(value), 6)
+    # Every axis but note length is a unit interval, and `clamp` is the shared
+    # one. A ceiling above 1.0 is not a looser rule -- `models` still refuses
+    # anything outside the field's own bounds.
+    return round(min(max(value, 0.0), ceiling), 6)
 
 
 def _stated_darkness(base: float, traits: Traits) -> float:
@@ -170,6 +174,34 @@ def _stated_harmonic_rhythm(base: int, traits: Traits) -> int:
     if slower:
         index = len(ladder) - 1 if slower == LARGE_STRENGTH else min(len(ladder) - 1, index + 1)
     return ladder[index]
+
+
+#: A staccato that still sounds and a legato that still articulates. Not 0.25
+#: and 2.0, the field's own bounds: those are where `models` stops accepting a
+#: value, not where a brief means to land.
+_STACCATO_POLE = 0.45
+_LEGATO_POLE = 1.6
+
+
+def _stated_note_length(traits: Traits) -> float:
+    """How long each note is held -- the one trait here with no number waiting.
+
+    Every other stated field already existed with consumers and no path from
+    the brief. Note length had no field: each part carried a duration constant
+    written into `composer` (bass 0.3, kick 0.16, synth 0.18), so 「歯切れよく」
+    had nothing to set. 1.0 is exactly those constants, which is why adding the
+    field changes no existing song.
+    """
+
+    return _stated_axis(
+        1.0,
+        traits,
+        up="legato",
+        up_pole=_LEGATO_POLE,
+        down="staccato",
+        down_pole=_STACCATO_POLE,
+        ceiling=2.0,
+    )
 
 
 def _stated_density(base: float, traits: Traits) -> float:
@@ -319,6 +351,7 @@ class MusicBrain:
                     _stated_syncopation(blend(0.58, 0.82, slap), traits),
                 ),
                 humanize=_stated_humanize(pick(profile.humanize, 0.18), traits),
+                note_length=_stated_note_length(traits),
             ),
             arrangement=sections,
             harmony=HarmonySpec(

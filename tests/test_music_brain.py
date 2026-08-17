@@ -283,6 +283,47 @@ class StatedDarknessTests(unittest.TestCase):
         self.assertEqual(len(COMPOSERS["sub"](fast)), 32)
         self.assertEqual(COMPOSERS["drums"](base), COMPOSERS["drums"](fast))
 
+    def test_note_length_is_the_one_trait_with_no_number_waiting_for_it(self) -> None:
+        def held(prompt: str) -> float:
+            return MusicBrain(seed=1).analyze(prompt).groove.note_length
+
+        self.assertEqual(held("テクノ。"), 1.0)
+        self.assertEqual(held("少しスタッカート気味のテクノ。"), 0.816667)
+        self.assertEqual(held("歯切れのいいテクノ。"), 0.633333)
+        self.assertEqual(held("繋げて弾くジャズ。"), 1.4)
+        self.assertEqual(held("かなりレガートなアンビエント。"), 1.6)
+        self.assertEqual(held("歯切れよくないテクノ。"), 1.0)
+
+    def test_note_length_scales_the_durations_and_legato_stops_at_the_next_note(self) -> None:
+        from kihachi_music_ai.composer import COMPOSERS
+
+        base = MusicBrain(seed=8).analyze("テクノ。8小節。")
+        short = MusicBrain(seed=8).analyze("歯切れのいいテクノ。8小節。")
+        long_ = MusicBrain(seed=8).analyze("かなりレガートなテクノ。8小節。")
+        for part in ("bass", "chords", "arp"):
+            with self.subTest(part=part):
+                written = COMPOSERS[part](base)
+                clipped = COMPOSERS[part](short)
+                self.assertEqual(len(written), len(clipped))
+                for before, after in zip(written, clipped):
+                    self.assertAlmostEqual(after.duration_beats, before.duration_beats * 0.633333)
+        # The arp's notes are close enough together that 1.6x would overlap, so
+        # the cap bites: every held note stops at the next one rather than past.
+        held = COMPOSERS["arp"](long_)
+        starts = sorted({note.start_beats for note in held})
+        for note in held:
+            later = [start for start in starts if start > note.start_beats]
+            if later:
+                self.assertLessEqual(note.start_beats + note.duration_beats, later[0] + 1e-9)
+
+    def test_a_spec_that_never_asked_still_serialises_without_the_field(self) -> None:
+        """1.0 is what every part was always written with, so it is not news."""
+
+        spec = MusicBrain(seed=1).analyze("テクノ。")
+        self.assertNotIn("note_length", spec.to_dict()["groove"])
+        stated = MusicBrain(seed=1).analyze("歯切れのいいテクノ。")
+        self.assertEqual(stated.to_dict()["groove"]["note_length"], 0.633333)
+
     def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
         ambient = (
             "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"

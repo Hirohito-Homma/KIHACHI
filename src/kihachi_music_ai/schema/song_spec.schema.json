@@ -138,6 +138,11 @@
         },
         "humanize": {
           "$ref": "#/$defs/unit"
+        },
+        "note_length": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 2.0
         }
       }
     },
