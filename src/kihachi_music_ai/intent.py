@@ -86,14 +86,23 @@ LARGE_STRENGTH = 1.5
 #: ``NG`` is worse than any of them and is not a candidate at all: matching is
 #: case-folded, so it would fire inside ``song``, ``swing`` and ``strong``.
 #:
-#: **A second negator does not cancel the first, and nothing here notices.**
-#: 「手数は少なくない」, 「暗くなくはない」 and 「スラップ抜きじゃない」 all read as
-#: plain refusals of the very thing they are asking for. Negation is a set of
-#: indices here, so finding two marks the mention once. Counting them would not
-#: be enough either: 「暗くなくはない」 is a hedge -- *somewhat* dark -- not a
-#: plain request, so a correct reading needs a strength as well as a polarity.
-#: Left alone deliberately; found by sweeping, like everything else in this
-#: list, and worth its own change rather than a flag flipped here.
+#: A second refusal cancels the first as of the change that added ``_distinct``:
+#: 「暗くなくはない」 and 「スラップ抜きじゃない」 used to read as flat refusals of
+#: what they ask for. Two caveats remain, both deliberate.
+#:
+#: **A double negative is read as a plain request, and some of them are hedges.**
+#: 「スラップ抜きじゃない」 is plainly asking for slap, but 「暗くなくはない」 means
+#: *somewhat* dark. Both come back at whatever strength the degree words give,
+#: which for the second one overstates it. Distinguishing them needs the shape of
+#: the negation to feed the strength, not just the polarity.
+#:
+#: **A negation attached to an antonym is still misread**, and it is a different
+#: bug from the one above. 「手数は少なくない」 fires exactly one negator, ``くない``,
+#: and it belongs to 「少なく」 -- a word this module does not know -- rather than
+#: to 「手数」, the only mention in the clause. So `busy` is refused when the brief
+#: is asking for it. Reading that correctly means knowing 少ない is the opposite
+#: of 手数, which is semantic knowledge this reader does not have and should not
+#: guess at.
 JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません", "の無い", "のない", "が無い", "がない", "は無い", "はない", "すぎない", "過ぎない", "すぎず", "過ぎず", "避け", "排除", "厳禁", "省い", "省く")
 ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 
@@ -399,32 +408,66 @@ def _negated(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> set
     each is resolved to the *nearest* mention in its own direction -- and then
     extended across a list, because ``"スラップとサイケはなし"`` refuses both while
     ``"ミニマルにしてサイケは無し"`` refuses only the second.
+
+    **A second refusal cancels the first.** This used to collect indices into a
+    set, so 「スラップ抜きじゃない」 and 「暗くなくはない」 were marked once and read
+    as flat refusals of the thing they ask for. Refusals are counted per mention
+    now and only an odd count refuses.
+
+    Counting the *matches* would have broken the ordinary case instead: 「ではない」
+    is found by both ``ではない`` and ``はない``, and 「スラップではない」 would have
+    come out affirmed. So overlapping spans are one refusal, and only spans that
+    are genuinely disjoint count twice -- 「暗くなくはない」 is ``くなく`` then
+    ``はない``, touching but not overlapping.
     """
 
-    negated: set[int] = set()
+    spans: dict[int, list[tuple[int, int]]] = {}
+
+    def refuse(anchor: int, joined: set[int], start: int, end: int) -> None:
+        for index in {anchor, *joined}:
+            spans.setdefault(index, []).append((start, end))
 
     for word in JAPANESE_NEGATORS:
         for match in re.finditer(re.escape(word), lowered):
             anchor = _nearest_before(mentions, match.start())
             if anchor is not None:
-                negated.add(anchor)
-                negated.update(_joined_before(lowered, mentions, anchor))
+                joined = _joined_before(lowered, mentions, anchor)
+                refuse(anchor, joined, match.start(), match.end())
 
     for word in JAPANESE_SUFFIX_NEGATORS:
         for match in re.finditer(re.escape(word), lowered):
             for index, item in enumerate(mentions):
                 if item[1] == match.start():
-                    negated.add(index)
-                    negated.update(_joined_before(lowered, mentions, index))
+                    joined = _joined_before(lowered, mentions, index)
+                    refuse(index, joined, match.start(), match.end())
 
     for word in ENGLISH_NEGATORS:
         for match in re.finditer(rf"(?<![a-z0-9]){re.escape(word)}", lowered):
             anchor = _nearest_after(mentions, match.end())
             if anchor is not None:
-                negated.add(anchor)
-                negated.update(_joined_after(lowered, mentions, anchor))
+                joined = _joined_after(lowered, mentions, anchor)
+                refuse(anchor, joined, match.start(), match.end())
 
-    return negated
+    return {index for index, found in spans.items() if _distinct(found) % 2}
+
+
+def _distinct(spans: Sequence[tuple[int, int]]) -> int:
+    """How many separate refusals these matches amount to.
+
+    Overlapping spans are one refusal spelled two ways; disjoint spans are two
+    refusals. Touching is not overlapping, which is the whole distinction
+    between 「ではない」 (one) and 「なくはない」 (two).
+    """
+
+    count = 0
+    reach: int | None = None
+    for start, end in sorted(spans):
+        if reach is None or start >= reach:
+            count += 1
+            reach = end
+        else:
+            reach = max(reach, end)
+    return count
 
 
 def _nearest_before(mentions: Sequence[tuple[int, int, str, str]], position: int) -> int | None:
