@@ -37,16 +37,25 @@ GOLDEN_SPEC = (
 #: sha256 of the rendered file, per track. Captured at d180e79 (main, before
 #: `intent.py`). A change here means the notes moved; that may be intended, but
 #: it is never incidental.
+#
+# All three were deliberately re-pinned when swing became a warp of the whole
+# beat rather than a delay on the odd 8ths (see ``composer.swung_position``).
+# This song swings at 0.54, and its 16ths were previously left straight: the
+# old rule classified them by ``int(round(start * 2))``, under which 0.25 and
+# 0.75 are indistinguishable from beats. They now move with the beat they are
+# in -- by 3.82 ms at this swing and 110 BPM -- while the beats and the 8ths
+# land exactly where they did. A straight song (swing 0.5) is untouched, since
+# the warp is the identity there; every song that swings at all changes here.
 GOLDEN_MIDI_SHA256 = {
-    "bass": "44332f694c87fc4cd2c92b40ae9ef53b5d717ba4980a7425387dd489989e4451",
-    # Deliberately re-pinned when the hat grid stopped being a switch.
+    "bass": "b410b53e7a48620d2eefc46521ef3c49343a1f5ca0a19948523db1f1ba3d3a07",
+    # The hat grid was re-pinned once before, when it stopped being a switch.
     # ``hat_density * section density`` was thresholded at 0.3 to choose eighths
     # or quarters, so this song's four sections -- 0.195, 0.343, 0.515, 0.686 --
     # got 4, 7, 7 and 7 hats a bar: the drop and the groove were identical
     # despite twice the drum density. Thinning continuously gives 5, 5, 6 and 6,
-    # which is the whole point of the field. Bass and chords are untouched.
-    "drums": "c85e93d82c507624fef6d5d0af924929ccb618ff3353e1a65a7587d756bf9c25",
-    "chords": "64901570dd48134f36d775a9d92576fd20c1335c26719d167cdca74f9fda3fac",
+    # which is the whole point of the field.
+    "drums": "cd7c46e20d5f371fe21ca67b833b750ab04da430fb0f9294a3ef20758ca2c103",
+    "chords": "ea73aec4152dd77b92ce0ed40b3e32864cd81e498ffa2584ed25e25bf559f4d0",
 }
 
 

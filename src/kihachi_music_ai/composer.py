@@ -65,13 +65,38 @@ def swing_for_offbeat(fraction: float) -> float:
     return round(0.5 + (fraction - 0.5) / SWING_REACH_BEATS, 4)
 
 
+def swung_position(position: float, swing: float) -> float:
+    """Where a position inside one beat lands once `swing` is applied.
+
+    Swing is a **warp of the whole beat**, not a delay applied to some of its
+    notes. The earlier version asked `int(round(start * 2))` whether a note was
+    an odd 8th, which names only the 8th grid: 0.25 rounds to 0 and 0.75 to 2,
+    so both read as beats and neither moved. A part writing 16ths then played a
+    swung 8th at 0.667 and a straight 16th at 0.75, a twelfth of a beat apart --
+    a flam rather than a shuffle, audible the moment the chords were soloed.
+
+    Two straight lines do it: the beat's two halves are stretched and squeezed
+    around the offbeat, which is the only position `groove.swing` actually
+    names. 0 and 1 are fixed, so a beat never borrows from its neighbour. Under
+    a triplet shuffle the 16ths land on the sextuplets -- 0.25 on 1/3, 0.75 on
+    5/6 -- because six is the coarsest division of a shuffled beat that holds
+    both a swung 8th and a 16th either side of it.
+
+    At `swing` 0.5 the offbeat is 0.5, both lines are the identity, and every
+    straight song composes exactly the notes it did before.
+    """
+
+    offbeat = 0.5 + max(0.0, swing - 0.5) * SWING_REACH_BEATS
+    if position < 0.5:
+        return position * (offbeat / 0.5)
+    return offbeat + (position - 0.5) * ((1.0 - offbeat) / 0.5)
+
+
 def _groove(start: float, spec: SongSpec, rng: random.Random) -> float:
-    subdivision = int(round(start * 2))
-    swing_delay = (
-        max(0.0, spec.groove.swing - 0.5) * SWING_REACH_BEATS if subdivision % 2 else 0.0
-    )
+    beat = int(start // 1)
+    swung = beat + swung_position(start - beat, spec.groove.swing)
     jitter = (rng.random() - 0.5) * spec.groove.humanize * 0.035
-    return max(0.0, start + swing_delay + jitter)
+    return max(0.0, swung + jitter)
 
 
 def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
