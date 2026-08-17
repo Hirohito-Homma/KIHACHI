@@ -1,0 +1,63 @@
+{
+  "version": "0.1",
+  "source_prompt": "テクノ。110 BPM、Cm。32小節。歯切れよく、シンコペを効かせて。手弾きっぽく。前半は淡々と、後半は手数を多く。展開が速い。",
+  "prompt": "Title: KIHACHI Sketch\nCreate a techno 100% hybrid at 110 BPM in C minor.\nMood: pitch-black and menacing, hallucinatory.\nGroove: heavily syncopated, off-beat led, straight, controlled human feel, short, clipped notes.\nBass: supporting fingered electric bass, restlessly syncopated phrasing, mutation intensity 0.35.\nDrums: four on floor, driving four-on-the-floor kick, relentless 16th hats.\nHarmony: Cm - Cm - A# - A#, one chord per bar; synth chord, hypnotic stabs, dry.\nVocal: instrumental, no vocal.\nArrangement: minimal intro (8 bars, energy 0.31); minimal groove (8 bars, energy 0.38); mutation build (8 bars, energy 0.85, wide dub echoes); psychedelic drop (8 bars, energy 0.93, wide dub echoes). Overall: lift steadily to a peak of 0.93 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, tight dry space, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+  "seed": 8,
+  "song": {
+    "title": "KIHACHI Sketch",
+    "bpm": 110.0,
+    "key": "C minor",
+    "tonic": "C",
+    "mode": "minor",
+    "time_signature": "4/4",
+    "total_bars": 32,
+    "duration_sec": 69.818
+  },
+  "genres": [
+    {
+      "name": "techno",
+      "weight": 1.0
+    }
+  ],
+  "harmony": {
+    "progression": [
+      "Cm",
+      "Cm",
+      "A#",
+      "A#"
+    ],
+    "harmonic_rhythm_bars": 1
+  },
+  "sections": [
+    {
+      "name": "minimal_intro",
+      "start_bar": 1,
+      "length_bars": 8,
+      "energy": 0.307
+    },
+    {
+      "name": "minimal_groove",
+      "start_bar": 9,
+      "length_bars": 8,
+      "energy": 0.383
+    },
+    {
+      "name": "mutation_build",
+      "start_bar": 17,
+      "length_bars": 8,
+      "energy": 0.853333
+    },
+    {
+      "name": "psychedelic_drop",
+      "start_bar": 25,
+      "length_bars": 8,
+      "energy": 0.926667
+    }
+  ],
+  "parts": [
+    "bass",
+    "drums",
+    "chords"
+  ],
+  "song_spec_sha256": "fa05b49baebe12ddbe5adb8ce4329db101e3509268d4cc95b72b6be6ce330b89"
+}
