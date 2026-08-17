@@ -1297,7 +1297,7 @@ python -m abletongpt.cli.jobs run --plan job_plan.json
 乗りません**。読み戻したchordsクリップは402音・根音56/56一致で、上と同じ結果です。
 
 **2026-08-17、今日足した語彙だけで書いたブリーフをLiveまで通しました**
-（`projects/scoped-vocabulary-live-001`、seed 8、`completed=13 failed=0`）。
+（`example_output/scoped-vocabulary-live-001`、seed 8、`completed=13 failed=0`）。
 
 ```
 テクノ。110 BPM、Cm。32小節。歯切れよく、シンコペを効かせて。手弾きっぽく。
