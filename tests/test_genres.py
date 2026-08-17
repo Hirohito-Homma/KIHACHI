@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from kihachi_music_ai.ableton import _live_instrument_genre
-from kihachi_music_ai.genres import find, load_database, match_genres
+from kihachi_music_ai.genres import _surface_forms, find, load_database, match_genres
 from kihachi_music_ai.music_brain import MusicBrain
 
 SEED = "Mutation Funk、DUB、Tech House。110 BPM、D#m。ファンキーなスラップベース。"
@@ -195,6 +195,59 @@ class LookupTests(unittest.TestCase):
     def test_find_returns_none_for_the_synthetic_fallback(self) -> None:
         # "electronic" is KIHACHI's own no-match marker, not a database row.
         self.assertIsNone(find("electronic"))
+
+
+class SeparatorVariantTests(unittest.TestCase):
+    """A hyphen in the database should not hide a genre from a person."""
+
+    def test_a_hyphenated_name_is_found_however_it_is_spelled(self) -> None:
+        for text in ("boogie-woogie", "boogie woogie", "boogiewoogie"):
+            with self.subTest(text=text):
+                matched = match_genres(text)
+                self.assertEqual([m.genre.slug for m in matched], ["boogie_woogie"])
+
+    def test_the_wrong_genre_was_the_real_failure(self) -> None:
+        """Not a miss: 「boogie woogie」 used to find `boogie`, which is another
+        family entirely and reads 4/4 where boogie-woogie reads 4/4; 12/8."""
+
+        boogie = find("boogie")
+        boogie_woogie = find("boogie_woogie")
+
+        self.assertNotEqual(boogie.parent, boogie_woogie.parent)
+        self.assertNotIn("12/8", boogie.meter)
+        self.assertIn("12/8", boogie_woogie.meter)
+
+    def test_a_variant_never_takes_a_spelling_some_row_really_uses(self) -> None:
+        forms = dict(_surface_forms())
+        primary = {
+            form.strip().lower()
+            for genre in load_database()
+            for form in (genre.name, *genre.aliases)
+            if form.strip()
+        }
+
+        for key in primary:
+            with self.subTest(key=key):
+                self.assertIn(key, forms)
+
+    def test_the_shorter_neighbour_still_answers_to_its_own_name(self) -> None:
+        self.assertEqual([m.genre.slug for m in match_genres("boogie")], ["boogie"])
+
+
+class AliasCoverageTests(unittest.TestCase):
+    """What a Japanese brief can and cannot name (measured, not fixed here)."""
+
+    def test_a_japanese_brief_can_only_name_the_rows_that_carry_an_alias(self) -> None:
+        database = load_database()
+        with_alias = [genre for genre in database if genre.aliases]
+
+        self.assertEqual(len(database), 1020)
+        self.assertEqual(len(with_alias), 131)
+        # 「シカゴブルース」 is not one of them, and nothing matches it.
+        self.assertEqual(match_genres("シカゴブルース。"), ())
+        self.assertEqual(
+            [m.genre.slug for m in match_genres("chicago blues。")], ["chicago_blues"]
+        )
 
 
 if __name__ == "__main__":

@@ -107,9 +107,35 @@ def _surface_forms() -> tuple[tuple[str, Genre], ...]:
             # ties fall back to the name that is not a multi-style header.
             if previous.parent is None and genre.parent is not None:
                 claimed[key] = genre
+    for key, genre in _separator_variants(claimed):
+        claimed.setdefault(key, genre)
     return tuple(
         sorted(claimed.items(), key=lambda item: (-len(item[0]), item[0]))
     )
+
+
+def _separator_variants(claimed: dict[str, Genre]) -> list[tuple[str, Genre]]:
+    """How else a person writes a hyphenated name.
+
+    100 rows of 1020 carry a hyphen inside the name -- `Boogie-Woogie`,
+    `Post-Rock`, `Jazz-Funk` -- and only the hyphenated spelling was searched
+    for. Typing 「boogie woogie」 found nothing, which is the cheap failure, and
+    then found `Boogie` instead: a different row, a different family, and 4/4
+    where `Boogie-Woogie` reads 4/4; 12/8. **A wrong genre is worse than no
+    genre**, and this is the shape that produces one.
+
+    Variants never displace a real name or alias: they are added with
+    `setdefault`, so a spelling some row actually claims stays that row's.
+    """
+
+    variants: list[tuple[str, Genre]] = []
+    for key, genre in list(claimed.items()):
+        if "-" not in key:
+            continue
+        for candidate in (key.replace("-", " "), key.replace("-", "")):
+            if candidate != key and candidate.strip():
+                variants.append((candidate, genre))
+    return variants
 
 
 def _is_katakana(char: str) -> bool:
