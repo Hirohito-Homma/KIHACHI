@@ -116,6 +116,46 @@ class NegationTests(unittest.TestCase):
                 self.assertFalse(read(text).refused(name))
                 self.assertGreater(read(text).strength_of(name), 0.0)
 
+    def test_a_double_negative_asks_for_less_than_the_plain_word(self) -> None:
+        """Litotes. 「暗くなくはない」 is *somewhat* dark, not dark.
+
+        Cancelling the refusal was only half of it: reading the result as a
+        plain request overshoots in the same way the refusal did, by stating
+        something the brief withheld. This was left open by the change that
+        cancelled them, on the theory that 「スラップ抜きじゃない」 was plain and
+        only 「暗くなくはない」 hedged, and that some rule could tell them apart.
+        Both are litotes; there was no rule to find.
+        """
+
+        for text, name in (("スラップ抜きじゃない。", "slap"), ("暗くなくはない。", "dark")):
+            with self.subTest(text=text):
+                self.assertEqual(read(text).strength_of(name), SMALL_STRENGTH)
+
+    def test_a_degree_word_still_outranks_the_double_negative(self) -> None:
+        """Someone who writes 「かなり」 has said how much, whatever the shape."""
+
+        self.assertEqual(read("かなり暗くなくはない。").strength_of("dark"), LARGE_STRENGTH)
+        self.assertEqual(read("少しだけ暗くなくはない。").strength_of("dark"), SMALL_STRENGTH)
+
+    def test_a_single_negation_is_untouched_by_the_hedge(self) -> None:
+        """Only an even count softens; one refusal is still a refusal at 0.0."""
+
+        for text, name in (
+            ("スラップではない。", "slap"),
+            ("暗くない。", "dark"),
+            ("スラップは避けて。", "slap"),
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).refused(name))
+                self.assertEqual(read(text).strength_of(name), 0.0)
+
+    def test_a_brief_with_no_negation_keeps_its_strength(self) -> None:
+        """The softening must not reach a sentence that never doubled back."""
+
+        self.assertEqual(read("スラップで。").strength_of("slap"), PLAIN_STRENGTH)
+        self.assertEqual(read("かなりサイケ。").strength_of("psychedelic"), LARGE_STRENGTH)
+        self.assertEqual(read("少しだけサイケ。").strength_of("psychedelic"), SMALL_STRENGTH)
+
     def test_one_refusal_spelled_two_ways_is_still_one_refusal(self) -> None:
         """The reason the fix counts spans and not matches.
 

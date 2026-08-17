@@ -90,11 +90,12 @@ LARGE_STRENGTH = 1.5
 #: 「暗くなくはない」 and 「スラップ抜きじゃない」 used to read as flat refusals of
 #: what they ask for. Two caveats remain, both deliberate.
 #:
-#: **A double negative is read as a plain request, and some of them are hedges.**
-#: 「スラップ抜きじゃない」 is plainly asking for slap, but 「暗くなくはない」 means
-#: *somewhat* dark. Both come back at whatever strength the degree words give,
-#: which for the second one overstates it. Distinguishing them needs the shape of
-#: the negation to feed the strength, not just the polarity.
+#: **A double negative is a hedge**, and reads at ``SMALL_STRENGTH`` unless a
+#: degree word says otherwise -- see :func:`_hedged_if_cancelled`. The note left
+#: here beforehand claimed 「スラップ抜きじゃない」 was a plain request and only
+#: 「暗くなくはない」 a hedge, and looked for a rule to tell the two apart. There is
+#: no such rule to find: both are litotes, and 「スラップ抜きじゃない」 concedes some
+#: slap rather than calling for it.
 #:
 #: **A negation attached to an antonym is still misread**, and it is a different
 #: bug from the one above. 「手数は少なくない」 fires exactly one negator, ``くない``,
@@ -356,20 +357,23 @@ def _read_clause(clause: str, offset: int) -> list[Trait]:
         return []
     mentions.sort()
 
-    negated = _negated(lowered, mentions)
+    refusals = _refusals(lowered, mentions)
     scope = _clause_scope(lowered)
     return [
         Trait(
             name=name,
-            polarity=-1 if index in negated else 1,
-            strength=_strength(
-                lowered,
-                start,
-                floor=mentions[index - 1][1] if index else 0,
-                # Only the last mention reads what trails it; anything earlier
-                # would be claiming a degree word that the next mention's own
-                # backwards search already owns.
-                ceiling=end if index == len(mentions) - 1 else None,
+            polarity=-1 if refusals.get(index, 0) % 2 else 1,
+            strength=_hedged_if_cancelled(
+                _strength(
+                    lowered,
+                    start,
+                    floor=mentions[index - 1][1] if index else 0,
+                    # Only the last mention reads what trails it; anything
+                    # earlier would be claiming a degree word that the next
+                    # mention's own backwards search already owns.
+                    ceiling=end if index == len(mentions) - 1 else None,
+                ),
+                refusals.get(index, 0),
             ),
             evidence=evidence,
             position=offset + start,
@@ -377,6 +381,25 @@ def _read_clause(clause: str, offset: int) -> list[Trait]:
         )
         for index, (start, end, name, evidence) in enumerate(mentions)
     ]
+
+
+def _hedged_if_cancelled(strength: float, refusals: int) -> float:
+    """A double negative asks for less than the plain word would.
+
+    Japanese double negation is litotes: 「暗くなくはない」 is *somewhat* dark and
+    「スラップ抜きじゃない」 concedes some slap rather than calling for it. Reading
+    either as a plain request overshoots -- less far than the refusal this used
+    to return, but in the same way, by stating something the brief withheld.
+
+    An explicit degree word still wins. 「かなり」 beside a double negative is a
+    person saying how much despite the shape of the sentence, and
+    :func:`_strength` only returns ``PLAIN_STRENGTH`` when it found no degree
+    word at all, so that is the case to soften.
+    """
+
+    if refusals >= 2 and refusals % 2 == 0 and strength == PLAIN_STRENGTH:
+        return SMALL_STRENGTH
+    return strength
 
 
 def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | None:
@@ -401,8 +424,12 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
     return best
 
 
-def _negated(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> set[int]:
-    """Which mentions in this clause are being refused.
+def _refusals(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> dict[int, int]:
+    """How many times each mention in this clause is refused.
+
+    The count and not just its parity, because the two carry different things:
+    an odd count refuses, and any count of two or more says the brief doubled
+    back on itself, which :func:`_hedged_if_cancelled` reads as a hedge.
 
     Japanese negation attaches to what precedes it, English to what follows, so
     each is resolved to the *nearest* mention in its own direction -- and then
@@ -448,7 +475,7 @@ def _negated(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> set
                 joined = _joined_after(lowered, mentions, anchor)
                 refuse(anchor, joined, match.start(), match.end())
 
-    return {index for index, found in spans.items() if _distinct(found) % 2}
+    return {index: _distinct(found) for index, found in spans.items()}
 
 
 def _distinct(spans: Sequence[tuple[int, int]]) -> int:
