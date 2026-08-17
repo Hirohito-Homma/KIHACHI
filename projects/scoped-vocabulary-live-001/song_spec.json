@@ -1,0 +1,123 @@
+{
+  "spec_version": "0.1",
+  "source_prompt": "テクノ。110 BPM、Cm。32小節。歯切れよく、シンコペを効かせて。手弾きっぽく。前半は淡々と、後半は手数を多く。展開が速い。",
+  "seed": 8,
+  "song": {
+    "title": "KIHACHI Sketch",
+    "bpm": 110.0,
+    "key": "C minor",
+    "tonic": "C",
+    "tonic_pitch_class": 0,
+    "mode": "minor",
+    "time_signature": "4/4",
+    "total_bars": 32,
+    "target_duration_sec": 69.818
+  },
+  "style": {
+    "genres": [
+      {
+        "name": "techno",
+        "weight": 1.0
+      }
+    ],
+    "darkness": 1.0,
+    "psychedelic": 0.667
+  },
+  "groove": {
+    "swing": 0.5,
+    "syncopation": 0.78,
+    "humanize": 0.486667,
+    "note_length": 0.633333
+  },
+  "arrangement": [
+    {
+      "name": "minimal_intro",
+      "start_bar": 0,
+      "length_bars": 8,
+      "energy": 0.307,
+      "minimal": false,
+      "psychedelic": 0.08,
+      "bass_density": 0.282,
+      "drum_density": 0.501,
+      "chord_density": 0.201,
+      "fx_amount": 0.3,
+      "vocal_probability": 0.0,
+      "mutation": 0.15
+    },
+    {
+      "name": "minimal_groove",
+      "start_bar": 8,
+      "length_bars": 8,
+      "energy": 0.383,
+      "minimal": false,
+      "psychedelic": 0.18,
+      "bass_density": 0.418,
+      "drum_density": 0.569,
+      "chord_density": 0.269,
+      "fx_amount": 0.35,
+      "vocal_probability": 0.2,
+      "mutation": 0.28
+    },
+    {
+      "name": "mutation_build",
+      "start_bar": 16,
+      "length_bars": 8,
+      "energy": 0.853333,
+      "minimal": false,
+      "psychedelic": 0.58,
+      "bass_density": 0.866667,
+      "drum_density": 0.906667,
+      "chord_density": 0.816667,
+      "fx_amount": 0.62,
+      "vocal_probability": 0.45,
+      "mutation": 0.7
+    },
+    {
+      "name": "psychedelic_drop",
+      "start_bar": 24,
+      "length_bars": 8,
+      "energy": 0.926667,
+      "minimal": false,
+      "psychedelic": 0.58,
+      "bass_density": 1.0,
+      "drum_density": 0.94,
+      "chord_density": 0.853333,
+      "fx_amount": 0.7,
+      "vocal_probability": 0.6,
+      "mutation": 0.88
+    }
+  ],
+  "harmony": {
+    "progression": [
+      "Cm",
+      "Cm",
+      "A#",
+      "A#"
+    ],
+    "harmonic_rhythm_bars": 1
+  },
+  "bass": {
+    "role": "supporting",
+    "technique": "fingered",
+    "syncopation": 0.78,
+    "mutation": 0.35,
+    "octave_jump_probability": 0.18,
+    "ghost_note_probability": 0.12
+  },
+  "drums": {
+    "pattern": "four_on_floor",
+    "kick_density": 0.85,
+    "hat_density": 0.92,
+    "dub_space": 0.2
+  },
+  "chords": {
+    "instrument": "synth_chord",
+    "articulation": "hypnotic_stabs",
+    "dub_delay": 0.18
+  },
+  "vocal": {
+    "enabled": false,
+    "vocoder": false,
+    "character": "none"
+  }
+}
