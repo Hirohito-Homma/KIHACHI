@@ -6,7 +6,7 @@ from typing import Sequence
 from .arrangement import build_arrangement
 from .derive import pick, pick_int, pick_str, profile_for
 from .genres import match_genres, mood_axes, typical_bpm
-from .intent import Traits, blend, read as read_intent
+from .intent import LARGE_STRENGTH, Traits, blend, read as read_intent
 from .preferences import EMPTY as NO_PREFERENCES, Preferences, clamp
 from .models import (
     CORE_TRACKS,
@@ -141,6 +141,35 @@ def _stated_swing(base: float, traits: Traits) -> float:
         down="straight",
         down_pole=_STRAIGHT_POLE,
     )
+
+
+#: The values the 23 families actually use: 13 sit at 2 bars per chord, 8 at 1
+#: and 2 at 4. A brief moves along this ladder rather than between two poles,
+#: because half a bar per chord is not a thing the composers can play -- every
+#: one of them indexes the progression with `bar // harmonic_rhythm_bars`.
+_HARMONIC_RHYTHM_LADDER = (1, 2, 4)
+
+
+def _stated_harmonic_rhythm(base: int, traits: Traits) -> int:
+    """How long one chord lasts, which every family states and no brief could.
+
+    The first stated field here that is not a float, and the difference matters:
+    a hedge and a plain statement both move **one rung**, because there is no
+    value between two rungs to land on. Only insistence goes to the end of the
+    ladder. Refusing a direction moves nothing, as everywhere else.
+    """
+
+    faster = traits.strength_of("fast_changes")
+    slower = traits.strength_of("slow_changes")
+    if not faster and not slower:
+        return base
+    ladder = _HARMONIC_RHYTHM_LADDER
+    index = min(range(len(ladder)), key=lambda i: abs(ladder[i] - base))
+    if faster:
+        index = 0 if faster == LARGE_STRENGTH else max(0, index - 1)
+    if slower:
+        index = len(ladder) - 1 if slower == LARGE_STRENGTH else min(len(ladder) - 1, index + 1)
+    return ladder[index]
 
 
 def _stated_density(base: float, traits: Traits) -> float:
@@ -294,7 +323,9 @@ class MusicBrain:
             arrangement=sections,
             harmony=HarmonySpec(
                 progression=progression,
-                harmonic_rhythm_bars=pick_int(profile.harmonic_rhythm_bars, 1),
+                harmonic_rhythm_bars=_stated_harmonic_rhythm(
+                    pick_int(profile.harmonic_rhythm_bars, 1), traits
+                ),
             ),
             bass=BassSpec(
                 role=pick_str(profile.bass_role, "dominant"),

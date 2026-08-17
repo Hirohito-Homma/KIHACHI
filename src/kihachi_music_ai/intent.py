@@ -138,6 +138,14 @@ TRAIT_WORDS: dict[str, tuple[str, ...]] = {
     # opening two sections of the arrangement and never touches a density.
     "busy": ("手数", "ぎっしり", "詰め込", "詰まった", "密度が高", "せわしな", "busy", "dense", "relentless"),
     "sparse": ("スカスカ", "疎ら", "まばら", "余白", "間を空け", "隙間", "sparse", "spacious"),
+    # `harmony.harmonic_rhythm_bars` is how many bars one chord lasts, and every
+    # composer reads it -- bass, chords, arp, synth, sub all pick their chord by
+    # it, and `analyzer` and `midi_review` check the render against it. All 23
+    # families state it (1, 2 or 4 bars) and no brief could. Unlike every pair
+    # above it is an integer on a three-rung ladder, so `music_brain` steps it
+    # rather than interpolating.
+    "fast_changes": ("コードチェンジが速", "展開が速", "目まぐるし", "せわしなく変わ", "どんどん変わ", "fast changes", "fast-moving chords"),
+    "slow_changes": ("ワンコード", "一発もの", "コードを引っ張", "同じコードで", "ずっと同じ和音", "static harmony", "one chord"),
 }
 
 
