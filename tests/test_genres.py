@@ -393,6 +393,60 @@ class AliasSafetyTests(unittest.TestCase):
             msg="a new alias collides with the trait vocabulary",
         )
 
+    def test_an_alias_that_swallows_a_trait_word_says_something_true(self) -> None:
+        """The collision above, running the other way.
+
+        That one looks for a genre name buried inside a trait word, which
+        `_continues_run` refuses at match time. This is the direction it cannot
+        help with: the *alias* is the longer string, so it matches, and the trait
+        word inside it fires as well. Both systems are right on their own terms
+        and nothing mediates between them.
+
+        That is harmless while the trait is true of the genre -- ダブテクノ really
+        is dub, ミニマルハウス really is minimal -- so the answer is not to refuse
+        the shape but to look at each one. スラップハウス was left out of the
+        database for failing exactly this reading: Slap House has nothing to do
+        with a slap bass, and naming it would have composed one.
+
+        Listed exactly so the next batch of aliases has to make the same case
+        rather than inheriting the exemption.
+        """
+
+        from kihachi_music_ai.intent import TRAIT_WORDS
+
+        swallowed = sorted(
+            f"{alias} ({genre.name}) contains {word} ({trait})"
+            for genre in load_database()
+            for alias in genre.aliases
+            if not alias.isascii()
+            for trait, words in TRAIT_WORDS.items()
+            for word in words
+            if not word.isascii() and word != alias and word in alias
+        )
+
+        self.assertEqual(
+            swallowed,
+            [
+                "サイケデリックソウル (Psychedelic Soul) contains サイケ (psychedelic)",
+                "サイケデリックトランス (Psytrance) contains サイケ (psychedelic)",
+                "サイケデリックロック (Psychedelic Rock) contains サイケ (psychedelic)",
+                "シンセウェイヴ (Synthwave) contains シンセ (synth)",
+                "シンセウェーブ (Synthwave) contains シンセ (synth)",
+                "シンセファンク (Synth Funk) contains シンセ (synth)",
+                "ダブステップ (Dubstep) contains ダブ (dub)",
+                "ダブテクノ (Dub Techno) contains ダブ (dub)",
+                "ダブトロニカ (Dubtronica) contains ダブ (dub)",
+                "ダブポエトリー (Dub Poetry) contains ダブ (dub)",
+                "ダブワイズ (Dubwise) contains ダブ (dub)",
+                "ディープダブ (Deep Dub) contains ダブ (dub)",
+                "デジタルダブ (Digital Dub) contains ダブ (dub)",
+                "ニュージャックスウィング (New Jack Swing) contains スウィング (swung)",
+                "ミニマルテクノ (Minimal Techno) contains ミニマル (minimal)",
+                "ミニマルハウス (Minimal House) contains ミニマル (minimal)",
+            ],
+            msg="a new alias sets a trait; check the trait is true of the genre",
+        )
+
     def test_two_rows_claiming_one_spelling_are_a_family_and_its_member(self) -> None:
         """24 forms are claimed twice, and `_surface_forms` resolves them.
 
