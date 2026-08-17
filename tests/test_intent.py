@@ -64,6 +64,12 @@ class NegationTests(unittest.TestCase):
 
         self.assertTrue(read("暗すぎない感じで").refused("dark"))
         self.assertTrue(read("スウィングしすぎない").refused("swung"))
+        # A noun trait puts a particle and an adjective between itself and the
+        # negation, so `すぎない` cannot require adjacency the way a bare `ない`
+        # must. It moved to the ordinary negators for this, which is safe only
+        # because `すぎない` is never an innocent word ending.
+        self.assertTrue(read("手数が多すぎない").refused("busy"))
+        self.assertTrue(read("スカスカすぎず").refused("sparse"))
         # 「暗すぎる」 is the opposite statement and stays a request.
         self.assertEqual(read("暗すぎる").strength_of("dark"), 1.0)
 
@@ -268,6 +274,30 @@ class HumanizeWordTests(unittest.TestCase):
         self.assertEqual(loose.strength_of("syncopated"), 0.0)
         self.assertEqual(loose.strength_of("on_grid"), 0.0)
         self.assertEqual(read("オンビートで").strength_of("tight"), 0.0)
+
+
+class DrumDensityWordTests(unittest.TestCase):
+    """`minimal` was the nearest word and it means something else."""
+
+    def test_both_poles_are_readable(self) -> None:
+        for text in ("手数の多いテクノ", "ぎっしり詰まったハウス", "busy drums"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("busy"))
+        for text in ("スカスカなテクノ", "余白のあるダブ", "sparse techno"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("sparse"))
+
+    def test_minimal_is_not_sparse(self) -> None:
+        """One is the opening two sections, the other is the kit."""
+
+        minimal = read("ミニマルなテクノ")
+        self.assertTrue(minimal.asked_for("minimal"))
+        self.assertEqual(minimal.strength_of("sparse"), 0.0)
+        self.assertEqual(read("スカスカなテクノ").strength_of("minimal"), 0.0)
+
+    def test_refusing_either_pole_reads_as_a_refusal(self) -> None:
+        self.assertTrue(read("スカスカじゃないテクノ").refused("sparse"))
+        self.assertTrue(read("手数が多すぎない").refused("busy"))
 
 
 class SharedVocabularyTests(unittest.TestCase):
