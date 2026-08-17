@@ -96,7 +96,7 @@ class ReportTests(unittest.TestCase):
 
         self.assertIn("nothing acted on this", lines)
         self.assertIn("繊細", lines)
-        self.assertIn("142 surface forms", lines)
+        self.assertIn("155 surface forms", lines)
 
     def test_a_fully_read_brief_says_nothing_about_gaps(self) -> None:
         lines = "\n".join(describe(read_coverage("110 BPM、D#m")))

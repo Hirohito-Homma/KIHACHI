@@ -57,12 +57,18 @@ LARGE_STRENGTH = 1.5
 #: was named by a noun, where ``じゃない`` is the negation, and an adjective
 #: negates as ``暗くない`` instead. Without it 「暗くないテクノ」 read as a
 #: request for darkness -- the exact inversion this module was written to stop.
+#: The particle forms (``の無い``, ``が無い``, ``はない``) came in with the
+#: section-contrast pair: 「メリハリの無いテクノ」 read as a *request* for it,
+#: because the bare ``ない`` in the suffix list has to touch what it negates and
+#: a particle is in the way. They are listed with the particle attached rather
+#: than as a bare ``無い`` so that ``無い`` alone still cannot reach backwards
+#: past an unrelated word.
 #: ``すぎない`` sits here rather than in the suffix list below because it is
 #: never an ordinary word ending -- unlike a bare ``ない``, which is why that one
 #: has to touch what it negates. Requiring adjacency for ``すぎない`` missed the
 #: shape a noun trait naturally takes: 「手数が多すぎない」 puts a particle and an
 #: adjective between the trait and the negation, and it read as a request.
-JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません", "すぎない", "過ぎない", "すぎず", "過ぎず")
+JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません", "の無い", "のない", "が無い", "がない", "は無い", "はない", "すぎない", "過ぎない", "すぎず", "過ぎず")
 ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 
 #: Negations that count **only when they touch the mention they follow**.
@@ -155,6 +161,14 @@ TRAIT_WORDS: dict[str, tuple[str, ...]] = {
     # reach, so neither word claims the whole thing.
     "staccato": ("歯切れ", "スタッカート", "短く切", "ぶつ切り", "キレのある", "staccato", "clipped"),
     "legato": ("レガート", "繋げ", "つなげ", "伸ばし", "滑らか", "legato", "sustained"),
+    # The first pair that is about the *relation* between sections rather than a
+    # value inside one. Every section already carries an energy and three
+    # densities, chosen by the arrangement archetypes, and a brief could ask for
+    # none of it: 「メリハリのある」 and 「淡々とした」 built the same four
+    # sections. This does not read 「ここで視界が開ける」 -- that names a place,
+    # and nothing here can hear which section a person means.
+    "contrast": ("メリハリ", "起伏", "抑揚", "ダイナミクス", "dynamic range", "contrast"),
+    "flat": ("平坦", "淡々", "一定", "均一", "flat", "uniform", "monotone"),
 }
 
 

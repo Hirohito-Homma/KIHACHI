@@ -324,6 +324,42 @@ class StatedDarknessTests(unittest.TestCase):
         stated = MusicBrain(seed=1).analyze("歯切れのいいテクノ。")
         self.assertEqual(stated.to_dict()["groove"]["note_length"], 0.633333)
 
+    def test_contrast_is_a_relation_between_sections_not_a_value_in_one(self) -> None:
+        """The archetypes chose the shape; this says how far to commit to it."""
+
+        def energies(prompt: str) -> tuple[float, ...]:
+            spec = MusicBrain(seed=8).analyze(prompt)
+            return tuple(section.energy for section in spec.arrangement)
+
+        self.assertEqual(energies("テクノ。32小節。"), (0.25, 0.44, 0.66, 0.88))
+        self.assertEqual(energies("メリハリのあるテクノ。32小節。"), (0.09625, 0.38125, 0.71125, 1.0))
+        self.assertEqual(energies("淡々としたテクノ。32小節。"), (0.4345, 0.5105, 0.5985, 0.6865))
+        # 「かなり淡々と」 is meant literally: every section on the same level.
+        self.assertEqual(len(set(energies("かなり淡々としたテクノ。32小節。"))), 1)
+        self.assertEqual(energies("メリハリの無いテクノ。32小節。"), (0.25, 0.44, 0.66, 0.88))
+
+    def test_contrast_reaches_the_note_counts_and_saturates_upwards(self) -> None:
+        from kihachi_music_ai.composer import COMPOSERS
+
+        def per_section(prompt: str) -> list[int]:
+            spec = MusicBrain(seed=8).analyze(prompt)
+            notes = COMPOSERS["drums"](spec) + COMPOSERS["bass"](spec) + COMPOSERS["chords"](spec)
+            counts = []
+            for section in spec.arrangement:
+                low = section.start_bar * 4
+                high = low + section.length_bars * 4
+                counts.append(sum(1 for note in notes if low <= note.start_beats < high))
+            return counts
+
+        plain = per_section("テクノ。32小節。")
+        self.assertEqual(plain, [130, 167, 184, 196])
+        self.assertEqual(per_section("メリハリのあるテクノ。32小節。"), [114, 167, 184, 223])
+        self.assertEqual(per_section("かなり淡々としたテクノ。32小節。"), [178, 175, 175, 174])
+        # Insisting does not widen it further: the outer sections are already
+        # against 0 and 1, so the extra factor has nowhere to go.
+        insisted = per_section("かなりメリハリのあるテクノ。32小節。")
+        self.assertEqual(max(insisted) - min(insisted), 109)
+
     def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
         ambient = (
             "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"

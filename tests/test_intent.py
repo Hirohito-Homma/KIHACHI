@@ -327,6 +327,29 @@ class NoteLengthWordTests(unittest.TestCase):
         self.assertTrue(read("レガートすぎない").refused("legato"))
 
 
+class SectionContrastWordTests(unittest.TestCase):
+    def test_both_poles_are_readable(self) -> None:
+        for text in ("メリハリのあるテクノ", "起伏のある展開", "抑揚をつけて", "more contrast"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("contrast"))
+        for text in ("淡々としたテクノ", "平坦に", "一定のまま", "uniform"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).asked_for("flat"))
+
+    def test_refusing_reads_as_a_refusal(self) -> None:
+        """A particle sits between the trait and the negation here.
+
+        The bare `ない` in the suffix list has to touch what it negates, so
+        「メリハリの無いテクノ」 read as a request until the particle forms
+        joined the ordinary negators.
+        """
+
+        for text in ("メリハリの無いテクノ", "メリハリのないテクノ", "起伏は無い"):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).refused("contrast"))
+        self.assertTrue(read("スラップが無い").refused("slap"))
+
+
 class SharedVocabularyTests(unittest.TestCase):
     """`edit` and the brief must agree on what "少し" means."""
 
