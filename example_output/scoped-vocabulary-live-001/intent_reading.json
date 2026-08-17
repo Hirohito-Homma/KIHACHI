@@ -1,0 +1,49 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "テクノ。110 BPM、Cm。32小節。歯切れよく、シンコペを効かせて。手弾きっぽく。前半は淡々と、後半は手数を多く。展開が速い。",
+  "brief_sha256": "cfcacc2a75de97d84e97e2513b1c5cbcf79f3e1c8ba83b20130a6f9d02e94da2",
+  "traits": [
+    {
+      "name": "staccato",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "歯切れよく"
+    },
+    {
+      "name": "syncopated",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "シンコペを効かせて"
+    },
+    {
+      "name": "loose",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "手弾きっぽく"
+    },
+    {
+      "name": "flat",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "前半は淡々と",
+      "scope": "first_half"
+    },
+    {
+      "name": "busy",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "後半は手数を多く",
+      "scope": "second_half"
+    },
+    {
+      "name": "fast_changes",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "展開が速い"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

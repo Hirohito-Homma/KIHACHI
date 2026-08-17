@@ -667,6 +667,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(
                     f"  {sign}{trait['name']:<14} strength {trait['strength']:g}"
                     f"   from {trait['evidence']!r}"
+                    + (f"   in {trait['scope']}" if trait.get("scope") else "")
                 )
             for phrase in reading["unmapped"]:
                 print(f"  (no trait says this) {phrase!r}")

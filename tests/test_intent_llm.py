@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from kihachi_music_ai.adapters import intent_llm
 from kihachi_music_ai.adapters.intent_llm import (
     API_KEY_ENV,
     DEFAULT_MODEL,
@@ -179,6 +180,89 @@ class CallTests(unittest.TestCase):
     def test_prepare_needs_no_key_at_all(self) -> None:
         with mock.patch.dict(os.environ, {API_KEY_ENV: ""}, clear=False):
             self.assertEqual(main(["intent", "prepare", BRIEF]), 0)
+
+
+class ScopeTests(unittest.TestCase):
+    """The model can name a place, for the traits that have one (ADR-0013)."""
+
+    BRIEF = "テクノ。後半は手数を多く。"
+
+    def test_the_schema_offers_both_halves_and_nothing_else(self) -> None:
+        schema = intent_llm._schema()
+        scope = schema["properties"]["traits"]["items"]["properties"]["scope"]
+
+        self.assertEqual(scope["enum"], ["first_half", "second_half"])
+        # Absent, not null: the API rejects an enum carrying null against a
+        # union type, and absent is how a pre-scope reading already says this.
+        self.assertNotIn("scope", schema["properties"]["traits"]["items"]["required"])
+
+    def test_a_scope_on_a_trait_the_brain_cannot_place_is_rejected(self) -> None:
+        """`darkness` is one number for the whole song. Accepting a scoped one
+        would promise a placement that never arrives."""
+
+        with self.assertRaises(ValueError) as caught:
+            intent_llm.validate_reading(
+                {
+                    "traits": [
+                        {
+                            "name": "dark",
+                            "polarity": 1,
+                            "strength": 1.0,
+                            "evidence": "暗く",
+                            "scope": "second_half",
+                        }
+                    ],
+                    "unmapped": [],
+                },
+                "テクノ。後半は暗く。",
+            )
+
+        self.assertIn("cannot be scoped", str(caught.exception))
+
+    def test_a_scope_on_a_trait_that_has_one_is_kept(self) -> None:
+        reading = intent_llm.validate_reading(
+            {
+                "traits": [
+                    {
+                        "name": "busy",
+                        "polarity": 1,
+                        "strength": 1.0,
+                        "evidence": "手数を多く",
+                        "scope": "second_half",
+                    }
+                ],
+                "unmapped": [],
+            },
+            self.BRIEF,
+        )
+
+        self.assertEqual(reading["traits"][0]["scope"], "second_half")
+
+    def test_an_invented_scope_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            intent_llm.validate_reading(
+                {
+                    "traits": [
+                        {
+                            "name": "busy",
+                            "polarity": 1,
+                            "strength": 1.0,
+                            "evidence": "手数を多く",
+                            "scope": "the_drop",
+                        }
+                    ],
+                    "unmapped": [],
+                },
+                self.BRIEF,
+            )
+
+    def test_the_prompt_names_the_scopable_traits_from_the_brain(self) -> None:
+        prompt = intent_llm._system_prompt()
+
+        for name in ("busy", "sparse", "contrast", "flat"):
+            self.assertIn(name, prompt)
+        self.assertIn("後半", prompt)
+        self.assertIn("second_half", prompt)
 
 
 class ArtifactTests(unittest.TestCase):

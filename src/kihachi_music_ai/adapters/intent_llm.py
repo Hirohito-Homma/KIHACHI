@@ -30,7 +30,16 @@ import os
 from pathlib import Path
 from typing import Any
 
-from ..intent import LARGE_WORDS, SMALL_WORDS, TRAIT_WORDS
+from ..intent import (
+    EARLIER_HALF_WORDS,
+    FIRST_HALF,
+    LARGE_WORDS,
+    LATER_HALF_WORDS,
+    SCOPABLE_TRAITS,
+    SECOND_HALF,
+    SMALL_WORDS,
+    TRAIT_WORDS,
+)
 
 INTENT_READING_VERSION = "0.1"
 INTENT_READING_NAME = "intent_reading.json"
@@ -64,6 +73,11 @@ def _schema() -> dict[str, Any]:
                         "polarity": {"type": "integer", "enum": [1, -1]},
                         "strength": {"type": "number", "enum": list(STRENGTHS)},
                         "evidence": {"type": "string"},
+                        # Omitted rather than null for the whole song: the API
+                        # rejects an enum carrying null against a union type,
+                        # and "absent" is already how a reading stored before
+                        # scopes existed says the same thing.
+                        "scope": {"type": "string", "enum": [FIRST_HALF, SECOND_HALF]},
                     },
                     "required": ["name", "polarity", "strength", "evidence"],
                     "additionalProperties": False,
@@ -103,6 +117,15 @@ def _system_prompt() -> str:
         f"(e.g. {', '.join(LARGE_WORDS[:3])})\n"
         "- evidence: the exact substring of the brief that says so, copied "
         "character for character\n\n"
+        "A brief may also say **where** in the song it means, and four traits "
+        f"can carry that: {', '.join(sorted(SCOPABLE_TRAITS))}. When the clause "
+        f"names the later part of the song ({', '.join(LATER_HALF_WORDS)}) set "
+        f"`scope` to {SECOND_HALF!r}; for the earlier part "
+        f"({', '.join(EARLIER_HALF_WORDS)}) set it to {FIRST_HALF!r}. Leave it "
+        "out otherwise. Any other trait applies to the whole song no matter "
+        "where it is said, because the song has only one of that number -- so a "
+        "place named around one of those is a real gap, and belongs in "
+        "`unmapped`.\n\n"
         "Then list, in `unmapped`, every phrase of the brief that asks for "
         "something musical this vocabulary cannot express. Copy those "
         "character for character too.\n\n"
@@ -148,6 +171,17 @@ def validate_reading(reading: dict[str, Any], brief: str) -> dict[str, Any]:
             raise ValueError(f"trait {name!r} has polarity {entry.get('polarity')!r}")
         if entry.get("strength") not in STRENGTHS:
             raise ValueError(f"trait {name!r} has strength {entry.get('strength')!r}")
+        scope = entry.get("scope")
+        if scope is not None:
+            if scope not in (FIRST_HALF, SECOND_HALF):
+                raise ValueError(f"trait {name!r} has scope {scope!r}")
+            if name not in SCOPABLE_TRAITS:
+                # The brain has nowhere to put it: `SectionSpec` carries an
+                # energy and three densities and nothing else, so accepting a
+                # scoped `dark` would promise placement that never arrives.
+                raise ValueError(
+                    f"trait {name!r} cannot be scoped; only {sorted(SCOPABLE_TRAITS)} can"
+                )
         evidence = entry.get("evidence", "")
         if not evidence or evidence not in brief:
             raise ValueError(

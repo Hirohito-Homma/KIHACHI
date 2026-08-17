@@ -31,15 +31,21 @@ Pure and stdlib-only.
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Any
 
-from .intent import read as read_intent
+from .intent import (
+    EARLIER_HALF_WORDS,
+    LATER_HALF_WORDS,
+    read as read_intent,
+)
 
 AGREEMENT_VERSION = "0.1"
 
 #: What a single trait can be, comparing one reading with the other.
 AGREE = "agree"
 POLARITY = "polarity_differs"
+SCOPE = "scope_differs"
 STRENGTH = "strength_differs"
 MODEL_ONLY = "model_only"
 RULES_ONLY = "rules_only"
@@ -48,7 +54,19 @@ RULES_ONLY = "rules_only"
 #: about whether the brief asked for a thing or refused it, which is the
 #: failure `intent.py` exists to prevent; a strength difference is a difference
 #: of degree within the same answer.
-SEVERITY = (POLARITY, MODEL_ONLY, RULES_ONLY, STRENGTH, AGREE)
+#: `scope_differs` sits under a polarity difference and above everything else:
+#: the two readers agree the brief asked for this and disagree about **where**
+#: it lands, which is a change applied to the wrong half of the song.
+SEVERITY = (POLARITY, SCOPE, MODEL_ONLY, RULES_ONLY, STRENGTH, AGREE)
+
+
+#: The marks a brief separates its statements with, as `brief` and `intent` both
+#: split on. A scope does not reach across one, so neither does this check.
+_CLAUSE_SPLIT = re.compile(r"[、。，．,.;；\n\r]+")
+
+
+def _clauses(brief: str) -> list[str]:
+    return [piece for piece in _CLAUSE_SPLIT.split(brief) if piece.strip()]
 
 
 def compare_readings(reading: dict[str, Any]) -> dict[str, Any]:
@@ -83,6 +101,8 @@ def compare_readings(reading: dict[str, Any]) -> dict[str, Any]:
             continue
         if int(left.get("polarity", 1)) != right.polarity:
             rows.append(_row(name, POLARITY, left, right))
+        elif left.get("scope") != right.scope:
+            rows.append(_row(name, SCOPE, left, right))
         elif float(left.get("strength", 0.0)) != right.strength:
             rows.append(_row(name, STRENGTH, left, right))
         else:
@@ -97,6 +117,25 @@ def compare_readings(reading: dict[str, Any]) -> dict[str, Any]:
     # clause around it also contained 「暗くて」: two different statements, one
     # of them genuinely unread, called the same thing.
     evidence = [trait.evidence for trait in rules.values()]
+    # A span word the rules used as a scope counts as cited too. Without this,
+    # the first scoped brief compared clean while the model was filing 「前半は」
+    # under `unmapped` -- the readers contradicting each other about placement,
+    # invisible because a span word is not any trait's evidence.
+    #
+    # Per clause, because a span word is only read where a scopable trait sits
+    # beside it. 「テクノ。後半は暗く、終盤はスカスカに。」 scopes the sparse and
+    # not the darkness, and the model's 「後半」 there is a real gap: reporting it
+    # as contested would call the rules right about a placement they dropped.
+    evidence.extend(
+        word
+        for clause in _clauses(brief)
+        if any(
+            trait.scope is not None and trait.evidence in clause
+            for trait in rules.values()
+        )
+        for word in LATER_HALF_WORDS + EARLIER_HALF_WORDS
+        if word in clause
+    )
     contested = sorted(
         phrase
         for phrase in reading.get("unmapped", [])
@@ -131,6 +170,7 @@ def _row(
         else {
             "polarity": int(model.get("polarity", 1)),
             "strength": float(model.get("strength", 0.0)),
+            "scope": model.get("scope"),
             "evidence": str(model.get("evidence", "")),
         },
         "rules": None
@@ -138,6 +178,7 @@ def _row(
         else {
             "polarity": rules.polarity,
             "strength": rules.strength,
+            "scope": rules.scope,
             "evidence": rules.evidence,
         },
     }
@@ -172,4 +213,5 @@ def _side(side: dict[str, Any] | None) -> str:
     if side is None:
         return "said nothing"
     sign = "+" if side["polarity"] > 0 else "-"
-    return f"{sign}{side['strength']:g} from {side['evidence']!r}"
+    where = f" in {side['scope']}" if side.get("scope") else ""
+    return f"{sign}{side['strength']:g} from {side['evidence']!r}{where}"

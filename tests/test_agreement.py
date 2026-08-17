@@ -11,6 +11,7 @@ from kihachi_music_ai.agreement import (
     MODEL_ONLY,
     POLARITY,
     RULES_ONLY,
+    SCOPE,
     STRENGTH,
     compare_readings,
     describe,
@@ -35,6 +36,82 @@ def status_of(comparison: dict, name: str) -> str:
             return row["status"]
         continue
     raise AssertionError(f"{name} is not in this comparison")
+
+
+class ScopeComparisonTests(unittest.TestCase):
+    """Where a trait lands is a thing the two readers can disagree about."""
+
+    BRIEF = "テクノ。後半は手数を多く。"
+
+    def test_the_same_trait_in_a_different_place_is_a_disagreement(self) -> None:
+        comparison = compare_readings(
+            reading(
+                self.BRIEF,
+                [{"name": "busy", "polarity": 1, "strength": 1.0, "evidence": "手数を多く"}],
+            )
+        )
+
+        self.assertEqual(status_of(comparison, "busy"), SCOPE)
+
+    def test_agreeing_on_the_place_is_agreement(self) -> None:
+        comparison = compare_readings(
+            reading(
+                self.BRIEF,
+                [
+                    {
+                        "name": "busy",
+                        "polarity": 1,
+                        "strength": 1.0,
+                        "evidence": "手数を多く",
+                        "scope": "second_half",
+                    }
+                ],
+            )
+        )
+
+        self.assertEqual(status_of(comparison, "busy"), AGREE)
+
+    def test_a_span_word_the_rules_used_counts_as_contested(self) -> None:
+        """The hole this was written for: a span word is nobody's evidence.
+
+        The first scoped brief compared clean while the model was still filing
+        「後半は」 under `unmapped`, because the contest check only looked at the
+        phrases traits cited.
+        """
+
+        comparison = compare_readings(
+            reading(
+                self.BRIEF,
+                [{"name": "busy", "polarity": 1, "strength": 1.0, "evidence": "手数を多く"}],
+                unmapped=["後半は"],
+            )
+        )
+
+        self.assertEqual(comparison["contested_unmapped"], ["後半は"])
+
+    def test_a_place_named_around_an_unscopable_trait_is_a_real_gap(self) -> None:
+        """「後半は暗く」 -- darkness is one number for the whole song, so the
+        rules drop that placement and the model is right to call it unread."""
+
+        brief = "テクノ。後半は暗く、終盤はスカスカに。"
+        comparison = compare_readings(
+            reading(
+                brief,
+                [
+                    {"name": "dark", "polarity": 1, "strength": 1.0, "evidence": "暗く"},
+                    {
+                        "name": "sparse",
+                        "polarity": 1,
+                        "strength": 1.0,
+                        "evidence": "スカスカ",
+                        "scope": "second_half",
+                    },
+                ],
+                unmapped=["後半"],
+            )
+        )
+
+        self.assertEqual(comparison["contested_unmapped"], [])
 
 
 class ComparisonTests(unittest.TestCase):
