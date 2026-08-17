@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from typing import Sequence
 
 from .arrangement import build_arrangement
@@ -183,6 +184,63 @@ _STACCATO_POLE = 0.45
 _LEGATO_POLE = 1.6
 
 
+#: How far the sections are pushed apart, or pulled together. A plain statement
+#: half again the spread the archetypes chose; insistence doubles it; the flat
+#: end can reach a genuinely level song, because 「淡々と」 is a thing people
+#: mean literally.
+_CONTRAST_SPREAD = {0.5: 1.2, 1.0: 1.5, 1.5: 2.0}
+_FLAT_SPREAD = {0.5: 0.7, 1.0: 0.4, 1.5: 0.0}
+
+#: The section numbers that say how *much* is happening. `psychedelic`,
+#: `mutation`, `fx_amount` and `vocal_probability` say what *kind*, and pushing
+#: those apart would be a different request than the one 「メリハリ」 makes.
+_SECTION_LEVELS = ("energy", "bass_density", "drum_density", "chord_density")
+
+
+def _stated_contrast(
+    sections: tuple[SectionSpec, ...], traits: Traits
+) -> tuple[SectionSpec, ...]:
+    """Push the sections apart, or pull them together, around their own average.
+
+    The first thing a brief can state here that is not a value inside one
+    section: it is the *relation* between them. The archetypes in
+    `arrangement.py` already choose an energy and three densities per section,
+    and no word reached any of it, so 「メリハリのある」 and 「淡々とした」 built
+    the same four sections.
+
+    Deliberately a scale around the mean rather than a new field. The shape the
+    archetypes chose is the song's own; this says how far to commit to it, and
+    a factor of 1.0 leaves every number exactly where it was.
+    """
+
+    stated = traits.strength_of("contrast")
+    level = traits.strength_of("flat")
+    if stated:
+        factor = _CONTRAST_SPREAD[stated]
+    elif level:
+        factor = _FLAT_SPREAD[level]
+    else:
+        return sections
+    if len(sections) < 2:
+        return sections
+    means = {
+        name: sum(getattr(section, name) or 0.0 for section in sections) / len(sections)
+        for name in _SECTION_LEVELS
+    }
+    spread: list[SectionSpec] = []
+    for section in sections:
+        changes = {}
+        for name in _SECTION_LEVELS:
+            value = getattr(section, name)
+            if value is None:
+                # An unset density already means "follow the energy", and it
+                # keeps following the energy that was just moved.
+                continue
+            changes[name] = round(clamp(means[name] + (value - means[name]) * factor), 6)
+        spread.append(replace(section, **changes))
+    return tuple(spread)
+
+
 def _stated_note_length(traits: Traits) -> float:
     """How long each note is held -- the one trait here with no number waiting.
 
@@ -304,11 +362,14 @@ class MusicBrain:
         def tune(path: str, value: float) -> float:
             return clamp(value + self.preferences.offset_for(slugs, "song", path))
 
-        sections = self._sections(
-            total_bars,
-            minimal_requested=minimal_requested,
-            psychedelic_requested=psychedelic > 0,
-            parts=instruments or CORE_TRACKS,
+        sections = _stated_contrast(
+            self._sections(
+                total_bars,
+                minimal_requested=minimal_requested,
+                psychedelic_requested=psychedelic > 0,
+                parts=instruments or CORE_TRACKS,
+            ),
+            traits,
         )
         progression = progression_for_key(
             tonic_pc,
