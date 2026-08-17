@@ -4,9 +4,13 @@ import unittest
 
 from kihachi_music_ai import edit
 from kihachi_music_ai.intent import (
+    EARLIER_HALF_WORDS,
+    FIRST_HALF,
     LARGE_STRENGTH,
+    LATER_HALF_WORDS,
     PLAIN_STRENGTH,
     SMALL_STRENGTH,
+    SECOND_HALF,
     SMALL_WORDS,
     blend,
     read,
@@ -348,6 +352,47 @@ class SectionContrastWordTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertTrue(read(text).refused("contrast"))
         self.assertTrue(read("スラップが無い").refused("slap"))
+
+
+class ScopeTests(unittest.TestCase):
+    """A brief can name a place, for the traits that have one (ADR-0013)."""
+
+    def test_a_span_word_scopes_the_traits_in_its_clause(self) -> None:
+        self.assertEqual(read("後半でメリハリを").traits[0].scope, SECOND_HALF)
+        self.assertEqual(read("終盤だけスカスカに").traits[0].scope, SECOND_HALF)
+        self.assertEqual(read("序盤は淡々と").traits[0].scope, FIRST_HALF)
+
+    def test_scope_does_not_cross_a_clause_boundary(self) -> None:
+        """Like negation: two places, two statements."""
+
+        traits = read("前半は淡々と、後半でメリハリを").traits
+        self.assertEqual([(t.name, t.scope) for t in traits], [("flat", FIRST_HALF), ("contrast", SECOND_HALF)])
+
+    def test_only_traits_with_a_per_section_field_take_a_scope(self) -> None:
+        """`darkness` is one number for the whole song, so 「後半は暗く」 is not
+        refused -- it means what it meant before scopes existed."""
+
+        trait = read("後半は暗く").traits[0]
+        self.assertEqual(trait.name, "dark")
+        self.assertIsNone(trait.scope)
+
+    def test_the_two_views_split_the_traits(self) -> None:
+        traits = read("後半は手数を多く、全体は暗く")
+        self.assertEqual([t.name for t in traits.unscoped().traits], ["dark"])
+        self.assertEqual([t.name for t in traits.within(SECOND_HALF).traits], ["busy"])
+        self.assertEqual(traits.unscoped().strength_of("busy"), 0.0)
+
+    def test_the_seed_brief_names_two_places_it_cannot_use(self) -> None:
+        """「前半ミニマル、後半サイケデリック」 -- neither trait has a per-section
+        field, so both still apply to the whole song and nothing silently moved."""
+
+        traits = read(SEED_PROMPT)
+        self.assertIsNone(traits.find("minimal").scope)
+        self.assertIsNone(traits.find("psychedelic").scope)
+
+    def test_edit_and_the_brief_share_one_list_of_span_words(self) -> None:
+        self.assertIs(edit.LATER_HALF_WORDS, LATER_HALF_WORDS)
+        self.assertIs(edit.EARLIER_HALF_WORDS, EARLIER_HALF_WORDS)
 
 
 class SharedVocabularyTests(unittest.TestCase):

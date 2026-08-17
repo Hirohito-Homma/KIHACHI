@@ -7,7 +7,14 @@ from typing import Sequence
 from .arrangement import build_arrangement
 from .derive import pick, pick_int, pick_str, profile_for
 from .genres import match_genres, mood_axes, typical_bpm
-from .intent import LARGE_STRENGTH, Traits, blend, read as read_intent
+from .intent import (
+    FIRST_HALF,
+    LARGE_STRENGTH,
+    SECOND_HALF,
+    Traits,
+    blend,
+    read as read_intent,
+)
 from .preferences import EMPTY as NO_PREFERENCES, Preferences, clamp
 from .models import (
     CORE_TRACKS,
@@ -197,6 +204,45 @@ _FLAT_SPREAD = {0.5: 0.7, 1.0: 0.4, 1.5: 0.0}
 _SECTION_LEVELS = ("energy", "bass_density", "drum_density", "chord_density")
 
 
+def _scoped_sections(
+    sections: tuple[SectionSpec, ...], traits: Traits
+) -> tuple[SectionSpec, ...]:
+    """Apply what the brief said about one half of the song, to that half.
+
+    The split is `len(arrangement) // 2`, which is `edit`'s split -- the two
+    commands now share the words, so they had better share the span they mean.
+
+    Only the per-section densities move. A scoped `busy` cannot raise
+    `drums.kick_density`, because that number is the kit for the whole song and
+    raising it in the second half would raise it in the first.
+    """
+
+    midpoint = len(sections) // 2
+    for scope, indexes in (
+        (FIRST_HALF, range(0, midpoint)),
+        (SECOND_HALF, range(midpoint, len(sections))),
+    ):
+        here = traits.within(scope)
+        if not here.traits:
+            continue
+        moved = list(sections)
+        for index in indexes:
+            section = sections[index]
+            changes = {}
+            for field in ("bass_density", "drum_density", "chord_density"):
+                base = getattr(section, field)
+                if base is None:
+                    continue
+                changes[field] = _stated_density(base, here)
+            changes["energy"] = _stated_density(section.energy, here)
+            moved[index] = replace(section, **changes)
+        spread = _stated_contrast(tuple(moved[index] for index in indexes), here)
+        for offset, index in enumerate(indexes):
+            moved[index] = spread[offset]
+        sections = tuple(moved)
+    return sections
+
+
 def _stated_contrast(
     sections: tuple[SectionSpec, ...], traits: Traits
 ) -> tuple[SectionSpec, ...]:
@@ -339,6 +385,10 @@ class MusicBrain:
         # hardcode, so a brief that hedges nothing produces the song it always
         # produced.
         traits = read_intent(prompt)
+        # Everything below this line is a number for the whole song, so it reads
+        # only what the brief said about the whole song. 「後半は手数を多く」 must
+        # not raise the kit in the first half, and the sections take the rest.
+        song_traits = traits.unscoped()
         psychedelic = traits.strength_of("psychedelic")
         minimal_requested = traits.asked_for("minimal")
         slap = traits.strength_of("slap")
@@ -362,12 +412,15 @@ class MusicBrain:
         def tune(path: str, value: float) -> float:
             return clamp(value + self.preferences.offset_for(slugs, "song", path))
 
-        sections = _stated_contrast(
-            self._sections(
-                total_bars,
-                minimal_requested=minimal_requested,
-                psychedelic_requested=psychedelic > 0,
-                parts=instruments or CORE_TRACKS,
+        sections = _scoped_sections(
+            _stated_contrast(
+                self._sections(
+                    total_bars,
+                    minimal_requested=minimal_requested,
+                    psychedelic_requested=psychedelic > 0,
+                    parts=instruments or CORE_TRACKS,
+                ),
+                traits.unscoped(),
             ),
             traits,
         )
@@ -402,23 +455,23 @@ class MusicBrain:
                 # old constants. The constants were the same two numbers for
                 # every unrecognised style; the tags at least distinguish a
                 # nocturnal one from a sunny one.
-                darkness=_stated_darkness(blend(db_darkness or 0.48, 0.72, dub), traits),
+                darkness=_stated_darkness(blend(db_darkness or 0.48, 0.72, dub), song_traits),
                 psychedelic=blend(db_psychedelic or 0.28, 0.82, psychedelic),
             ),
             groove=GrooveSpec(
-                swing=_stated_swing(pick(profile.swing, 0.5), traits),
+                swing=_stated_swing(pick(profile.swing, 0.5), song_traits),
                 syncopation=tune(
                     "groove.syncopation",
-                    _stated_syncopation(blend(0.58, 0.82, slap), traits),
+                    _stated_syncopation(blend(0.58, 0.82, slap), song_traits),
                 ),
-                humanize=_stated_humanize(pick(profile.humanize, 0.18), traits),
-                note_length=_stated_note_length(traits),
+                humanize=_stated_humanize(pick(profile.humanize, 0.18), song_traits),
+                note_length=_stated_note_length(song_traits),
             ),
             arrangement=sections,
             harmony=HarmonySpec(
                 progression=progression,
                 harmonic_rhythm_bars=_stated_harmonic_rhythm(
-                    pick_int(profile.harmonic_rhythm_bars, 1), traits
+                    pick_int(profile.harmonic_rhythm_bars, 1), song_traits
                 ),
             ),
             bass=BassSpec(
@@ -426,7 +479,7 @@ class MusicBrain:
                 technique="slap" if slap_requested else "fingered",
                 syncopation=tune(
                     "bass.syncopation",
-                    _stated_syncopation(blend(0.58, 0.86, slap), traits),
+                    _stated_syncopation(blend(0.58, 0.86, slap), song_traits),
                 ),
                 mutation=tune("bass.mutation", blend(0.35, 0.78, mutation)),
                 octave_jump_probability=tune(
@@ -442,13 +495,13 @@ class MusicBrain:
                 # with the rest of the genre numbers, rather than as an ``if``
                 # here on one slug.
                 pattern=pick_str(profile.drum_pattern, "four_on_floor"),
-                kick_density=_stated_density(pick(profile.kick_density, 0.72), traits),
+                kick_density=_stated_density(pick(profile.kick_density, 0.72), song_traits),
                 # Left pinned at 0.78 for every genre until the composer
                 # stopped thresholding it at 0.3 to pick one of two hat grids.
                 # While it was a switch, varying it here would have looked like
                 # control without being any; now each step of it removes or
                 # restores a hat, so the families may speak.
-                hat_density=_stated_density(pick(profile.hat_density, 0.78), traits),
+                hat_density=_stated_density(pick(profile.hat_density, 0.78), song_traits),
                 dub_space=tune("drums.dub_space", blend(0.2, 0.62, dub)),
             ),
             chords=ChordSpec(

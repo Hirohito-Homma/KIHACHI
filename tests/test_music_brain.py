@@ -360,6 +360,36 @@ class StatedDarknessTests(unittest.TestCase):
         insisted = per_section("かなりメリハリのあるテクノ。32小節。")
         self.assertEqual(max(insisted) - min(insisted), 109)
 
+    def test_a_scoped_statement_reaches_only_its_half(self) -> None:
+        from kihachi_music_ai.composer import COMPOSERS
+
+        def per_section(prompt: str) -> list[int]:
+            spec = MusicBrain(seed=8).analyze(prompt)
+            notes = COMPOSERS["drums"](spec) + COMPOSERS["bass"](spec) + COMPOSERS["chords"](spec)
+            counts = []
+            for section in spec.arrangement:
+                low = section.start_bar * 4
+                high = low + section.length_bars * 4
+                counts.append(sum(1 for note in notes if low <= note.start_beats < high))
+            return counts
+
+        self.assertEqual(per_section("テクノ。32小節。"), [130, 167, 184, 196])
+        self.assertEqual(
+            per_section("前半は淡々と、後半は手数を多く。テクノ。32小節。"), [130, 159, 224, 223]
+        )
+        self.assertEqual(per_section("終盤だけスカスカに。テクノ。32小節。"), [130, 167, 151, 158])
+
+    def test_a_scoped_statement_leaves_the_song_wide_number_alone(self) -> None:
+        """`drums.kick_density` is the kit for the whole song. Raising it in the
+        second half would raise it in the first, so a scoped brief must not."""
+
+        scoped = MusicBrain(seed=8).analyze("後半は手数を多く。テクノ。32小節。")
+        self.assertEqual(scoped.drums.kick_density, 0.85)
+        self.assertEqual(scoped.drums.hat_density, 0.92)
+        # Unscoped, the same words move the kit exactly as they did before.
+        plain = MusicBrain(seed=8).analyze("手数の多いテクノ。32小節。")
+        self.assertEqual(plain.drums.kick_density, 0.916667)
+
     def test_the_brief_the_coverage_module_opens_with_now_moves(self) -> None:
         ambient = (
             "アンビエント。110 BPM、D#m。2分程度。きらびやかで高域中心、繊細。"
