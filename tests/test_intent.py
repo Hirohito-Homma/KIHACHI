@@ -54,6 +54,15 @@ class NegationTests(unittest.TestCase):
             # rule reads the gap between the two and 「は」 is not the only thing
             # that can be in it.
             "{w}を省いて。", "{w}も排除して。", "{w}を入れないで。",
+            # A brief refuses an adjective by describing the thing it does not
+            # want, and half of this vocabulary is adjectives. The ending was
+            # read as a particle, so the noun after it looked like the verb's
+            # own object: every one of these asked for the trait it refuses.
+            "{w}な音は避けて。", "{w}い音は避けて。",
+            # The compound tail #87 fixed against a hand-written list, saying
+            # this sweep could not generate one. It can -- a tail is a noun
+            # appended -- and this template fails on the rule #84 shipped.
+            "{w}サウンドは避けて。",
         )
         english = ("without {w}.", "no {w}.", "avoid {w}.")
 
@@ -188,6 +197,60 @@ class NegationTests(unittest.TestCase):
         ):
             with self.subTest(text=text):
                 self.assertTrue(read(text).refused(name))
+
+    def test_an_adjective_ending_is_not_a_boundary_between_two_nouns(self) -> None:
+        """#87 one part of speech over, and the wider half of the vocabulary.
+
+        The object rule reads the gap between a mention and the verb refusing
+        it: content, then particles, because a particle is what separates one
+        noun from the next. An adjective's ending is not that separator -- it
+        attaches the adjective to the noun that follows -- but 「い」 and 「な」
+        are kana, so 曲 and パッド read as the verb's own object and the brief
+        came back asking for the trait it refuses. A polarity flip, on 380 of
+        the 950 briefs this shape can build.
+
+        `の` was already carved out for the same reason in #87. These are the
+        other two joining kana, and the argument is one argument: the boundary
+        is the particle, and な, い and の join rather than separate.
+
+        The model reader agrees on all of these (`compare-readings`, 2026-08-19)
+        and on the controls below, where the verb really does bring its own
+        object.
+        """
+
+        for text, name in (
+            ("暗い曲は避けて。", "dark"),
+            ("明るい感じは避けて。", "bright"),
+            ("サイケデリックなパッドは避けて。", "psychedelic"),
+            ("ストレートなビートは避けて。", "straight"),
+            ("タイトな演奏は避けて。", "tight"),
+            ("ミニマルな構成は避けて。", "minimal"),
+            ("スカスカな感じは入れないで。", "sparse"),
+            # の, then い: 「歯切れのいい」 is one description, not three nouns.
+            ("歯切れのいいキックは避けて。", "staccato"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertTrue(traits.refused(name))
+                self.assertEqual(traits.strength_of(name), 0.0)
+
+    def test_an_adjective_before_a_second_object_still_leaves_it_alone(self) -> None:
+        """The control the widening had to keep: 「にして」 is still a boundary.
+
+        Adding な and い to the gap could have re-opened #84's bug, where a verb
+        looked past its own object to the nearest mention. It does not: the
+        joining kana attach a noun to what precedes them, and everything here
+        puts a particle between the trait and the verb's object instead.
+        """
+
+        for text, name in (
+            ("ミニマルな感じにして無駄を省いて。", "minimal"),
+            ("暗い感じにして低音を足さないで。", "dark"),
+            ("明るい曲にして、リバーブは足さないで。", "bright"),
+            ("タイトにしてタイミングを外して。", "tight"),
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(read(text).refused(name))
 
     def test_the_noun_forms_keep_the_reach_they_had(self) -> None:
         """Known-wrong, and pinned rather than fixed.

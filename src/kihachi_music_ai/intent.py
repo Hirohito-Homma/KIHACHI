@@ -455,10 +455,16 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
 #: Hence content first, particles after. A gap that puts them the other way
 #: round -- any non-kana after a kana -- is the verb talking about something
 #: else. The long-vowel mark counts as content, not as a particle: it belongs
-#: to 「リード」, and calling it kana split 「シンセリード」 in two. `の` counts as
-#: content too, because it joins two nouns into one phrase rather than handing
-#: the verb an object -- 「シンセのリードは省いて」 is about the synth.
-_PARTICLE_GAP = re.compile(r"^(?:[^\sぁ-ん]|の)*[\sぁ-ん]*$")
+#: to 「リード」, and calling it kana split 「シンセリード」 in two.
+#:
+#: Three kana count as content, because they **join** rather than separate.
+#: `の` puts two nouns into one phrase -- 「シンセのリードは省いて」 is about the
+#: synth -- and `な` and `い` end an adjective attached to the noun that
+#: follows it. Half of this vocabulary is adjectives, and a brief refuses one
+#: by describing the thing it does not want: 「暗い曲は避けて」, 「サイケデリック
+#: なパッドは避けて」. Calling those endings particles made 曲 and パッド the
+#: verb's object and read every one of them as a **request** for the trait.
+_PARTICLE_GAP = re.compile(r"^(?:[^\sぁ-ん]|の|な|い)*[\sぁ-ん]*$")
 
 
 def _attaches(lowered: str, end: int, start: int) -> bool:
@@ -473,6 +479,11 @@ def _attaches(lowered: str, end: int, start: int) -> bool:
     words as allowed fixed 「シンセリード」 and neither of the others, because
     「オ」 is not a word and 「ディレイ」 is not in the vocabulary. The boundary
     is the particle, not the script.
+
+    An adjective's ending is not that boundary either. 「暗い曲は避けて」 read
+    as a request for `dark`, because 曲 sits after the 「い」 and looked like the
+    verb's own object -- the same misreading, one part of speech over, on the
+    half of this vocabulary that is adjectives rather than nouns.
     """
 
     gap = lowered[end:start]
