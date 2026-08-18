@@ -6361,7 +6361,9 @@
    "name": "Old School Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "オールドスクールヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6378,7 +6380,9 @@
    "name": "Golden Age Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ゴールデンエイジヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6395,7 +6399,9 @@
    "name": "East Coast Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "イーストコーストヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6412,7 +6418,10 @@
    "name": "West Coast Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ウエストコーストヒップホップ",
+    "ウェストコーストヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6429,7 +6438,9 @@
    "name": "Southern Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "サザンヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6446,7 +6457,10 @@
    "name": "Midwest Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ミッドウエストヒップホップ",
+    "ミッドウェストヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6482,7 +6496,9 @@
    "name": "Hardcore Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ハードコアヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6499,7 +6515,9 @@
    "name": "Gangsta Rap",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ギャングスタラップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6535,7 +6553,9 @@
    "name": "Political Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポリティカルヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6552,7 +6572,9 @@
    "name": "Conscious Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "コンシャスヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6569,7 +6591,10 @@
    "name": "Alternative Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "オルタナティブヒップホップ",
+    "オルタナヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6586,7 +6611,9 @@
    "name": "Abstract Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アブストラクトヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6603,7 +6630,9 @@
    "name": "Experimental Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エクスペリメンタルヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6620,7 +6649,9 @@
    "name": "Underground Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アンダーグラウンドヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6637,7 +6668,9 @@
    "name": "Jazz Rap",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ジャズラップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6654,7 +6687,9 @@
    "name": "Horrorcore",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ホラーコア"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6688,7 +6723,9 @@
    "name": "Phonk",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フォンク"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6705,7 +6742,9 @@
    "name": "Drift Phonk",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ドリフトフォンク"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6722,7 +6761,9 @@
    "name": "Cloud Rap",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "クラウドラップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6758,7 +6799,9 @@
    "name": "Trap Soul",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "トラップソウル"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6794,7 +6837,9 @@
    "name": "Chicago Drill",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "シカゴドリル"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6811,7 +6856,9 @@
    "name": "UK Drill",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "UKドリル"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6828,7 +6875,9 @@
    "name": "Brooklyn Drill",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ブルックリンドリル"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6862,7 +6911,9 @@
    "name": "PluggnB",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "プラグンビー"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6879,7 +6930,9 @@
    "name": "Rage",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "レイジ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6896,7 +6949,9 @@
    "name": "Crunk",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "クランク"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6930,7 +6985,9 @@
    "name": "Hyphy",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ハイフィー"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6964,7 +7021,9 @@
    "name": "Miami Bass",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "マイアミベース"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6981,7 +7040,9 @@
    "name": "Electro Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エレクトロホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -6998,7 +7059,9 @@
    "name": "Industrial Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "インダストリアルヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7015,7 +7078,9 @@
    "name": "Noise Rap",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ノイズラップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7032,7 +7097,9 @@
    "name": "Emo Rap",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エモラップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7069,7 +7136,9 @@
    "name": "Chillhop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "チルホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7086,7 +7155,10 @@
    "name": "Instrumental Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "インストゥルメンタルヒップホップ",
+    "インストヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7103,7 +7175,9 @@
    "name": "Turntablism",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ターンテーブリズム"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7120,7 +7194,9 @@
    "name": "Grime Rap",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "グライムラップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7137,7 +7213,9 @@
    "name": "UK Hip-Hop",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "UKヒップホップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7154,7 +7232,9 @@
    "name": "Road Rap",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ロードラップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",
@@ -7188,7 +7268,9 @@
    "name": "Latin Trap",
    "parent": "Hip-Hop / Rap",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ラテントラップ"
+   ],
    "bpm_min": 60.0,
    "bpm_max": 160.0,
    "meter": "4/4",

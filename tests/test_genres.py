@@ -242,18 +242,19 @@ class AliasCoverageTests(unittest.TestCase):
 
         131 rows of 1020 carried an alias when this was written, and 「シカゴ
         ブルース」 matched nothing while 「chicago blues」 worked. 130 more rows
-        got one with the five families this project actually composes, and 63
-        more with the electronic families next to them -- Trance, Jungle / Drum
-        & Bass, UK Garage / Bass, Breakbeat / Breaks -- leaving 696 rows that
-        still cannot be named in Japanese at all. The count is asserted so that
-        adding aliases stays a deliberate act with a number attached.
+        got one with the five families this project actually composes, 63 more
+        with the electronic families next to them -- Trance, Jungle / Drum &
+        Bass, UK Garage / Bass, Breakbeat / Breaks -- and 39 more with Hip-Hop
+        / Rap, leaving 657 rows that still cannot be named in Japanese at all.
+        The count is asserted so that adding aliases stays a deliberate act
+        with a number attached.
         """
 
         database = load_database()
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 324)
+        self.assertEqual(len(with_alias), 363)
         self.assertEqual(
             [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
         )
@@ -414,6 +415,12 @@ class AliasSafetyTests(unittest.TestCase):
         ends in リード, the synth trait, and フロリダブレイクス (Florida Breaks)
         spells ダブ across the ダ of フロリダ and the ブ of ブレイクス. Neither
         genre is what the trait would have composed, so neither is named.
+
+        Hip-Hop supplied a third of that shape -- メンフィスラップ (Memphis Rap)
+        spells スラップ across the ス of メンフィス -- which is the collision
+        `_continues_run` was written for, arriving from the far side. It is
+        not a rare accident: three batches, three of them, and none was
+        noticed while writing the list.
 
         Listed exactly so the next batch of aliases has to make the same case
         rather than inheriting the exemption.
