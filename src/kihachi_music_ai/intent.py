@@ -161,6 +161,21 @@ JAPANESE_SUFFIX_NEGATORS = (
     "しない", "しなく", "しません", "させない", "せず", "ない", "なく", "ず",
 )
 
+#: What may sit between a mention and a suffix negator: the adverbial ending
+#: that turns the word into what ``する`` is doing. 「スウィングしないで」 was
+#: refused because ``しない`` starts where the mention ends, and 「暗くしないで」
+#: was read as a **request** for dark because 「く」 was in the way -- an
+#: adjective cannot reach ``する`` without one, so requiring bare adjacency
+#: excluded every adjective in the vocabulary from the plainest refusal there
+#: is. All eight shapes 「{w}くしないで」「{w}にはせずに」… missed, for all 95
+#: Japanese surface forms.
+#:
+#: Empty stays in the list, and the marker may not begin **before** the mention
+#: ends: 「せわしなく変わる」 has its ``なく`` overlapping the ``せわしな`` mention
+#: rather than following it, and that is what keeps the busy trait from
+#: refusing itself.
+_ADVERBIAL_MARKERS = ("", "く", "に", "くは", "には")
+
 #: Clause boundaries. Negation does not reach across one, which is what keeps
 #: ``"スラップじゃなくて指弾き。サイケに。"`` from turning the whole brief off.
 _CLAUSE_SPLIT = re.compile(r"[、。，．,.;；\n\r]+")
@@ -620,7 +635,11 @@ def _refusals(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> di
     for word in JAPANESE_SUFFIX_NEGATORS:
         for match in re.finditer(re.escape(word), lowered):
             for index, item in enumerate(mentions):
-                if item[1] == match.start():
+                if match.start() < item[1]:
+                    # An overlap, not a suffix: 「せわしなく」 finds ``なく``
+                    # inside the mention that ends after it.
+                    continue
+                if lowered[item[1]:match.start()] in _ADVERBIAL_MARKERS:
                     joined = _joined_before(lowered, mentions, index)
                     refuse(index, joined, match.start(), match.end())
 
