@@ -19,7 +19,7 @@ from kihachi_music_ai.adapters.intent_llm import (
     write_reading,
 )
 from kihachi_music_ai.cli import main
-from kihachi_music_ai.intent import TRAIT_WORDS
+from kihachi_music_ai.intent import SCOPABLE_TRAITS, TRAIT_WORDS
 
 BRIEF = "サイケデリックに。きらびやかで高域中心、繊細。ベースは控えめで薄い。"
 
@@ -43,10 +43,13 @@ class RequestTests(unittest.TestCase):
     def test_the_schema_admits_only_traits_the_brain_can_act_on(self) -> None:
         request = build_request(BRIEF)
 
-        names = request["output_config"]["format"]["schema"]["properties"]["traits"][
+        shapes = request["output_config"]["format"]["schema"]["properties"]["traits"][
             "items"
-        ]["properties"]["name"]["enum"]
-        self.assertEqual(set(names), set(TRAIT_WORDS))
+        ]["anyOf"]
+        names = {
+            name for shape in shapes for name in shape["properties"]["name"]["enum"]
+        }
+        self.assertEqual(names, set(TRAIT_WORDS))
 
     def test_the_vocabulary_is_generated_from_the_brain_not_restated(self) -> None:
         """A trait added to the brain must not go missing from the prompt."""
@@ -188,13 +191,45 @@ class ScopeTests(unittest.TestCase):
     BRIEF = "テクノ。後半は手数を多く。"
 
     def test_the_schema_offers_both_halves_and_nothing_else(self) -> None:
-        schema = intent_llm._schema()
-        scope = schema["properties"]["traits"]["items"]["properties"]["scope"]
+        scoped, plain = self._shapes()
+        scope = scoped["properties"]["scope"]
 
         self.assertEqual(scope["enum"], ["first_half", "second_half"])
         # Absent, not null: the API rejects an enum carrying null against a
         # union type, and absent is how a pre-scope reading already says this.
-        self.assertNotIn("scope", schema["properties"]["traits"]["items"]["required"])
+        self.assertNotIn("scope", scoped["required"])
+        self.assertNotIn("scope", plain["properties"])
+
+    def _shapes(self):
+        """The two trait shapes, scopable first."""
+
+        shapes = intent_llm._schema()["properties"]["traits"]["items"]["anyOf"]
+        return sorted(shapes, key=lambda shape: "scope" not in shape["properties"])
+
+    def test_the_field_does_not_exist_on_a_trait_that_cannot_carry_it(self) -> None:
+        """The prompt said which four traits take a place; the schema did not.
+
+        So the model could attach one to any of the twenty-five, and
+        `validate_reading` answered by rejecting the reading whole -- the
+        caller pays for the call and receives an error, decided by a sampling
+        accident rather than by anything in the brief. Measured on
+        「ワンコードでずっと同じ和音を引っ張って。」, which names no part of the
+        song: `slow_changes` came back scoped to the first half in two runs of
+        five, and clean in the other three.
+
+        `additionalProperties` is what makes the split bind. Without it the
+        second shape merely fails to *mention* `scope` and still accepts it.
+        """
+
+        scoped, plain = self._shapes()
+
+        self.assertEqual(set(scoped["properties"]["name"]["enum"]), set(SCOPABLE_TRAITS))
+        self.assertEqual(
+            set(plain["properties"]["name"]["enum"]),
+            set(TRAIT_WORDS) - set(SCOPABLE_TRAITS),
+        )
+        self.assertFalse(plain["additionalProperties"])
+        self.assertFalse(scoped["additionalProperties"])
 
     def test_a_scope_on_a_trait_the_brain_cannot_place_is_rejected(self) -> None:
         """`darkness` is one number for the whole song. Accepting a scoped one

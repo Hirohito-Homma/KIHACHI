@@ -58,8 +58,45 @@ comparison it happened to fall.
 """
 
 
+def _trait_shape(names: Any, *, scoped: bool) -> dict[str, Any]:
+    """One kind of trait entry: the four fields every trait has, plus placement.
+
+    Split in two because a schema that offers `scope` on every trait offers a
+    document the brain cannot act on, and :func:`validate_reading` then throws
+    the whole reading away -- a paid call returning nothing, at the model's
+    discretion rather than the caller's.
+    """
+
+    properties: dict[str, Any] = {
+        "name": {"type": "string", "enum": sorted(names)},
+        "polarity": {"type": "integer", "enum": [1, -1]},
+        "strength": {"type": "number", "enum": list(STRENGTHS)},
+        "evidence": {"type": "string"},
+    }
+    if scoped:
+        # Omitted rather than null for the whole song: the API rejects an enum
+        # carrying null against a union type, and "absent" is already how a
+        # reading stored before scopes existed says the same thing.
+        properties["scope"] = {"type": "string", "enum": [FIRST_HALF, SECOND_HALF]}
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": ["name", "polarity", "strength", "evidence"],
+        "additionalProperties": False,
+    }
+
+
 def _schema() -> dict[str, Any]:
-    """What the model may return. Every field the brain can act on, and no more."""
+    """What the model may return. Every field the brain can act on, and no more.
+
+    Two trait shapes rather than one. `scope` is a field only four traits have
+    somewhere to put (ADR-0013), and stating that in the prompt alone left the
+    schema admitting the other twenty-one with a place attached: 「ワンコードで
+    ずっと同じ和音を引っ張って」 -- a brief with no span word in it at all --
+    came back with `slow_changes` scoped to the first half in two runs of five,
+    and each of those readings was rejected whole. Under the split the field
+    does not exist on that shape, so the model cannot spend a call on it.
+    """
 
     return {
         "type": "object",
@@ -67,20 +104,10 @@ def _schema() -> dict[str, Any]:
             "traits": {
                 "type": "array",
                 "items": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string", "enum": sorted(TRAIT_WORDS)},
-                        "polarity": {"type": "integer", "enum": [1, -1]},
-                        "strength": {"type": "number", "enum": list(STRENGTHS)},
-                        "evidence": {"type": "string"},
-                        # Omitted rather than null for the whole song: the API
-                        # rejects an enum carrying null against a union type,
-                        # and "absent" is already how a reading stored before
-                        # scopes existed says the same thing.
-                        "scope": {"type": "string", "enum": [FIRST_HALF, SECOND_HALF]},
-                    },
-                    "required": ["name", "polarity", "strength", "evidence"],
-                    "additionalProperties": False,
+                    "anyOf": [
+                        _trait_shape(SCOPABLE_TRAITS, scoped=True),
+                        _trait_shape(set(TRAIT_WORDS) - set(SCOPABLE_TRAITS), scoped=False),
+                    ]
                 },
             },
             "unmapped": {
