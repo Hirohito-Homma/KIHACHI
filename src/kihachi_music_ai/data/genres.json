@@ -10252,7 +10252,9 @@
    "name": "Early Hardcore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アーリーハードコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10269,7 +10271,9 @@
    "name": "Mainstream Hardcore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "メインストリームハードコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10305,7 +10309,9 @@
    "name": "Freeform Hardcore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フリーフォームハードコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10322,7 +10328,9 @@
    "name": "Frenchcore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フレンチコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10339,7 +10347,9 @@
    "name": "Terrorcore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "テラーコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10375,7 +10385,9 @@
    "name": "Splittercore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スプリッターコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10392,7 +10404,9 @@
    "name": "Extratone",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エクストラトーン"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10409,7 +10423,9 @@
    "name": "Industrial Hardcore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "インダストリアルハードコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10426,7 +10442,9 @@
    "name": "Doomcore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ドゥームコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10443,7 +10461,9 @@
    "name": "Darkcore",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ダークコア"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10479,7 +10499,9 @@
    "name": "Early Hardstyle",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アーリーハードスタイル"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10496,7 +10518,10 @@
    "name": "Rawstyle",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ロウスタイル",
+    "ロースタイル"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10513,7 +10538,9 @@
    "name": "Euphoric Hardstyle",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ユーフォリックハードスタイル"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10530,7 +10557,9 @@
    "name": "Hard Dance",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ハードダンス"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10547,7 +10576,9 @@
    "name": "Jumpstyle",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ジャンプスタイル"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -10564,7 +10595,9 @@
    "name": "Makina",
    "parent": "Hardcore Electronic",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "マキナ"
+   ],
    "bpm_min": 145.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -11724,7 +11757,10 @@
    "name": "Philadelphia Disco",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フィラデルフィアディスコ",
+    "フィリーディスコ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11741,7 +11777,9 @@
    "name": "Euro Disco",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ユーロディスコ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11758,7 +11796,9 @@
    "name": "Italo Disco",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "イタロディスコ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11775,7 +11815,9 @@
    "name": "Space Disco",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スペースディスコ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11792,7 +11834,9 @@
    "name": "Cosmic Disco",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "コズミックディスコ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11828,7 +11872,9 @@
    "name": "Post-Disco",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポストディスコ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11845,7 +11891,9 @@
    "name": "Electro Disco",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エレクトロディスコ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11862,7 +11910,10 @@
    "name": "Nu-Disco",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ニューディスコ",
+    "ヌーディスコ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11879,7 +11930,9 @@
    "name": "French Touch",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フレンチタッチ"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -11896,7 +11949,9 @@
    "name": "Indie Dance",
    "parent": "Disco",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "インディーダンス"
+   ],
    "bpm_min": 105.0,
    "bpm_max": 130.0,
    "meter": "4/4",
@@ -17381,7 +17436,9 @@
    "name": "Big Room",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ビッグルーム"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17398,7 +17455,9 @@
    "name": "Festival Progressive House",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フェスティバルプログレッシブハウス"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17415,7 +17474,9 @@
    "name": "Future Bounce",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フューチャーバウンス"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17432,7 +17493,9 @@
    "name": "Melbourne Bounce",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "メルボルンバウンス"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17449,7 +17512,9 @@
    "name": "Dutch House",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ダッチハウス"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17466,7 +17531,9 @@
    "name": "Complextro",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "コンプレクストロ"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17483,7 +17550,9 @@
    "name": "Trap EDM",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "トラップEDM"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17500,7 +17569,9 @@
    "name": "Festival Trap",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フェスティバルトラップ"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17536,7 +17607,9 @@
    "name": "Melodic Bass",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "メロディックベース"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17553,7 +17626,9 @@
    "name": "Color Bass",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "カラーベース"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",
@@ -17570,7 +17645,9 @@
    "name": "Kawaii Future Bass",
    "parent": "EDM / Future Bass",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "カワイイフューチャーベース"
+   ],
    "bpm_min": 100.0,
    "bpm_max": 150.0,
    "meter": "4/4",

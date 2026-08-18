@@ -244,17 +244,18 @@ class AliasCoverageTests(unittest.TestCase):
         ブルース」 matched nothing while 「chicago blues」 worked. 130 more rows
         got one with the five families this project actually composes, 63 more
         with the electronic families next to them -- Trance, Jungle / Drum &
-        Bass, UK Garage / Bass, Breakbeat / Breaks -- and 39 more with Hip-Hop
-        / Rap, leaving 657 rows that still cannot be named in Japanese at all.
-        The count is asserted so that adding aliases stays a deliberate act
-        with a number attached.
+        Bass, UK Garage / Bass, Breakbeat / Breaks -- 39 more with Hip-Hop /
+        Rap, and 37 more with the rest of the dancefloor (Disco, EDM / Future
+        Bass, Hardcore Electronic), leaving 620 rows that still cannot be
+        named in Japanese at all. The count is asserted so that adding aliases
+        stays a deliberate act with a number attached.
         """
 
         database = load_database()
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 363)
+        self.assertEqual(len(with_alias), 400)
         self.assertEqual(
             [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
         )
@@ -452,6 +453,7 @@ class AliasSafetyTests(unittest.TestCase):
                 "ダブトロニカ (Dubtronica) contains ダブ (dub)",
                 "ダブポエトリー (Dub Poetry) contains ダブ (dub)",
                 "ダブワイズ (Dubwise) contains ダブ (dub)",
+                "ダークコア (Darkcore) contains ダーク (dark)",
                 "ダークサイケ (Dark Psytrance) contains サイケ (psychedelic)",
                 "ダークサイケ (Dark Psytrance) contains ダーク (dark)",
                 "ダークサイトランス (Dark Psytrance) contains ダーク (dark)",
