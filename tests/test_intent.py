@@ -149,6 +149,27 @@ class NegationTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertFalse(read(text).refused(name))
 
+    def test_the_rest_of_a_compound_is_not_another_noun(self) -> None:
+        """The object rule read the vocabulary's own words as someone else's.
+
+        A mention is one span per trait, so in 「派手なシンセリードは避けて」 only
+        「シンセ」 is a mention and 「リード」 -- the same trait, one surface form
+        over -- sat in the gap looking like an unrelated noun. The refusal was
+        dropped from a phrase this reader had understood completely.
+
+        Caught by `compare-readings` on the sweep that produced the rule: the
+        model refused `synth` and the rules asked for it, one commit after the
+        rules were right.
+        """
+
+        for text in (
+            "派手なシンセリードは避けて。",
+            "シンセリードは入れないで。",
+            "シンセのリードは省いて。",
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).refused("synth"))
+
     def test_the_noun_forms_keep_the_reach_they_had(self) -> None:
         """Known-wrong, and pinned rather than fixed.
 

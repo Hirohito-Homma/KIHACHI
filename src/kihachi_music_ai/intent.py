@@ -451,11 +451,22 @@ _PARTICLE_GAP = re.compile(r"^[\sぁ-んー]*$")
 
 
 def _attaches(lowered: str, end: int, start: int) -> bool:
-    """Whether a verb negator at `start` is about the mention ending at `end`."""
+    """Whether a verb negator at `start` is about the mention ending at `end`.
+
+    What may sit in between: particles, other negators, and **the vocabulary's
+    own words**. A mention is one span per trait, so the rest of a compound the
+    brief actually named is not a mention and looked like an unrelated noun:
+    「派手なシンセリードは避けて」 matched `synth` at 「シンセ」 and then found
+    「リード」 -- also `synth` -- in the gap, and stopped refusing a phrase this
+    reader had understood perfectly.
+    """
 
     gap = lowered[end:start]
     for word in JAPANESE_NEGATORS + JAPANESE_VERB_NEGATORS + JAPANESE_SUFFIX_NEGATORS:
         gap = gap.replace(word.casefold(), "")
+    for words in TRAIT_WORDS.values():
+        for word in words:
+            gap = gap.replace(word.casefold(), "")
     return bool(_PARTICLE_GAP.match(gap))
 
 
