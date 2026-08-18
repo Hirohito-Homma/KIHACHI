@@ -63,6 +63,10 @@ class NegationTests(unittest.TestCase):
             # this sweep could not generate one. It can -- a tail is a noun
             # appended -- and this template fails on the rule #84 shipped.
             "{w}サウンドは避けて。",
+            # The tails a brief adds to a trait word. Same misreading as the
+            # two templates above, one derivation out: the noun after the tail
+            # read as the verb's own object and the refusal was dropped.
+            "{w}すぎる音は避けて。", "{w}っぽい処理は避けて。", "{w}めの音は避けて。",
         )
         english = ("without {w}.", "no {w}.", "avoid {w}.")
 
@@ -248,6 +252,59 @@ class NegationTests(unittest.TestCase):
             ("暗い感じにして低音を足さないで。", "dark"),
             ("明るい曲にして、リバーブは足さないで。", "bright"),
             ("タイトにしてタイミングを外して。", "tight"),
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(read(text).refused(name))
+
+    def test_a_tail_the_brief_adds_is_still_the_same_word(self) -> None:
+        """#88 covered the endings a trait word has; these are the added ones.
+
+        A brief describes what it does not want, and it grows the word to do
+        it: 「暗すぎる音」, 「暗そうな曲」, 「暗めの音」, 「ダブっぽい処理」,
+        「暗くなる音」. Every one of them read as a **request** for the trait,
+        because the noun after the tail looked like the verb's own object --
+        the same polarity flip #88 fixed, one derivation further out.
+
+        The model reader refuses all five (`compare-readings`, 2026-08-19),
+        and agrees with the repaired rules on every brief probed here.
+        """
+
+        for text, name in (
+            ("暗すぎる音は避けて。", "dark"),
+            ("タイトすぎる感じは避けて。", "tight"),
+            ("明るすぎるパッドは省いて。", "bright"),
+            ("ミニマルすぎる展開は避けて。", "minimal"),
+            ("暗そうな曲は避けて。", "dark"),
+            ("暗めの音は避けて。", "dark"),
+            ("ダブっぽい処理は避けて。", "dub"),
+            ("サイケっぽいフレーズは入れないで。", "psychedelic"),
+            ("暗くなる音は避けて。", "dark"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertTrue(traits.refused(name))
+                self.assertEqual(traits.strength_of(name), 0.0)
+
+    def test_the_same_tail_conjugated_hands_the_verb_its_own_object(self) -> None:
+        """Why the tails are listed in the attributive form and not as stems.
+
+        「ダブっぽい処理は避けて」 refuses `dub` and 「ダブっぽくして低音を足さ
+        ないで」 asks for it. The two differ by one inflection, so a list of
+        stems -- 「っぽ」, 「め」 without its ending -- would refuse both, and the
+        second is an ordinary brief.
+
+        The last two are why the boundary was not named directly instead. A
+        rule listing the case particles and connectives has to hold 「から」 and
+        「ので」 as well, and each one it misses is a false refusal of a trait
+        the brief asked for.
+        """
+
+        for text, name in (
+            ("ダブっぽくして低音を足さないで。", "dub"),
+            ("暗めにして低音を足さないで。", "dark"),
+            ("暗くしてこもる音は避けて。", "dark"),
+            ("暗いから低音は足さないで。", "dark"),
+            ("暗いので無駄は省いて。", "dark"),
         ):
             with self.subTest(text=text):
                 self.assertFalse(read(text).refused(name))
