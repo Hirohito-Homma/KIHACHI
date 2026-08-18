@@ -1980,7 +1980,10 @@
    "name": "Dixieland",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ディキシーランドジャズ",
+    "ディキシーランド"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -1997,7 +2000,9 @@
    "name": "Hot Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ホットジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2033,7 +2038,9 @@
    "name": "Big Band",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ビッグバンド"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2050,7 +2057,9 @@
    "name": "Kansas City Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "カンザスシティジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2106,7 +2115,9 @@
    "name": "Hard Bop",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ハードバップ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2123,7 +2134,9 @@
    "name": "Cool Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "クールジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2140,7 +2153,10 @@
    "name": "West Coast Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ウエストコーストジャズ",
+    "ウェストコーストジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2176,7 +2192,9 @@
    "name": "Post-Bop",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポストバップ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2193,7 +2211,9 @@
    "name": "Soul Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ソウルジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2210,7 +2230,9 @@
    "name": "Jazz-Funk",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ジャズファンク"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2246,7 +2268,9 @@
    "name": "Avant-Garde Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アヴァンギャルドジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2263,7 +2287,9 @@
    "name": "Spiritual Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スピリチュアルジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2280,7 +2306,9 @@
    "name": "Third Stream",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "サードストリーム"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2297,7 +2325,9 @@
    "name": "Progressive Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "プログレッシブジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2334,7 +2364,9 @@
    "name": "Jazz Rock",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ジャズロック"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2351,7 +2383,9 @@
    "name": "Electric Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エレクトリックジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2387,7 +2421,9 @@
    "name": "Acid Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アシッドジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2404,7 +2440,10 @@
    "name": "Smooth Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スムースジャズ",
+    "スムーズジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2421,7 +2460,9 @@
    "name": "Contemporary Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "コンテンポラリージャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2438,7 +2479,10 @@
    "name": "Vocal Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ヴォーカルジャズ",
+    "ボーカルジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2455,7 +2499,9 @@
    "name": "Latin Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ラテンジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2472,7 +2518,9 @@
    "name": "Afro-Cuban Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アフロキューバンジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2489,7 +2537,9 @@
    "name": "Brazilian Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ブラジリアンジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2506,7 +2556,9 @@
    "name": "Ethio-Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エチオジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2523,7 +2575,9 @@
    "name": "Cape Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ケープジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2540,7 +2594,9 @@
    "name": "Indo-Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "インドジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2557,7 +2613,9 @@
    "name": "Nordic Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ノルディックジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2574,7 +2632,9 @@
    "name": "Chamber Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "チェンバージャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2591,7 +2651,9 @@
    "name": "Dark Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ダークジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2608,7 +2670,9 @@
    "name": "Doom Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ドゥームジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2625,7 +2689,9 @@
    "name": "Ambient Jazz",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アンビエントジャズ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
@@ -2642,7 +2708,9 @@
    "name": "Jazztronica",
    "parent": "Jazz",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ジャズトロニカ"
+   ],
    "bpm_min": 70.0,
    "bpm_max": 220.0,
    "meter": "4/4; 3/4; odd meters possible",
