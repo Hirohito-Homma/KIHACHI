@@ -242,17 +242,18 @@ class AliasCoverageTests(unittest.TestCase):
 
         131 rows of 1020 carried an alias when this was written, and 「シカゴ
         ブルース」 matched nothing while 「chicago blues」 worked. 130 more rows
-        have one now -- the five families this project actually composes -- so
-        that particular brief works, and 759 rows still cannot be named in
-        Japanese at all. The count is asserted so that adding aliases stays a
-        deliberate act with a number attached.
+        got one with the five families this project actually composes, and 63
+        more with the electronic families next to them -- Trance, Jungle / Drum
+        & Bass, UK Garage / Bass, Breakbeat / Breaks -- leaving 696 rows that
+        still cannot be named in Japanese at all. The count is asserted so that
+        adding aliases stays a deliberate act with a number attached.
         """
 
         database = load_database()
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 261)
+        self.assertEqual(len(with_alias), 324)
         self.assertEqual(
             [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
         )
@@ -408,6 +409,12 @@ class AliasSafetyTests(unittest.TestCase):
         database for failing exactly this reading: Slap House has nothing to do
         with a slap bass, and naming it would have composed one.
 
+        Two more failed it in the electronic batch, and both crossed a word
+        boundary rather than borrowing a meaning: クロスブリード (Crossbreed)
+        ends in リード, the synth trait, and フロリダブレイクス (Florida Breaks)
+        spells ダブ across the ダ of フロリダ and the ブ of ブレイクス. Neither
+        genre is what the trait would have composed, so neither is named.
+
         Listed exactly so the next batch of aliases has to make the same case
         rather than inheriting the exemption.
         """
@@ -438,10 +445,23 @@ class AliasSafetyTests(unittest.TestCase):
                 "ダブトロニカ (Dubtronica) contains ダブ (dub)",
                 "ダブポエトリー (Dub Poetry) contains ダブ (dub)",
                 "ダブワイズ (Dubwise) contains ダブ (dub)",
+                "ダークサイケ (Dark Psytrance) contains サイケ (psychedelic)",
+                "ダークサイケ (Dark Psytrance) contains ダーク (dark)",
+                "ダークサイトランス (Dark Psytrance) contains ダーク (dark)",
+                "ダークサイドジャングル (Darkside Jungle) contains ダーク (dark)",
+                "ダークステップ (Darkstep) contains ダーク (dark)",
                 "ディープダブ (Deep Dub) contains ダブ (dub)",
                 "デジタルダブ (Digital Dub) contains ダブ (dub)",
                 "ニュージャックスウィング (New Jack Swing) contains スウィング (swung)",
+                "ハイテックサイケ (Hi-Tech Psytrance) contains サイケ (psychedelic)",
+                "フォレストサイケ (Forest Psytrance) contains サイケ (psychedelic)",
+                "プログレッシブサイケ (Progressive Psytrance) contains サイケ (psychedelic)",
+                "ポストダブステップ (Post-Dubstep) contains ダブ (dub)",
+                "ミニマルサイケ (Minimal Psytrance) contains サイケ (psychedelic)",
+                "ミニマルサイケ (Minimal Psytrance) contains ミニマル (minimal)",
+                "ミニマルサイトランス (Minimal Psytrance) contains ミニマル (minimal)",
                 "ミニマルテクノ (Minimal Techno) contains ミニマル (minimal)",
+                "ミニマルドラムンベース (Minimal D&B) contains ミニマル (minimal)",
                 "ミニマルハウス (Minimal House) contains ミニマル (minimal)",
             ],
             msg="a new alias sets a trait; check the trait is true of the genre",
