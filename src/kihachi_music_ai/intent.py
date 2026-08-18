@@ -467,6 +467,30 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
 _PARTICLE_GAP = re.compile(r"^(?:[^\sぁ-ん]|の|な|い)*[\sぁ-ん]*$")
 
 
+#: Tails a trait word grows while still describing the noun that follows it.
+#: `な` and `い` (#88) are the endings a trait word already has; these are the
+#: ones a brief adds to it -- 「暗すぎる音」, 「暗そうな曲」, 「暗めの音」,
+#: 「ダブっぽい処理」, 「暗くなる音」 -- and each was read as a request for the
+#: trait it refuses, because the noun after the tail looked like the verb's
+#: own object.
+#:
+#: **In the attributive form only.** 「ダブっぽい処理は避けて」 refuses `dub`
+#: and 「ダブっぽくして低音を足さないで」 asks for it; they differ by the
+#: inflection and nothing else, so the tail is listed as 「っぽい」 and not as
+#: 「っぽ」. The model reader draws the same line on all eight probed briefs.
+#:
+#: A list, where #87 and #88 each replaced one. Naming the boundary instead --
+#: the case particles and the connectives -- was tried and is the larger,
+#: leakier list: it has to hold 「から」「ので」「けど」「し」「なら」, and every one
+#: it misses is a **false refusal** (「暗いから低音は足さないで」 asks for dark).
+#: Attribution is a closed class in Japanese and separation is not, so the
+#: shorter list is the one on the closed side.
+#:
+#: Longest first where two share a prefix, because the first match wins:
+#: 「めの」 stands before 「め」.
+_ADJECTIVAL_TAILS = ("すぎる", "すぎた", "そうな", "っぽい", "くなる", "になる", "めの", "め")
+
+
 def _attaches(lowered: str, end: int, start: int) -> bool:
     """Whether a verb negator at `start` is about the mention ending at `end`.
 
@@ -484,11 +508,23 @@ def _attaches(lowered: str, end: int, start: int) -> bool:
     as a request for `dark`, because 曲 sits after the 「い」 and looked like the
     verb's own object -- the same misreading, one part of speech over, on the
     half of this vocabulary that is adjectives rather than nouns.
+
+    Nor is a tail the brief adds to the word: 「暗すぎる音」, 「暗めの音」,
+    「ダブっぽい処理」. Those are stripped from the front of the gap, because a
+    tail belongs to the mention it follows -- see :data:`_ADJECTIVAL_TAILS`,
+    which also records why the boundary was not named directly instead.
     """
 
     gap = lowered[end:start]
     for word in JAPANESE_NEGATORS + JAPANESE_VERB_NEGATORS + JAPANESE_SUFFIX_NEGATORS:
         gap = gap.replace(word.casefold(), "")
+    for tail in _ADJECTIVAL_TAILS:
+        # Anchored to the mention, unlike the negators above: a tail is part of
+        # the word it follows, so 「暗|すぎる音」 is one description and the same
+        # kana later in the gap belong to somebody else.
+        if gap.startswith(tail):
+            gap = gap[len(tail):]
+            break
     return bool(_PARTICLE_GAP.match(gap))
 
 
