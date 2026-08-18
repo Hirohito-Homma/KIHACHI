@@ -121,33 +121,66 @@ class StatedDarknessTests(unittest.TestCase):
         return MusicBrain(seed=1).analyze(prompt).style.darkness
 
     def test_a_brief_that_says_nothing_keeps_the_genre_reading(self) -> None:
-        self.assertEqual(self.darkness("アンビエント。"), 0.48)
+        """Ambient's tags are entirely bright, and it now reads as bright.
+
+        It read 0.48 -- the neutral default -- until 2026-08-18, because the
+        call site wrote `db_darkness or 0.48` and ambient's reading was
+        exactly 0.0. Every one of the 253 rows at that end was silently
+        neutral; `mood_axes` distinguishes None from 0.0 precisely so the
+        caller does not have to guess, and `or` threw that away.
+        """
+
+        self.assertEqual(self.darkness("アンビエント。"), 0.333)
 
     def test_saying_it_moves_it_and_the_degree_decides_how_far(self) -> None:
-        self.assertEqual(self.darkness("少し暗いアンビエント。"), 0.62)
-        self.assertEqual(self.darkness("暗いアンビエント。"), 0.76)
+        self.assertEqual(self.darkness("少し暗いアンビエント。"), 0.522)
+        self.assertEqual(self.darkness("暗いアンビエント。"), 0.711)
         self.assertEqual(self.darkness("かなり暗いアンビエント。"), 0.9)
 
     def test_brightness_is_its_own_trait_and_moves_the_other_way(self) -> None:
-        self.assertEqual(self.darkness("明るいアンビエント。"), 0.226667)
+        self.assertEqual(self.darkness("明るいアンビエント。"), 0.177667)
         self.assertEqual(self.darkness("かなり明るいアンビエント。"), 0.1)
 
-    def test_a_genre_already_past_the_pole_is_left_alone(self) -> None:
-        """Reading the pole as a target made agreeing with the brief undo it.
+    def test_agreeing_with_a_dark_genre_still_moves_it_further(self) -> None:
+        """This was the pole problem, and now there is no pole to be at.
 
-        Techno's own darkness is 1.0, and the first draft answered 「暗いテクノ」
-        with 0.93 -- less dark than 「テクノ」 said on its own.
+        Techno read 1.0 -- one dark tag out of three, which the old ratio
+        could not tell from three of three -- so 「暗いテクノ」 had nowhere to
+        go and the first draft of `_stated_axis` answered it *below* plain
+        「テクノ」. The share of the row's vocabulary puts techno at 0.667, and
+        agreeing with it is an increase again.
         """
 
-        self.assertEqual(self.darkness("テクノ。"), 1.0)
-        self.assertEqual(self.darkness("暗いテクノ。"), 1.0)
-        self.assertEqual(self.darkness("かなり暗いテクノ。"), 1.0)
+        plain = self.darkness("テクノ。")
+        stated = self.darkness("暗いテクノ。")
+
+        self.assertEqual(plain, 0.667)
+        self.assertEqual(stated, 0.822333)
+        self.assertGreater(stated, plain)
+        self.assertGreater(self.darkness("かなり暗いテクノ。"), stated)
+
+    def test_nothing_reaches_either_pole_on_its_tags_alone(self) -> None:
+        """Only a row whose every tag takes one side can, and none does.
+
+        204 rows sat at 1.0 on a single word before this -- Big Band among
+        them, as dark as anything in the database, from `nocturnal`.
+        """
+
+        from kihachi_music_ai.genres import load_database, mood_axes
+
+        readings = [mood_axes([(g.slug, 1.0)])[0] for g in load_database()]
+        stated = [value for value in readings if value is not None]
+
+        self.assertEqual(len(stated), 608)
+        self.assertEqual([value for value in stated if value in (0.0, 1.0)], [])
+        self.assertEqual(max(stated), 0.833)
+        self.assertEqual(min(stated), 0.167)
 
     def test_refusing_darkness_is_not_asking_for_brightness(self) -> None:
         """The genre's own reading beats either pole when the brief only says no."""
 
-        self.assertEqual(self.darkness("暗くないテクノ。"), 1.0)
-        self.assertEqual(self.darkness("明るくないアンビエント。"), 0.48)
+        self.assertEqual(self.darkness("暗くないテクノ。"), 0.667)
+        self.assertEqual(self.darkness("明るくないアンビエント。"), 0.333)
 
     def test_swing_was_reachable_by_one_genre_of_a_thousand(self) -> None:
         """`groove.swing` drives the composer's timing, so this reaches the MIDI.
@@ -396,7 +429,7 @@ class StatedDarknessTests(unittest.TestCase):
             "ベースは控えめで薄い。パーカッションは軽く、シェイカーとハイハット中心。"
         )
 
-        self.assertEqual(self.darkness(ambient), 0.226667)
+        self.assertEqual(self.darkness(ambient), 0.177667)
 
 
 if __name__ == "__main__":

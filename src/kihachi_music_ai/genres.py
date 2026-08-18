@@ -297,10 +297,19 @@ def mood_axes(weighted: Sequence[tuple[str, float]]) -> tuple[float | None, floa
         dark = len(tags & _DARK_TAGS)
         bright = len(tags & _BRIGHT_TAGS)
         if dark or bright:
-            # An average of ratios: darkness is a direction each genre either
-            # has an opinion about or does not, so genres that stay silent are
-            # left out of the average rather than counted as neutral.
-            dark_score += (dark / (dark + bright)) * weight
+            # Darkness is a direction each genre either has an opinion about
+            # or does not, so genres that stay silent are left out of the
+            # average rather than counted as neutral.
+            #
+            # How far the opinion goes is the *share* of the row's own
+            # vocabulary that took a side, not the ratio between the two
+            # sides. `dark / (dark + bright)` cannot tell one dark tag from
+            # three: `nocturnal` alone among `sophisticated,
+            # improvisational, nocturnal` returned 1.0, the same as a row
+            # whose every tag is dark. That put 204 rows at the maximum on
+            # the strength of a single word, Big Band among them, and left
+            # `暗いジャズ` nothing to ask for.
+            dark_score += (0.5 + 0.5 * (dark - bright) / len(tags)) * weight
             dark_weight += weight
         psychedelic = len(tags & _PSYCHEDELIC_TAGS)
         if psychedelic:
