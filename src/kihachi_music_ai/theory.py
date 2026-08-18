@@ -16,6 +16,7 @@ and written out: every suffix a progression can produce is in
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 NOTE_TO_PC = {
@@ -56,15 +57,86 @@ _MINOR_WORDS = ("マイナー", "短調", "moll")
 _MAJOR_WORDS = ("メジャー", "長調", "dur")
 
 _KEY_RE = re.compile(
-    r"(?<![A-Za-z])([A-Ga-g])([#b♯♭]?)"
+    # The accidental is the one part of this pattern that must not fold case:
+    # under `re.IGNORECASE` an uppercase `B` reads as a flat, so `EBM` -- a
+    # genre in this database -- parsed as E flat minor, taking the `M` for the
+    # quality as well.
+    r"(?<![A-Za-z])([A-Ga-g])((?-i:[#b♯♭])?)"
     r"(?:\s*(m|min|minor|maj|major|" + "|".join(_MINOR_WORDS + _MAJOR_WORDS) + r"))?"
     r"(?![A-Za-z])",
     re.IGNORECASE,
 )
 
+#: Katakana, and the long vowel mark that only ever sits inside a katakana
+#: word. A bare letter glued to one of these is the first half of a word
+#: written in Japanese, not a key: 「Aメロ」 and 「Bメロ」 are the standard names
+#: for a verse and a pre-chorus, and 「Eギター」 and 「Gベース」 name instruments.
+#: The Latin guard on either side of :data:`_KEY_RE` never saw them, so
+#: 「Aメロは静かに」 composed in A major -- a key nobody stated, from a clause
+#: that was not about key at all.
+_KANA_AFTER_A_BARE_LETTER = re.compile(r"[ァ-ヿㇰ-ㇿ゙-゜ー]")
+
+#: The same shape in Latin script, which `(?![A-Za-z])` also lets through
+#: because a hyphen and an ampersand are not letters. `G-Funk` is a genre this
+#: database can be asked for by name and it composed in G major; `D&B` composed
+#: in D. The letter after the mark is what says the mark joins two halves of a
+#: name rather than ending a statement about key.
+_JOINED_TO_A_NAME = re.compile(r"[-–&][A-Za-z]")
+_JOINED_FROM_A_NAME = re.compile(r"[A-Za-z][-–&]$")
+
+#: A bare letter followed by an English word is part of a name -- `A Cappella`
+#: is the one in this database -- because a key written in English without a
+#: quality word ends its clause: `in A`, `key of G`. A quality word is inside
+#: the match, so `in A minor` never reaches this.
+_STARTS_AN_ENGLISH_NAME = re.compile(r"\s+[A-Za-z]")
+
+
+def _is_a_key(match: re.Match[str], text: str) -> bool:
+    """A match with a quality word is a key; a bare letter needs a boundary.
+
+    The quality is what makes 「Cメジャー」 a statement about key, and it is
+    inside the match, so anything that follows it is a separate word. Without
+    one there is nothing but the letter, and what sits against that letter
+    decides whether it was a key at all.
+
+    Hiragana is deliberately not refused: 「キーはAで」 is a key, and every
+    particle that can follow one is hiragana.
+
+    Lowercase `a` is refused outright as the English article. `make a G-Funk
+    beat` read it as a key -- and having refused `G-Funk` on the line above,
+    that brief would still have composed in A major. A key written in English
+    without a quality word is capitalised (`in A`, `key of G`); one written
+    with a quality is not affected by any of this.
+    """
+
+    if match.group(3):
+        return True
+    if match.group(0) == "a":
+        return False
+    if _JOINED_FROM_A_NAME.search(text, 0, match.start()):
+        return False
+    tail = match.end()
+    if _KANA_AFTER_A_BARE_LETTER.match(text, tail):
+        return False
+    if _STARTS_AN_ENGLISH_NAME.match(text, tail):
+        return False
+    return not _JOINED_TO_A_NAME.match(text, tail)
+
+
+def key_matches(text: str) -> Iterator[re.Match[str]]:
+    """Every key statement in `text`, and nothing that merely looks like one.
+
+    Exported because `brief` reports what was read by re-running the brain's
+    own readers, so a reader that is a bare pattern here and a filtered one
+    there is a report that disagrees with the song. It said 「Aメロは静かに」
+    was read as a key for exactly as long as the key reader did.
+    """
+
+    return (match for match in _KEY_RE.finditer(text) if _is_a_key(match, text))
+
 
 def parse_key(text: str, default: str = "C minor") -> tuple[str, str, int, str]:
-    match = _KEY_RE.search(text)
+    match = next(key_matches(text), None)
     if match is None:
         match = _KEY_RE.search(default)
     if match is None:  # pragma: no cover - guarded by the known default

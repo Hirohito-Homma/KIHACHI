@@ -44,7 +44,7 @@ from .intent import (
     TRAIT_WORDS,
     read as read_intent,
 )
-from .theory import _KEY_RE
+from .theory import key_matches
 
 BRIEF_COVERAGE_VERSION = "0.1"
 
@@ -58,11 +58,13 @@ _TIME_SIGNATURE_RE = re.compile(r"(?<!\d)([2-9]|1[0-2])\s*/\s*(2|4|8)(?!\d)")
 _BEATS_RE = re.compile(r"([2-9])\s*拍子")
 
 _READERS = (
-    ("bpm", _BPM_RE),
-    ("duration", _MINUTES_RE),
-    ("time_signature", _TIME_SIGNATURE_RE),
-    ("time_signature", _BEATS_RE),
-    ("key", _KEY_RE),
+    ("bpm", _BPM_RE.finditer),
+    ("duration", _MINUTES_RE.finditer),
+    ("time_signature", _TIME_SIGNATURE_RE.finditer),
+    ("time_signature", _BEATS_RE.finditer),
+    # Not `_KEY_RE.finditer`: the key reader is the pattern *and* the rule that
+    # 「Aメロ」 is a verse rather than a key, and only one of those is a regex.
+    ("key", key_matches),
 )
 
 CLAUSE_SEPARATORS = "。、\n;"
@@ -104,8 +106,8 @@ def _spans(prompt: str) -> list[tuple[int, int, str]]:
     """Every stretch of the brief something acted on, with what acted."""
 
     found: list[tuple[int, int, str]] = []
-    for label, pattern in _READERS:
-        for match in pattern.finditer(prompt):
+    for label, find in _READERS:
+        for match in find(prompt):
             found.append((match.start(), match.end(), label))
     for match in match_genres(prompt):
         found.append((match.position, match.position + len(match.matched), "genre"))

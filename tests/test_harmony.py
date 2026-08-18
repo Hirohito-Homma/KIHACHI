@@ -17,6 +17,7 @@ from kihachi_music_ai.theory import (
     PROGRESSIONS,
     chord_is_minor,
     chord_pitches,
+    parse_key,
     progression_for_key,
     split_chord,
 )
@@ -123,6 +124,118 @@ class EveryPartSurvivesTheNewChordsTests(unittest.TestCase):
         # G is the seventh of Am7 and is not in the plain A minor triad.
         self.assertIn(7, pitch_classes)  # E, from the triad
         self.assertIn(11, pitch_classes)  # B, the root of the iiø7
+
+
+class KeyReadingTests(unittest.TestCase):
+    """What a bare letter means depends on what is written next to it.
+
+    `_KEY_RE` guards against a Latin letter on either side, which is what makes
+    `key of G` work and `Gm` a minor key. Nothing guarded the Japanese side, so
+    every 「Aメロ」 -- the standard word for a verse -- stated a key of A major,
+    and so did 「Eギター」, 「Gベース」 and 「Bパート」. None of those clauses is
+    about key, and the key they set was the one thing about the song a brief
+    is most likely to state deliberately somewhere else.
+    """
+
+    def test_the_japanese_word_for_a_verse_is_not_a_key(self) -> None:
+        for brief in ("Aメロは静かに", "Bメロで盛り上げて", "Aメロからサビへ", "Bパートを長く"):
+            with self.subTest(brief=brief):
+                self.assertEqual(parse_key(brief)[0], "C minor")
+
+    def test_an_instrument_named_by_its_letter_is_not_a_key(self) -> None:
+        for brief in ("Eギターを重ねて", "Gベースを太く"):
+            with self.subTest(brief=brief):
+                self.assertEqual(parse_key(brief)[0], "C minor")
+
+    def test_a_key_stated_in_japanese_still_reads(self) -> None:
+        """The quality word is inside the match, so it is the boundary.
+
+        These are the shapes the refusal must not touch: with a quality there
+        is no ambiguity about what the letter was doing, whichever script the
+        quality is written in.
+        """
+
+        self.assertEqual(parse_key("D#マイナーのテクノ")[0], "D# minor")
+        self.assertEqual(parse_key("キーはEマイナー")[0], "E minor")
+        self.assertEqual(parse_key("Cメジャーで")[0], "C major")
+        self.assertEqual(parse_key("A♭マイナー")[0], "Ab minor")
+
+    def test_a_particle_after_a_bare_letter_still_reads(self) -> None:
+        """Hiragana is not refused, and it is why the rule names katakana.
+
+        Every particle that can follow a stated key is hiragana, so 「キーはAで」
+        has to keep working. Katakana after a bare letter is the opposite
+        signal: it is a word, and the letter was its first syllable.
+        """
+
+        self.assertEqual(parse_key("キーはAで")[0], "A major")
+        self.assertEqual(parse_key("キーはGにして")[0], "G major")
+
+    def test_the_key_is_read_from_the_clause_that_states_one(self) -> None:
+        """`parse_key` takes the first match, and 「Aメロ」 used to be first.
+
+        A brief that says both -- which is the normal way to write one -- lost
+        the key it stated to the section it named before it.
+        """
+
+        self.assertEqual(parse_key("Aメロは静かに、キーはDマイナー")[0], "D minor")
+
+    def test_the_ascii_shapes_are_untouched(self) -> None:
+        self.assertEqual(parse_key("key of G")[0], "G major")
+        self.assertEqual(parse_key("Gm")[0], "G minor")
+        self.assertEqual(parse_key("C minor")[0], "C minor")
+
+    def test_a_genre_written_in_latin_script_is_not_a_key(self) -> None:
+        """The Latin guard reads a letter, and these are joined by marks.
+
+        `(?![A-Za-z])` was written to stop `G` matching inside `Groove`, and a
+        hyphen and an ampersand are not letters -- so `G-Funk`, a genre this
+        database answers to by name, composed in G major, and `D&B` in D. The
+        second half is refused too: with only the first rule `D&B` moved from
+        D major to B major rather than to no key at all.
+        """
+
+        for brief in ("G-Funk", "g-funk track", "D&B", "B-Boy", "make a G-Funk beat"):
+            with self.subTest(brief=brief):
+                self.assertEqual(parse_key(brief)[0], "C minor")
+
+    def test_an_uppercase_b_is_not_a_flat(self) -> None:
+        """`re.IGNORECASE` was folding the accidental as well as the letter.
+
+        So `EBM` -- Electronic Body Music, a row in this database -- read as
+        E, flat, and `M` for the quality: E flat minor, from three letters
+        that name a genre. The accidental is the one group that has to stay
+        case-sensitive, and `Ab`, `Bb` and `Eb` still read as flats.
+        """
+
+        self.assertEqual(parse_key("EBM")[0], "C minor")
+        self.assertEqual(parse_key("Ab major")[0], "Ab major")
+        self.assertEqual(parse_key("key of Bb")[0], "Bb major")
+
+    def test_an_english_word_after_the_letter_makes_it_a_name(self) -> None:
+        """`A Cappella` is the one left in the database, and `a` is the article.
+
+        A key written in English without a quality word ends its clause --
+        `in A`, `key of G`, `the key is C` -- so a letter followed by another
+        English word is part of a name. The lowercase article is refused
+        outright: `make a G-Funk beat` still composed in A major once the
+        hyphen rule had refused the G.
+        """
+
+        self.assertEqual(parse_key("A Cappella")[0], "C minor")
+        self.assertEqual(parse_key("in A")[0], "A major")
+        self.assertEqual(parse_key("the key is C")[0], "C major")
+        self.assertEqual(parse_key("key of G")[0], "G major")
+
+    def test_a_mode_this_project_cannot_write_is_left_alone(self) -> None:
+        """Known limit, stated so the refusal is not mistaken for a reading.
+
+        「Dドリアン」 names D as a tonic and this reader has no modes beyond
+        major and minor, so the refusal loses the D. Composing D major from it
+        would have been a different wrong answer, not a right one.
+        """
+
+        self.assertEqual(parse_key("Dドリアン")[0], "C minor")
 
 
 if __name__ == "__main__":

@@ -598,6 +598,30 @@ class AliasSafetyTests(unittest.TestCase):
             msg="a new alias sets a trait; check the trait is true of the genre",
         )
 
+    def test_no_genre_can_be_named_without_stating_a_key(self) -> None:
+        """The fifth invariant, and the one a person cannot see by reading.
+
+        A name is matched out of the brief, and so is the key -- by a different
+        reader that knows nothing about genres. Three names parsed as a key:
+        `G-Funk` (G major), `D&B` (D), `EBM` (E flat minor, because
+        `re.IGNORECASE` folded the accidental too) and `A Cappella` (A), and
+        「Gファンク」 carried it into Japanese as well. Asking the key reader
+        about every name and alias is cheap and says so before the alias
+        ships, which is what the four invariants above could not do here:
+        they compare aliases with the trait vocabulary, and a key is neither.
+        """
+
+        from kihachi_music_ai.theory import key_matches
+
+        stating_a_key = sorted(
+            f"{text} ({genre.name}) -> {[m.group(0) for m in key_matches(text)]}"
+            for genre in load_database()
+            for text in (genre.name, *genre.aliases)
+            if list(key_matches(text))
+        )
+
+        self.assertEqual(stating_a_key, [], msg="this name would set the song's key")
+
     def test_two_rows_claiming_one_spelling_are_a_family_and_its_member(self) -> None:
         """24 forms are claimed twice, and `_surface_forms` resolves them.
 

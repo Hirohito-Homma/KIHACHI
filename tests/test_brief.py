@@ -83,6 +83,31 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(spec.song.key, "D# minor")
         self.assertEqual(spec.song.mode, "minor")
 
+    def test_a_verse_named_in_japanese_is_reported_as_unread(self) -> None:
+        """The report and the song have to agree about 「Aメロ」.
+
+        `brief` re-runs the brain's readers so coverage cannot drift from
+        behaviour, and it imported the key *pattern* -- which matched 「Aメロ」
+        and made the report say a key had been read, because the song was
+        composing in A major. Filtering only `parse_key` would have kept the
+        claim and dropped the behaviour, which is the same disagreement the
+        other way round.
+        """
+
+        brief = "ポップ。Aメロは静かに。"
+
+        coverage = read_coverage(brief)
+
+        self.assertIn("Aメロは静かに", coverage["unread"])
+        self.assertEqual(MusicBrain(seed=8).analyze(brief).song.key, "C minor")
+
+    def test_the_key_a_brief_states_is_still_the_key_it_gets(self) -> None:
+        brief = "Aメロは静かに、キーはDマイナー。"
+
+        spec = MusicBrain(seed=8).analyze(brief)
+
+        self.assertEqual(spec.song.key, "D minor")
+
 
 class ReportTests(unittest.TestCase):
     def test_an_unread_clause_is_not_called_a_rejected_one(self) -> None:
