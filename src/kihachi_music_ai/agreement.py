@@ -47,6 +47,13 @@ AGREE = "agree"
 POLARITY = "polarity_differs"
 SCOPE = "scope_differs"
 STRENGTH = "strength_differs"
+#: A strength difference on a trait **both readers refuse**. Reported, and
+#: ranked last, because it cannot reach the song: `Traits.strength_of` returns
+#: 0.0 for any refusal, so -1.5 and -1.0 compose byte-identical MIDI. The first
+#: sweep to use this tool spent its afternoon on one -- 「ボコーダーは厳禁で」,
+#: model -1.5 against rules -1.0 -- which was worth it for what stood behind it
+#: and was not, in itself, a difference about the song.
+STRENGTH_ON_A_REFUSAL = "strength_differs_on_a_refusal"
 MODEL_ONLY = "model_only"
 RULES_ONLY = "rules_only"
 
@@ -57,7 +64,17 @@ RULES_ONLY = "rules_only"
 #: `scope_differs` sits under a polarity difference and above everything else:
 #: the two readers agree the brief asked for this and disagree about **where**
 #: it lands, which is a change applied to the wrong half of the song.
-SEVERITY = (POLARITY, SCOPE, MODEL_ONLY, RULES_ONLY, STRENGTH, AGREE)
+#: `strength_differs_on_a_refusal` sits last of the disagreements, below the
+#: strength difference that can move a number, because nothing reads it.
+SEVERITY = (
+    POLARITY,
+    SCOPE,
+    MODEL_ONLY,
+    RULES_ONLY,
+    STRENGTH,
+    STRENGTH_ON_A_REFUSAL,
+    AGREE,
+)
 
 
 #: The marks a brief separates its statements with, as `brief` and `intent` both
@@ -104,7 +121,14 @@ def compare_readings(reading: dict[str, Any]) -> dict[str, Any]:
         elif left.get("scope") != right.scope:
             rows.append(_row(name, SCOPE, left, right))
         elif float(left.get("strength", 0.0)) != right.strength:
-            rows.append(_row(name, STRENGTH, left, right))
+            # Both refuse it, so the number they disagree about is one nothing
+            # downstream reads. Still reported -- a reader that cannot be
+            # trusted about degree is worth knowing about -- but not ranked
+            # with the differences that change a song.
+            refused = int(left.get("polarity", 1)) < 0 and right.polarity < 0
+            rows.append(
+                _row(name, STRENGTH_ON_A_REFUSAL if refused else STRENGTH, left, right)
+            )
         else:
             rows.append(_row(name, AGREE, left, right))
 
@@ -197,6 +221,11 @@ def describe(comparison: dict[str, Any]) -> list[str]:
         lines.append(f"  {row['trait']:<14} {row['status']}")
         lines.append(f"      model: {_side(row['model'])}")
         lines.append(f"      rules: {_side(row['rules'])}")
+        if row["status"] == STRENGTH_ON_A_REFUSAL:
+            lines.append(
+                "      (both refuse it, and a refusal has one strength: "
+                "this difference cannot reach the song)"
+            )
     for phrase in comparison["contested_unmapped"]:
         lines.append(f"  the model called {phrase!r} unmapped, but the rules read it")
     if not comparison["disagreements"] and not comparison["contested_unmapped"]:

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import dataclasses
 import unittest
+from unittest import mock
 
+from kihachi_music_ai import music_brain
+from kihachi_music_ai.intent import Traits, read
 from kihachi_music_ai.models import SongSpec
 from kihachi_music_ai.music_brain import MusicBrain
 
@@ -74,6 +78,45 @@ class RefusalTests(unittest.TestCase):
 
         self.assertFalse(spec.vocal.enabled)
         self.assertFalse(spec.vocal.vocoder)
+
+
+    def test_a_refusal_has_one_strength_because_nothing_reads_it(self) -> None:
+        """Measured, so that wiring 「厳禁」 to a degree is not mistaken for work.
+
+        `Traits.strength_of` returns 0.0 for any refusal -- the refused pole is
+        the constant the code used before the trait existed -- and `.strength`
+        is read nowhere else in the brain. So a brief that insists on refusing
+        composes exactly what a brief that merely refuses composes.
+
+        The control is the point. A test that only asserts two refusals match
+        would pass against a brain that ignores strength altogether, so the
+        same substitution is made on the requesting side, where it must move
+        the song.
+        """
+
+        brief = "ボコーダーは厳禁で、スラップは避けて、暗いのは要らない。テクノ。"
+
+        def at(strength: float, *, polarity: int | None = None):
+            def fake(text: str):
+                traits = read(text)
+                return Traits(
+                    tuple(
+                        dataclasses.replace(
+                            trait,
+                            strength=strength,
+                            polarity=polarity or trait.polarity,
+                        )
+                        if polarity is not None or trait.polarity < 0
+                        else trait
+                        for trait in traits.traits
+                    )
+                )
+
+            with mock.patch.object(music_brain, "read_intent", fake):
+                return MusicBrain(seed=8).analyze(brief).to_json()
+
+        self.assertEqual(at(1.0), at(1.5))
+        self.assertNotEqual(at(1.0, polarity=1), at(1.5, polarity=1))
 
 
 class DegreeTests(unittest.TestCase):
