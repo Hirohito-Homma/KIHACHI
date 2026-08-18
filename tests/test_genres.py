@@ -245,17 +245,18 @@ class AliasCoverageTests(unittest.TestCase):
         got one with the five families this project actually composes, 63 more
         with the electronic families next to them -- Trance, Jungle / Drum &
         Bass, UK Garage / Bass, Breakbeat / Breaks -- 39 more with Hip-Hop /
-        Rap, and 37 more with the rest of the dancefloor (Disco, EDM / Future
-        Bass, Hardcore Electronic), leaving 620 rows that still cannot be
-        named in Japanese at all. The count is asserted so that adding aliases
-        stays a deliberate act with a number attached.
+        Rap, 37 more with the rest of the dancefloor (Disco, EDM / Future
+        Bass, Hardcore Electronic) and 33 more with Punk / Hardcore, leaving
+        587 rows that still cannot be named in Japanese at all. The count is
+        asserted so that adding aliases stays a deliberate act with a number
+        attached.
         """
 
         database = load_database()
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 400)
+        self.assertEqual(len(with_alias), 433)
         self.assertEqual(
             [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
         )
@@ -423,6 +424,12 @@ class AliasSafetyTests(unittest.TestCase):
         not a rare accident: three batches, three of them, and none was
         noticed while writing the list.
 
+        Punk supplied the opposite: ストレートエッジ (Straight Edge) contains
+        ストレート and the word is *not* the trait -- straight edge is a
+        position on drinking, not on timing. Same spelling, unrelated sense,
+        and no boundary crossed. So the reading has to be about the genre,
+        not about the string.
+
         Listed exactly so the next batch of aliases has to make the same case
         rather than inheriting the exemption.
         """
@@ -447,6 +454,7 @@ class AliasSafetyTests(unittest.TestCase):
                 "サイケデリックロック (Psychedelic Rock) contains サイケ (psychedelic)",
                 "シンセウェイヴ (Synthwave) contains シンセ (synth)",
                 "シンセウェーブ (Synthwave) contains シンセ (synth)",
+                "シンセパンク (Synth Punk) contains シンセ (synth)",
                 "シンセファンク (Synth Funk) contains シンセ (synth)",
                 "ダブステップ (Dubstep) contains ダブ (dub)",
                 "ダブテクノ (Dub Techno) contains ダブ (dub)",

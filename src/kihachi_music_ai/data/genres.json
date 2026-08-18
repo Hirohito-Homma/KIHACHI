@@ -5027,7 +5027,9 @@
    "name": "Punk Rock",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "パンクロック"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5044,7 +5046,9 @@
    "name": "Proto-Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "プロトパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5061,7 +5065,9 @@
    "name": "Garage Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ガレージパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5078,7 +5084,9 @@
    "name": "Hardcore Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ハードコアパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5095,7 +5103,9 @@
    "name": "US Hardcore",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "USハードコア"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5112,7 +5122,9 @@
    "name": "UK Hardcore",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "UKハードコア"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5129,7 +5141,9 @@
    "name": "NYHC",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ニューヨークハードコア"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5146,7 +5160,9 @@
    "name": "Youth Crew",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ユースクルー"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5180,7 +5196,9 @@
    "name": "Melodic Hardcore",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "メロディックハードコア"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5197,7 +5215,9 @@
    "name": "Post-Hardcore",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポストハードコア"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5214,7 +5234,9 @@
    "name": "Crust Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "クラストパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5231,7 +5253,9 @@
    "name": "D-Beat",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ディービート"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5248,7 +5272,9 @@
    "name": "Anarcho-Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アナーコパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5265,7 +5291,9 @@
    "name": "Street Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ストリートパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5282,7 +5310,9 @@
    "name": "Oi!",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "オイパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5316,7 +5346,9 @@
    "name": "Horror Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ホラーパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5333,7 +5365,9 @@
    "name": "Cowpunk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "カウパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5350,7 +5384,9 @@
    "name": "Skate Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スケートパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5367,7 +5403,9 @@
    "name": "Pop Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポップパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5384,7 +5422,9 @@
    "name": "Queercore",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "クィアコア"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5401,7 +5441,9 @@
    "name": "Riot Grrrl",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ライオットガール"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5418,7 +5460,9 @@
    "name": "Digital Hardcore",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "デジタルハードコア"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5435,7 +5479,9 @@
    "name": "Electropunk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エレクトロパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5452,7 +5498,9 @@
    "name": "Synth Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "シンセパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5469,7 +5517,9 @@
    "name": "Dance-Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ダンスパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5486,7 +5536,9 @@
    "name": "Art Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アートパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5522,7 +5574,10 @@
    "name": "No Wave",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ノーウェイヴ",
+    "ノーウェーブ"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5539,7 +5594,9 @@
    "name": "Noise Punk",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ノイズパンク"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5556,7 +5613,10 @@
    "name": "Powerviolence",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "パワーヴァイオレンス",
+    "パワーバイオレンス"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5573,7 +5633,9 @@
    "name": "Grindcore",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "グラインドコア"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5590,7 +5652,9 @@
    "name": "Cybergrind",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "サイバーグラインド"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5607,7 +5671,9 @@
    "name": "Goregrind",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ゴアグラインド"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
@@ -5624,7 +5690,9 @@
    "name": "Deathgrind",
    "parent": "Punk / Hardcore",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "デスグラインド"
+   ],
    "bpm_min": 120.0,
    "bpm_max": 220.0,
    "meter": "4/4",
