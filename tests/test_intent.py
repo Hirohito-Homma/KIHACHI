@@ -23,6 +23,58 @@ SEED_PROMPT = (
 )
 
 
+class SuffixDegreeTests(unittest.TestCase):
+    """「暗め」 is a degree word spelled as a suffix, and nothing read it."""
+
+    def test_a_degree_can_be_glued_to_the_word(self) -> None:
+        """「暗めにして」 composed exactly as dark as 「暗くして」 before this.
+
+        Every other degree word in this vocabulary stands as a separate word
+        and is found by searching the span around the mention. This one is one
+        kana attached to it, so it is read at that position only -- 「控えめ」
+        and 「まとめ」 contain the same kana and mean nothing of the sort.
+        """
+
+        for text, name in (
+            ("暗めにして。", "dark"),
+            ("暗めのパッドで。", "dark"),
+            ("明るめで。", "bright"),
+            ("暗め。", "dark"),
+            ("タイトめでお願い。", "tight"),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(read(text).strength_of(name), SMALL_STRENGTH)
+
+    def test_a_stated_degree_beats_the_suffix(self) -> None:
+        """Same rule litotes follows: only a plain mention is softened.
+
+        `_hedged_by_suffix` returns early unless the strength is still
+        ``PLAIN_STRENGTH``, so 「かなり暗めに」 is insisted on rather than read
+        as its own opposite.
+        """
+
+        self.assertEqual(read("かなり暗めに。").strength_of("dark"), LARGE_STRENGTH)
+        self.assertEqual(read("少し暗めに。").strength_of("dark"), SMALL_STRENGTH)
+        self.assertEqual(read("暗くして。").strength_of("dark"), PLAIN_STRENGTH)
+
+    def test_the_two_imperatives_that_end_in_the_same_kana(self) -> None:
+        """詰め込む -> 詰め込め and 食い込む -> 食い込め ask for more, not less.
+
+        These two are the only surface forms of 155 whose ``{word}め`` is a
+        conjugation rather than a degree, and both are ordinary things to write
+        in a brief. Hedging them would read the opposite of what was asked.
+        """
+
+        self.assertEqual(read("手数を詰め込め。").strength_of("busy"), PLAIN_STRENGTH)
+        self.assertEqual(read("ベースは食い込め。").strength_of("syncopated"), PLAIN_STRENGTH)
+
+    def test_the_words_that_merely_contain_the_kana(self) -> None:
+        """The reason it is read at one position instead of searched for."""
+
+        self.assertEqual(read("サイケは控えめに。").strength_of("psychedelic"), SMALL_STRENGTH)
+        self.assertEqual(read("ダブでまとめて。").strength_of("dub"), PLAIN_STRENGTH)
+
+
 class NegationTests(unittest.TestCase):
     """The reason this module exists: a stated refusal used to read as a request."""
 
