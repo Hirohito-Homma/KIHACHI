@@ -11,6 +11,7 @@ from .intent import (
     FIRST_HALF,
     LARGE_STRENGTH,
     SECOND_HALF,
+    TRAIT_WORDS,
     Traits,
     blend,
     read as read_intent,
@@ -131,6 +132,13 @@ def _stated_darkness(base: float, traits: Traits) -> float:
     return _stated_axis(
         base, traits, up="dark", up_pole=_DARK_POLE, down="bright", down_pole=_BRIGHT_POLE
     )
+
+
+#: Surface forms that state a feel outright, so a genre they also name cannot
+#: be read as evidence for that feel. Only the two rhythm axes the database's
+#: groove column reaches; a word like 「ダブ」 names an effect and a genre and is
+#: not this shape.
+_FEEL_WORDS = frozenset(TRAIT_WORDS["swung"]) | frozenset(TRAIT_WORDS["straight"])
 
 
 def _stated_swing(base: float, traits: Traits) -> float:
@@ -404,6 +412,28 @@ class MusicBrain:
         # The dominant genre's family, where the shipped table has one for it.
         # Everything it declines to answer keeps the constant used below.
         profile = profile_for(weighted)
+        # 「スウィング」 is the `swung` trait word *and* the Swing genre's alias,
+        # and since the database's groove column reached `swing` (PR #79) the
+        # same word was being counted twice: once as the feel the brief asked
+        # for, and once as a jazz genre whose own feel then overrode it.
+        # 「スウィングしないテクノ」 came out swung, and 「かなりスウィングさせて」
+        # composed exactly what plain 「スウィングさせて」 did, because the genre
+        # sat above whatever the degree word asked for.
+        #
+        # A word already read as a feel is not also evidence for the feel of a
+        # genre it happens to name. The genre stays -- it is still a real
+        # match, and `dub` depends on that -- it just does not get to answer
+        # the question its own name asked.
+        spoken_feel = {
+            match.genre.slug
+            for match in match_genres(prompt)
+            if match.matched in _FEEL_WORDS
+        }
+        feel_profile = (
+            profile_for([item for item in weighted if item[0] not in spoken_feel])
+            if spoken_feel
+            else profile
+        )
         instruments = self._instruments(traits, vocoder_requested)
         # Learned offsets, if any were supplied. ``tune`` is the identity when
         # the preferences are empty, which is the default.
@@ -470,7 +500,7 @@ class MusicBrain:
                 ),
             ),
             groove=GrooveSpec(
-                swing=_stated_swing(pick(profile.swing, 0.5), song_traits),
+                swing=_stated_swing(pick(feel_profile.swing, 0.5), song_traits),
                 syncopation=tune(
                     "groove.syncopation",
                     _stated_syncopation(blend(0.58, 0.82, slap), song_traits),
