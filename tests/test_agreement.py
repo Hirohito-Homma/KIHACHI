@@ -12,7 +12,9 @@ from kihachi_music_ai.agreement import (
     POLARITY,
     RULES_ONLY,
     SCOPE,
+    SEVERITY,
     STRENGTH,
+    STRENGTH_ON_A_REFUSAL,
     compare_readings,
     describe,
 )
@@ -149,6 +151,46 @@ class ComparisonTests(unittest.TestCase):
 
         self.assertEqual(status_of(comparison, "psychedelic"), STRENGTH)
 
+    def test_a_degree_difference_about_a_refusal_is_smaller_still(self) -> None:
+        """Reported, ranked last, and labelled: nothing downstream reads it.
+
+        `Traits.strength_of` returns 0.0 for any refusal, so a trait both
+        readers turn down composes the same song at -1.0 and at -1.5. The
+        first sweep to use this tool chased one for an afternoon --
+        「ボコーダーは厳禁で」, model -1.5 against rules -1.0. That afternoon
+        was worth it, for the two polarity bugs standing behind it (#84), and
+        the difference itself was still not about the song.
+        """
+
+        brief = "ボコーダーは厳禁で。"
+        comparison = compare_readings(
+            reading(brief, [{"name": "vocoder", "polarity": -1, "strength": 1.5, "evidence": "ボコーダーは厳禁"}])
+        )
+
+        self.assertEqual(status_of(comparison, "vocoder"), STRENGTH_ON_A_REFUSAL)
+        self.assertEqual(comparison["disagreements"], 1)
+        self.assertLess(
+            SEVERITY.index(STRENGTH), SEVERITY.index(STRENGTH_ON_A_REFUSAL)
+        )
+
+    def test_one_reader_refusing_is_a_polarity_difference_not_this(self) -> None:
+        """Both must refuse it. One refusing and one asking is the top row."""
+
+        brief = "サイケは避けて。"
+        comparison = compare_readings(
+            reading(brief, [{"name": "psychedelic", "polarity": 1, "strength": 1.5, "evidence": "サイケ"}])
+        )
+
+        self.assertEqual(status_of(comparison, "psychedelic"), POLARITY)
+
+    def test_a_degree_difference_about_a_request_keeps_its_rank(self) -> None:
+        brief = "かなりサイケに。"
+        comparison = compare_readings(
+            reading(brief, [{"name": "psychedelic", "polarity": 1, "strength": 1.0, "evidence": "サイケ"}])
+        )
+
+        self.assertEqual(status_of(comparison, "psychedelic"), STRENGTH)
+
     def test_each_reader_can_be_alone(self) -> None:
         brief = "サイケに。"
         model_extra = compare_readings(
@@ -205,6 +247,18 @@ class ReportTests(unittest.TestCase):
         )
 
         self.assertIn("agree on every trait", lines)
+
+    def test_a_refused_degree_says_why_it_is_listed_last(self) -> None:
+        brief = "ボコーダーは厳禁で。"
+        lines = describe(
+            compare_readings(
+                reading(brief, [{"name": "vocoder", "polarity": -1, "strength": 1.5, "evidence": "ボコーダーは厳禁"}])
+            )
+        )
+
+        self.assertTrue(
+            any("cannot reach the song" in line for line in lines), msg=lines
+        )
 
     def test_a_disagreement_shows_both_sides(self) -> None:
         lines = "\n".join(
