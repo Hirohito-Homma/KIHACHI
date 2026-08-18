@@ -6289,7 +6289,9 @@
    "name": "Traditional Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "トラディショナルポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6307,7 +6309,9 @@
    "name": "Contemporary Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "コンテンポラリーポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6325,7 +6329,9 @@
    "name": "Adult Contemporary",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アダルトコンテンポラリー"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6343,7 +6349,9 @@
    "name": "Teen Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ティーンポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6361,7 +6369,9 @@
    "name": "Dance Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ダンスポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6379,7 +6389,9 @@
    "name": "Electropop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エレクトロポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6397,7 +6409,10 @@
    "name": "Synthpop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "シンセポップ",
+    "シンセ・ポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6415,7 +6430,10 @@
    "name": "Indie Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "インディーポップ",
+    "インディポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6433,7 +6451,9 @@
    "name": "Chamber Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "チェンバーポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6451,7 +6471,9 @@
    "name": "Baroque Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "バロックポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6469,7 +6491,9 @@
    "name": "Art Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アートポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6487,7 +6511,9 @@
    "name": "Experimental Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エクスペリメンタルポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6505,7 +6531,10 @@
    "name": "Avant-Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アヴァンポップ",
+    "アバンポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6523,7 +6552,9 @@
    "name": "Bedroom Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ベッドルームポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6541,7 +6572,9 @@
    "name": "Lo-Fi Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ローファイポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6559,7 +6592,9 @@
    "name": "Hyperpop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ハイパーポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6577,7 +6612,9 @@
    "name": "Bubblegum Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "バブルガムポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6595,7 +6632,9 @@
    "name": "Power Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "パワーポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6613,7 +6652,9 @@
    "name": "Sunshine Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "サンシャインポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6631,7 +6672,10 @@
    "name": "Sophisti-Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ソフィスティポップ",
+    "ソフィスティケイテッドポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6649,7 +6693,10 @@
    "name": "Progressive Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "プログレッシブポップ",
+    "プログレッシヴポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6667,7 +6714,9 @@
    "name": "Psychedelic Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "サイケデリックポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6685,7 +6734,9 @@
    "name": "Orchestral Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "オーケストラルポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6703,7 +6754,9 @@
    "name": "Folk Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フォークポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6721,7 +6774,9 @@
    "name": "Country Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "カントリーポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6739,7 +6794,9 @@
    "name": "Pop Soul",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポップソウル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6757,7 +6814,9 @@
    "name": "Pop Rap",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポップラップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6775,7 +6834,9 @@
    "name": "Latin Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ラテンポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6793,7 +6854,9 @@
    "name": "Europop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ユーロポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6811,7 +6874,9 @@
    "name": "Scandipop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スカンジポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6829,7 +6894,9 @@
    "name": "French Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フレンチポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6847,7 +6914,9 @@
    "name": "Italian Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "イタリアンポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6865,7 +6934,9 @@
    "name": "Mandopop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "マンドポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6883,7 +6954,9 @@
    "name": "Cantopop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "カントポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6943,7 +7016,9 @@
    "name": "C-Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "Cポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6961,7 +7036,9 @@
    "name": "T-Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "Tポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6979,7 +7056,9 @@
    "name": "P-Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "Pポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -6997,7 +7076,9 @@
    "name": "V-Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "Vポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",
@@ -7033,7 +7114,10 @@
    "name": "Arabic Pop",
    "parent": "Pop",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アラビックポップ",
+    "アラブポップ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 140.0,
    "meter": "4/4",

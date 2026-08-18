@@ -248,7 +248,8 @@ class AliasCoverageTests(unittest.TestCase):
         Rap, 37 more with the rest of the dancefloor (Disco, EDM / Future
         Bass, Hardcore Electronic), 33 more with Punk / Hardcore and 46 more
         with Rock and 46 more with Metal -- the two families where every
-        unnamed row could be named -- and 32 more with Jazz, leaving 463 rows
+        unnamed row could be named -- 32 more with Jazz and 39 more with Pop,
+        the family every unrecognised brief falls back to, leaving 424 rows
         that still cannot be named in Japanese at all. The count is asserted
         so that adding aliases stays a deliberate act with a number attached.
         """
@@ -257,7 +258,7 @@ class AliasCoverageTests(unittest.TestCase):
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 557)
+        self.assertEqual(len(with_alias), 596)
         self.assertEqual(
             [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
         )
@@ -444,10 +445,10 @@ class RhythmCharacterTests(unittest.TestCase):
         )
 
         self.assertEqual(rebuilt, json.loads(shipped.read_text(encoding="utf-8")))
-        self.assertEqual(sum(1 for g in rebuilt["genres"] if g["aliases"]), 557)
+        self.assertEqual(sum(1 for g in rebuilt["genres"] if g["aliases"]), 596)
 
     def test_a_rebuild_without_the_merge_would_have_dropped_them(self) -> None:
-        """Why the merge is not decoration: the workbook has 131 of the 557."""
+        """Why the merge is not decoration: the workbook has 131 of the 596."""
 
         import sys
         from pathlib import Path
@@ -564,11 +565,14 @@ class AliasSafetyTests(unittest.TestCase):
             [
                 "サイケデリックソウル (Psychedelic Soul) contains サイケ (psychedelic)",
                 "サイケデリックトランス (Psytrance) contains サイケ (psychedelic)",
+                "サイケデリックポップ (Psychedelic Pop) contains サイケ (psychedelic)",
                 "サイケデリックロック (Psychedelic Rock) contains サイケ (psychedelic)",
                 "シンセウェイヴ (Synthwave) contains シンセ (synth)",
                 "シンセウェーブ (Synthwave) contains シンセ (synth)",
                 "シンセパンク (Synth Punk) contains シンセ (synth)",
                 "シンセファンク (Synth Funk) contains シンセ (synth)",
+                "シンセポップ (Synthpop) contains シンセ (synth)",
+                "シンセ・ポップ (Synthpop) contains シンセ (synth)",
                 "ダブステップ (Dubstep) contains ダブ (dub)",
                 "ダブテクノ (Dub Techno) contains ダブ (dub)",
                 "ダブトロニカ (Dubtronica) contains ダブ (dub)",
