@@ -444,29 +444,40 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
     return best
 
 
-#: What may sit between a mention and a verb that refuses it: particles, and
-#: other negators. Anything else -- another noun -- means the verb has its own
-#: object and the mention is not it.
-_PARTICLE_GAP = re.compile(r"^[\sぁ-んー]*$")
+#: What may sit between a mention and a verb that refuses it: **the rest of the
+#: word, and then particles**. A mention is the vocabulary's own spelling and a
+#: brief writes longer words around it -- 「アルペジ|オ」, 「ダブ|ディレイ」,
+#: 「シンセ|リード」, 「ダブ|処理」 -- and that tail carries no particle, because
+#: it is the same noun. A particle is what separates one noun from the next, so
+#: content appearing *after* one is a different noun and the verb's real object:
+#: 「ミニマル|にして無駄を|省いて」.
+#:
+#: Hence content first, particles after. A gap that puts them the other way
+#: round -- any non-kana after a kana -- is the verb talking about something
+#: else. The long-vowel mark counts as content, not as a particle: it belongs
+#: to 「リード」, and calling it kana split 「シンセリード」 in two. `の` counts as
+#: content too, because it joins two nouns into one phrase rather than handing
+#: the verb an object -- 「シンセのリードは省いて」 is about the synth.
+_PARTICLE_GAP = re.compile(r"^(?:[^\sぁ-ん]|の)*[\sぁ-ん]*$")
 
 
 def _attaches(lowered: str, end: int, start: int) -> bool:
     """Whether a verb negator at `start` is about the mention ending at `end`.
 
-    What may sit in between: particles, other negators, and **the vocabulary's
-    own words**. A mention is one span per trait, so the rest of a compound the
-    brief actually named is not a mention and looked like an unrelated noun:
-    「派手なシンセリードは避けて」 matched `synth` at 「シンセ」 and then found
-    「リード」 -- also `synth` -- in the gap, and stopped refusing a phrase this
-    reader had understood perfectly.
+    What may sit in between: the rest of the word, then particles, with other
+    negators anywhere -- 「スラップ抜きじゃない」 needs the last of those.
+
+    The first version allowed hiragana only, which called every compound tail
+    a separate noun: 「シンセリードは避けて」, 「アルペジオは省いて」 and
+    「ダブディレイも排除して」 all stopped refusing. Listing the vocabulary's own
+    words as allowed fixed 「シンセリード」 and neither of the others, because
+    「オ」 is not a word and 「ディレイ」 is not in the vocabulary. The boundary
+    is the particle, not the script.
     """
 
     gap = lowered[end:start]
     for word in JAPANESE_NEGATORS + JAPANESE_VERB_NEGATORS + JAPANESE_SUFFIX_NEGATORS:
         gap = gap.replace(word.casefold(), "")
-    for words in TRAIT_WORDS.values():
-        for word in words:
-            gap = gap.replace(word.casefold(), "")
     return bool(_PARTICLE_GAP.match(gap))
 
 
