@@ -455,8 +455,19 @@ class MusicBrain:
                 # old constants. The constants were the same two numbers for
                 # every unrecognised style; the tags at least distinguish a
                 # nocturnal one from a sunny one.
-                darkness=_stated_darkness(blend(db_darkness or 0.48, 0.72, dub), song_traits),
-                psychedelic=blend(db_psychedelic or 0.28, 0.82, psychedelic),
+                #
+                # `is None`, not `or`: `mood_axes` returns None for "the tags
+                # said nothing" and a number for "the tags said this", and 0.0
+                # is a number. Written with `or`, every genre whose tags were
+                # entirely bright -- 253 rows -- read as the neutral default
+                # instead of as bright.
+                darkness=_stated_darkness(
+                    blend(0.48 if db_darkness is None else db_darkness, 0.72, dub),
+                    song_traits,
+                ),
+                psychedelic=blend(
+                    0.28 if db_psychedelic is None else db_psychedelic, 0.82, psychedelic
+                ),
             ),
             groove=GrooveSpec(
                 swing=_stated_swing(pick(profile.swing, 0.5), song_traits),
