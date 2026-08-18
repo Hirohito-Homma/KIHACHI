@@ -119,6 +119,12 @@ class NegationTests(unittest.TestCase):
             # two templates above, one derivation out: the noun after the tail
             # read as the verb's own object and the refusal was dropped.
             "{w}すぎる音は避けて。", "{w}っぽい処理は避けて。", "{w}めの音は避けて。",
+            # 「する」 negated. The words were in the suffix list from v0.1 and
+            # only reachable with no adverbial ending in the way, so every
+            # adjective in the vocabulary was shut out of the plainest refusal
+            # there is -- 760 briefs of these eight shapes read as requests.
+            "{w}くしないで。", "{w}にしないで。", "{w}くはしないで。",
+            "{w}にはしないで。", "{w}くせずに。", "{w}にしません。",
         )
         english = ("without {w}.", "no {w}.", "avoid {w}.")
 
@@ -360,6 +366,52 @@ class NegationTests(unittest.TestCase):
         ):
             with self.subTest(text=text):
                 self.assertFalse(read(text).refused(name))
+
+    def test_a_brief_refuses_by_negating_suru(self) -> None:
+        """The negator was there; the mention could not reach it.
+
+        `しない`, `しなく`, `しません` and `せず` have been suffix negators since
+        v0.1, and a suffix negator counted only where it *touched* the mention.
+        A noun can touch it -- 「スウィングしないで」 -- and an adjective cannot,
+        because it needs 「く」 or 「に」 to reach ``する`` at all. So the one
+        rule excluded every adjective in the vocabulary from 「暗くしないで」,
+        the plainest refusal in the language, and returned it as a request.
+
+        Found by `compare-readings` over a designed sweep: the model read
+        「重苦しくはしないで」 as a refusal and the rules as a request.
+        """
+
+        for text, name in (
+            ("暗くしないで。", "dark"),
+            ("暗くはしないで。", "dark"),
+            ("重苦しくはしないで。", "dark"),
+            ("明るくしません。", "bright"),
+            ("タイトにしないで。", "tight"),
+            ("サイケにはしないで。", "psychedelic"),
+            ("暗くせずに。", "dark"),
+            ("ミニマルにせずに。", "minimal"),
+            ("スウィングしないで。", "swung"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertTrue(traits.refused(name))
+                self.assertEqual(traits.strength_of(name), 0.0)
+
+    def test_the_adverbial_marker_does_not_reach_past_the_word(self) -> None:
+        """What adjacency was protecting, kept while widening it.
+
+        The marker may be empty but it may not start *before* the mention ends.
+        「せわしなく変わる」 finds ``なく`` inside the ``せわしな`` mention rather
+        than after it, so the busy trait would refuse itself; 「手数を少なく」 is
+        the known-wrong reading this must not make worse; and the double
+        negatives still count two distinct spans rather than one.
+        """
+
+        self.assertFalse(read("せわしなく変わる感じで。").refused("busy"))
+        self.assertFalse(read("手数を少なく。").refused("busy"))
+        self.assertTrue(read("暗くない。").refused("dark"))
+        self.assertTrue(read("暗くはない。").refused("dark"))
+        self.assertEqual(read("暗くなくはない。").strength_of("dark"), SMALL_STRENGTH)
 
     def test_the_noun_forms_keep_the_reach_they_had(self) -> None:
         """Known-wrong, and pinned rather than fixed.
