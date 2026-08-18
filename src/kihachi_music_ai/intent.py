@@ -104,7 +104,27 @@ LARGE_STRENGTH = 1.5
 #: is asking for it. Reading that correctly means knowing 少ない is the opposite
 #: of 手数, which is semantic knowledge this reader does not have and should not
 #: guess at.
-JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "使わな", "くない", "くなく", "くありません", "の無い", "のない", "が無い", "がない", "は無い", "はない", "すぎない", "過ぎない", "すぎず", "過ぎず", "避け", "排除", "厳禁", "省い", "省く")
+JAPANESE_NEGATORS = ("じゃなく", "ではなく", "じゃない", "ではない", "無し", "なし", "抜き", "禁止", "不要", "いらな", "要らな", "いらん", "くない", "くなく", "くありません", "の無い", "のない", "が無い", "がない", "は無い", "はない", "すぎない", "過ぎない", "すぎず", "過ぎず", "厳禁")
+
+#: Refusals that name the **action** rather than the thing. 「ボコーダーは入れ
+#: ないで」 is as ordinary as 「ボコーダーは無しで」, and `使わな` was the only verb
+#: the list had -- so 「使わないで」 was refused and 「入れないで」, the same
+#: sentence about the same thing, was read as a request for it. The bare `ない`
+#: cannot reach these: it counts only where it touches the mention, and
+#: 「ボコーダーは入れない」 has three characters in between.
+#:
+#: **These are kept apart because a verb takes an object and a noun form does
+#: not.** 「ミニマルにして無駄を省いて」 asks for minimalism and refused it: `省い`
+#: looked back past 「無駄」, the noun it actually takes, and landed on
+#: 「ミニマル」. So a verb refusal only counts when nothing but particles sits
+#: between it and the mention -- see :func:`_attaches`. The noun forms above
+#: keep the old reach, because 「多すぎない」 and 「サイケ感の無い」 legitimately
+#: cross an adjective or a suffix to get to what they are about.
+#:
+#: Each verb has to be written down, so the next one nobody thought of is
+#: invisible again; the sweep asks the verb shape of every trait, which is the
+#: axis `test_every_word_can_be_refused_in_the_ordinary_ways` was missing.
+JAPANESE_VERB_NEGATORS = ("避け", "排除", "省い", "省く", "取り除", "抜い", "使わな", "使わず", "使用しな", "使いませ", "要りませ", "入れな", "入れず", "足さな", "足さず", "加えな", "加えず", "混ぜな", "混ぜず", "乗せな", "乗せず", "鳴らさな", "鳴らさず", "弾かな", "弾かず")
 ENGLISH_NEGATORS = ("without", "not ", "no ", "never", "avoid", "minus", "sans")
 
 #: Negations that count **only when they touch the mention they follow**.
@@ -424,6 +444,21 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
     return best
 
 
+#: What may sit between a mention and a verb that refuses it: particles, and
+#: other negators. Anything else -- another noun -- means the verb has its own
+#: object and the mention is not it.
+_PARTICLE_GAP = re.compile(r"^[\sぁ-んー]*$")
+
+
+def _attaches(lowered: str, end: int, start: int) -> bool:
+    """Whether a verb negator at `start` is about the mention ending at `end`."""
+
+    gap = lowered[end:start]
+    for word in JAPANESE_NEGATORS + JAPANESE_VERB_NEGATORS + JAPANESE_SUFFIX_NEGATORS:
+        gap = gap.replace(word.casefold(), "")
+    return bool(_PARTICLE_GAP.match(gap))
+
+
 def _refusals(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> dict[int, int]:
     """How many times each mention in this clause is refused.
 
@@ -458,6 +493,13 @@ def _refusals(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> di
         for match in re.finditer(re.escape(word), lowered):
             anchor = _nearest_before(mentions, match.start())
             if anchor is not None:
+                joined = _joined_before(lowered, mentions, anchor)
+                refuse(anchor, joined, match.start(), match.end())
+
+    for word in JAPANESE_VERB_NEGATORS:
+        for match in re.finditer(re.escape(word), lowered):
+            anchor = _nearest_before(mentions, match.start())
+            if anchor is not None and _attaches(lowered, mentions[anchor][1], match.start()):
                 joined = _joined_before(lowered, mentions, anchor)
                 refuse(anchor, joined, match.start(), match.end())
 

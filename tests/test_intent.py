@@ -43,7 +43,14 @@ class NegationTests(unittest.TestCase):
         briefs in all.
         """
 
-        japanese = ("{w}は無しで。", "{w}は要らない。", "{w}抜きで。", "{w}は不要。", "{w}じゃなくて。")
+        japanese = (
+            "{w}は無しで。", "{w}は要らない。", "{w}抜きで。", "{w}は不要。", "{w}じゃなくて。",
+            # The axis this sweep was missing. Every template above refuses by
+            # *naming* the thing; a brief refuses by naming the action just as
+            # often, and 「{w}は入れないで」 read as a request for {w} until the
+            # verbs went in. Sweeping one axis says nothing about the other.
+            "{w}は入れないで。", "{w}は使わないで。", "{w}は足さないで。", "{w}は避けて。",
+        )
         english = ("without {w}.", "no {w}.", "avoid {w}.")
 
         misread: list[str] = []
@@ -88,6 +95,90 @@ class NegationTests(unittest.TestCase):
         for text in ("跳ねないで。", "跳ねなくて。", "跳ねないように。"):
             with self.subTest(text=text):
                 self.assertTrue(read(text).refused("swung"))
+
+    def test_a_refusal_can_name_the_action_instead_of_the_thing(self) -> None:
+        """`使わな` was the only verb in the list, and it was there by accident.
+
+        Every other entry refuses by naming the thing -- 「無し」「不要」「抜き」 --
+        or negates the trait word itself. A brief that says what *not to do*
+        with it was read as asking for it: 「ボコーダーは入れないで」 came back
+        +1. The bare `ない` does not reach it either, because a suffix negator
+        counts only where it touches the mention and 「は入れ」 is in the way.
+        """
+
+        for text, name in (
+            ("ボコーダーは入れないで。", "vocoder"),
+            ("ボコーダーは足さないで。", "vocoder"),
+            ("サイケは加えないで。", "psychedelic"),
+            ("サイケは混ぜずに。", "psychedelic"),
+            ("ダブは乗せないで。", "dub"),
+            ("スラップは弾かないで。", "slap"),
+            ("ボコーダーは鳴らさないで。", "vocoder"),
+            ("スラップは使用しないで。", "slap"),
+            ("ボコーダーは使いません。", "vocoder"),
+            ("ボコーダーはいらん。", "vocoder"),
+            ("ダブは取り除いて。", "dub"),
+            ("スラップは抜いて。", "slap"),
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(read(text).refused(name))
+
+    def test_a_verb_refusing_its_own_object_leaves_the_mention_alone(self) -> None:
+        """The bug that came free with #64's five verbs, and shipped with them.
+
+        A negator attaches to the nearest mention earlier in the clause. That
+        is right for a noun form, which sits where the thing was named, and
+        wrong for a verb, which brings an object of its own: 「ミニマルにして
+        無駄を省いて」 asks for minimalism and refused it, because `省い` looked
+        back past 「無駄」 and found 「ミニマル」. Same for 排除 and 避け, all
+        three on `main` before this.
+
+        A verb refusal now needs particles only between it and the mention.
+        Other negators may sit in the gap -- 「スラップ抜きじゃない」 depends on
+        it -- but another noun means the verb is talking about that noun.
+        """
+
+        for text, name in (
+            ("ミニマルにして無駄を省いて。", "minimal"),
+            ("ミニマルにして無駄を排除。", "minimal"),
+            ("ミニマルにして無駄を取り除いて。", "minimal"),
+            ("ルーズにして固さを避けて。", "loose"),
+            ("サイケにして濁りを省く。", "psychedelic"),
+            ("ルーズに力を抜いて。", "loose"),
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(read(text).refused(name))
+
+    def test_the_noun_forms_keep_the_reach_they_had(self) -> None:
+        """Known-wrong, and pinned rather than fixed.
+
+        The same shape one part of speech over: 「ミニマルにして無駄は不要」 is a
+        false refusal for exactly the reason the verbs were. The rule is not
+        applied to the noun forms because they earn that reach honestly --
+        「手数が多すぎない」 crosses an adjective and 「サイケ感の無い」 crosses a
+        suffix, and both are real refusals of the mention. Narrowing them to
+        catch 「無駄は不要」 would lose those.
+        """
+
+        self.assertTrue(read("ミニマルにして無駄は不要。").refused("minimal"))
+        self.assertTrue(read("手数が多すぎない").refused("busy"))
+
+    def test_the_verbs_left_out_do_not_refuse_an_ordinary_brief(self) -> None:
+        """Candidates that read as refusals and are not.
+
+        `やめ`, `以外`, `カット` and `NG` were declined for the same reason one
+        list down; these four are the verb-shaped members of that family. Each
+        describes doing something *to* the music rather than leaving it out.
+        """
+
+        for text, name, why in (
+            ("タイトにしてタイミングを外して。", "tight", "タイミングを外す is a groove, not a removal"),
+            ("暗くして輪郭を消して。", "dark", "消す names an effect on the sound"),
+            ("サイケは控えめに。", "psychedelic", "控えめ is a degree word and already hedges"),
+            ("手数を減らして。", "busy", "減らす asks for less, which is not none"),
+        ):
+            with self.subTest(text=text, why=why):
+                self.assertFalse(read(text).refused(name), msg=why)
 
     def test_the_words_left_out_do_not_refuse_an_ordinary_brief(self) -> None:
         """Each of these was a candidate and each earns a false refusal.
