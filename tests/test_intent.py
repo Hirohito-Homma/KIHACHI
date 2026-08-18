@@ -50,6 +50,10 @@ class NegationTests(unittest.TestCase):
             # often, and 「{w}は入れないで」 read as a request for {w} until the
             # verbs went in. Sweeping one axis says nothing about the other.
             "{w}は入れないで。", "{w}は使わないで。", "{w}は足さないで。", "{w}は避けて。",
+            # And the same verbs behind the other particles, because the object
+            # rule reads the gap between the two and 「は」 is not the only thing
+            # that can be in it.
+            "{w}を省いて。", "{w}も排除して。", "{w}を入れないで。",
         )
         english = ("without {w}.", "no {w}.", "avoid {w}.")
 
@@ -152,23 +156,38 @@ class NegationTests(unittest.TestCase):
     def test_the_rest_of_a_compound_is_not_another_noun(self) -> None:
         """The object rule read the vocabulary's own words as someone else's.
 
-        A mention is one span per trait, so in 「派手なシンセリードは避けて」 only
-        「シンセ」 is a mention and 「リード」 -- the same trait, one surface form
-        over -- sat in the gap looking like an unrelated noun. The refusal was
-        dropped from a phrase this reader had understood completely.
+        A mention is the vocabulary's spelling and a brief writes longer words
+        around it: 「アルペジ|オ」, 「ダブ|ディレイ」, 「シンセ|リード」, 「ダブ|処理」.
+        The first version of the object rule allowed hiragana in the gap and
+        nothing else, so every one of those tails read as a separate noun and
+        the refusal was dropped from phrases this reader had understood
+        completely.
 
-        Caught by `compare-readings` on the sweep that produced the rule: the
-        model refused `synth` and the rules asked for it, one commit after the
-        rules were right.
+        Fixed twice. Allowing the vocabulary's own words covered 「シンセリード」
+        alone -- 「オ」 is not a word, 「ディレイ」 is not in the vocabulary -- and
+        that is the whole lesson: **the boundary between two nouns is the
+        particle, not the script**. Content, then particles; content appearing
+        after a particle is the verb's own object. `の` joins rather than
+        separates, so 「シンセのリードは省いて」 is about the synth.
+
+        Both rounds were caught by `compare-readings` re-run over the same
+        sweep, one commit after the rules were right.
         """
 
-        for text in (
-            "派手なシンセリードは避けて。",
-            "シンセリードは入れないで。",
-            "シンセのリードは省いて。",
+        for text, name in (
+            ("派手なシンセリードは避けて。", "synth"),
+            ("シンセリードは入れないで。", "synth"),
+            ("シンセのリードは省いて。", "synth"),
+            # Neither of these is fixed by knowing the vocabulary: 「オ」 is not
+            # a word and 「ディレイ」 is not in it. The boundary between one noun
+            # and the next is the particle, not the script.
+            ("アルペジオは省いて。", "arp"),
+            ("ダブディレイも排除して。", "dub"),
+            ("ダブ処理は避けて。", "dub"),
+            ("サブベースは入れないで。", "sub"),
         ):
             with self.subTest(text=text):
-                self.assertTrue(read(text).refused("synth"))
+                self.assertTrue(read(text).refused(name))
 
     def test_the_noun_forms_keep_the_reach_they_had(self) -> None:
         """Known-wrong, and pinned rather than fixed.
