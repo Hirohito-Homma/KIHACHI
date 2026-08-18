@@ -52,6 +52,24 @@ PLAIN_STRENGTH = 1.0
 SMALL_STRENGTH = 0.5
 LARGE_STRENGTH = 1.5
 
+#: The one degree word this vocabulary spells as a **suffix**. 「暗め」 asks for
+#: somewhat dark, the same request 「少し暗い」 makes with the modifier in front,
+#: and only the second was read -- so 「暗めにして」 composed exactly as dark as
+#: 「暗くして」.
+#:
+#: It cannot join ``SMALL_WORDS``: those are searched across the whole span,
+#: and 「め」 is a single kana living inside ordinary words (「控えめ」,「まとめ」,
+#: 「ダメ」). It means a degree only where it is glued to the mention, so it is
+#: read at that one position and nowhere else.
+SUFFIX_HEDGE = "め"
+
+#: Where that gluing is a verb instead. 詰め込む -> 詰め込め and 食い込む ->
+#: 食い込め are imperatives: 「手数を詰め込め」 asks for **more**, and reading
+#: 「め」 there would hedge the opposite of what the brief said. Of the 155
+#: surface forms these two are the only ones whose ``{word}め`` is a conjugation
+#: rather than a degree, which is why this is an exception list and not a rule.
+IMPERATIVE_IN_ME = ("詰め込", "食い込")
+
 #: Japanese puts negation after what it negates; English puts it before. The
 #: ``くない`` family was added with the darkness traits: every trait before them
 #: was named by a noun, where ``じゃない`` is the negation, and an adjective
@@ -384,14 +402,19 @@ def _read_clause(clause: str, offset: int) -> list[Trait]:
             name=name,
             polarity=-1 if refusals.get(index, 0) % 2 else 1,
             strength=_hedged_if_cancelled(
-                _strength(
+                _hedged_by_suffix(
                     lowered,
-                    start,
-                    floor=mentions[index - 1][1] if index else 0,
-                    # Only the last mention reads what trails it; anything
-                    # earlier would be claiming a degree word that the next
-                    # mention's own backwards search already owns.
-                    ceiling=end if index == len(mentions) - 1 else None,
+                    end,
+                    evidence,
+                    _strength(
+                        lowered,
+                        start,
+                        floor=mentions[index - 1][1] if index else 0,
+                        # Only the last mention reads what trails it; anything
+                        # earlier would be claiming a degree word that the next
+                        # mention's own backwards search already owns.
+                        ceiling=end if index == len(mentions) - 1 else None,
+                    ),
                 ),
                 refusals.get(index, 0),
             ),
@@ -401,6 +424,28 @@ def _read_clause(clause: str, offset: int) -> list[Trait]:
         )
         for index, (start, end, name, evidence) in enumerate(mentions)
     ]
+
+
+def _hedged_by_suffix(lowered: str, end: int, evidence: str, strength: float) -> float:
+    """「暗め」 asks for less than 「暗い」, with the degree glued to the word.
+
+    Read only where it touches the mention, because the kana is common and the
+    degree is not: 「控えめ」 and 「まとめ」 carry no 「め」 of this kind, and a
+    search across the span would find one in both.
+
+    An explicit degree word still wins, the same way it does over litotes in
+    :func:`_hedged_if_cancelled` -- this softens ``PLAIN_STRENGTH`` alone, so
+    「かなり暗めに」 stays insisted-on and does not read as its own opposite.
+
+    **The model reader does not settle this one.** 「暗めにして。」 returned
+    ``1.0, 0.5, 0.5, 1.0, 1.0`` over five runs and eleven readings of the shape
+    split six to five, so the hedge is here on the strength of the language
+    rather than on an arbitration -- unlike #88 and #89, where every run agreed.
+    """
+
+    if strength != PLAIN_STRENGTH or evidence in IMPERATIVE_IN_ME:
+        return strength
+    return SMALL_STRENGTH if lowered[end:end + len(SUFFIX_HEDGE)] == SUFFIX_HEDGE else strength
 
 
 def _hedged_if_cancelled(strength: float, refusals: int) -> float:
