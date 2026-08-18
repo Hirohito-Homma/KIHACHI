@@ -7,10 +7,23 @@ workbook is versioned up without installing a spreadsheet library:
     python3 tools/build_genre_data.py Music_Genre_Master_Database_v0.2.xlsx
 
 Only the fields the recognition layer needs are carried across. The workbook's
-long prose columns (rhythm_character, production_traits, ...) are deliberately
-left out: measured against v0.2 they hold ~51 distinct values across 1020 rows
-because they are inherited per family, so copying them would multiply the data
-file without adding information. Add them when they are individualised.
+long prose columns (production_traits, harmony_character, ...) are left out:
+measured against v0.2 they hold ~51 distinct values across 1020 rows because
+they are inherited per family, so copying them would multiply the data file
+without adding information.
+
+``rhythm_character`` was left out on that reasoning too, and the reasoning was
+wrong. Inheritance is not the test -- ``meter`` is inherited exactly as much
+(28 Blues rows share ``4/4; 12/8``) and it is what tells the composer to
+shuffle. The test is whether anything downstream wants what the column says,
+and it says the one thing nothing else in this file does: 41 Jazz rows read
+"swing or syncopated improvisation", so the database was never silent about
+jazz swing. It is carried across now.
+
+**Aliases are merged, not overwritten.** 426 of them were written by hand into
+the JSON rather than into the workbook, so a plain rebuild used to delete them
+silently. Rebuilding now keeps every alias the JSON already has and adds any
+the workbook has gained, keyed on ``genre_id``.
 """
 
 from __future__ import annotations
@@ -86,7 +99,25 @@ def slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
-def build(workbook: Path, version: str) -> dict:
+def existing_aliases(out: Path) -> dict[str, list[str]]:
+    """The aliases the shipped JSON already carries, keyed on ``genre_id``.
+
+    Hand-written aliases live only here, so a rebuild that reads the workbook
+    alone would drop them. Keyed on the id rather than the name so a renamed
+    row keeps its Japanese names.
+    """
+
+    if not out.exists():
+        return {}
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    return {
+        entry["id"]: list(entry.get("aliases", ()))
+        for entry in payload.get("genres", ())
+        if entry.get("id")
+    }
+
+
+def build(workbook: Path, version: str, kept: dict[str, list[str]] | None = None) -> dict:
     grid = read_sheet(workbook, "Genre_Master")
     header = grid[0]
     index = {name: position for position, name in enumerate(header)}
@@ -97,6 +128,9 @@ def build(workbook: Path, version: str) -> dict:
         if not name:
             continue
         aliases = [a.strip() for a in row[index["aliases"]].split(";") if a.strip()]
+        for alias in (kept or {}).get(row[index["genre_id"]], ()):
+            if alias not in aliases:
+                aliases.append(alias)
         moods = [m.strip() for m in row[index["mood_tags"]].split(";") if m.strip()]
 
         def number(field: str):
@@ -116,6 +150,7 @@ def build(workbook: Path, version: str) -> dict:
                 "bpm_min": number("bpm_min"),
                 "bpm_max": number("bpm_max"),
                 "meter": row[index["meter"]],
+                "rhythm_character": row[index["rhythm_character"]],
                 "mood_tags": moods,
                 "region": row[index["region"]],
             }
@@ -129,8 +164,8 @@ def main() -> int:
         return 2
     workbook = Path(sys.argv[1])
     match = re.search(r"v(\d+\.\d+)", workbook.name)
-    data = build(workbook, match.group(1) if match else "unknown")
     out = Path(__file__).resolve().parent.parent / "src/kihachi_music_ai/data/genres.json"
+    data = build(workbook, match.group(1) if match else "unknown", existing_aliases(out))
     out.write_text(
         json.dumps(data, ensure_ascii=False, indent=1, sort_keys=False) + "\n",
         encoding="utf-8",

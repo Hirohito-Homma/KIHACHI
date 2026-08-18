@@ -352,6 +352,118 @@ class NumericLinkTests(unittest.TestCase):
         self.assertEqual(self._spec("ダブ。Am。").style.darkness, 0.72)
 
 
+class RhythmCharacterTests(unittest.TestCase):
+    """The column the JSON did not carry, and what it says.
+
+    `derive` reads nothing here yet -- carrying the data and acting on it are
+    separate changes, and acting on it moves composed audio, which this
+    project has twice shipped wrong with a green suite (PRs #61, #62). These
+    tests pin what the database actually says so the wiring can be argued
+    from measurements rather than from the column's name.
+    """
+
+    def _by_family(self, pattern: str) -> dict[str, int]:
+        import re
+
+        counts: dict[str, int] = {}
+        for genre in load_database():
+            if re.search(pattern, genre.rhythm_character, re.IGNORECASE):
+                family = genre.parent or genre.name
+                counts[family] = counts.get(family, 0) + 1
+        return counts
+
+    def test_every_row_carries_the_column(self) -> None:
+        self.assertTrue(all(g.rhythm_character for g in load_database()))
+
+    def test_the_database_was_never_silent_about_jazz_swing(self) -> None:
+        """The claim this change exists to correct.
+
+        `_meter_profile`'s docstring reads the meter and finds nothing for
+        Jazz -- all 41 rows say `4/4; 3/4; odd meters possible` -- and the
+        conclusion drawn from that was that the database says nothing about
+        jazz swing, so a swing would have to be hand-written. It says so in
+        the next column, and has since v0.2.
+        """
+
+        jazz = [g for g in load_database() if (g.parent or g.name) == "Jazz"]
+
+        self.assertEqual(len(jazz), 41)
+        self.assertEqual(
+            {g.rhythm_character for g in jazz},
+            {"swing or syncopated improvisation"},
+        )
+        self.assertTrue(all("12/8" not in g.meter for g in jazz))
+
+    def test_which_families_state_a_swing_and_which_state_the_opposite(self) -> None:
+        """Measured before anything reads it, because the counts decide the wiring.
+
+        Blues already shuffles, through `meter`, so it is the one family where
+        the two columns agree and the wiring would change nothing. The rest
+        are new claims of different strengths: Country's "two-step, train
+        beat, shuffle" and Jazz's "swing" are traditions built on the triplet,
+        UK Garage's "shuffled hats" is a lighter thing entirely, and Hip-Hop's
+        50 rows inherit one sentence in which "swing" sits between "sampled
+        breakbeats" and "trap hats" -- a sentence about sampling, not a claim
+        that every hip-hop record swings.
+
+        So the column does not carry an amount, only a direction, and the
+        directions are not all the same size. Nothing is applied from this
+        yet.
+        """
+
+        self.assertEqual(
+            self._by_family(r"swing|shuffle|swung"),
+            {
+                "Hip-Hop / Rap": 50,
+                "Jazz": 41,
+                "Country / Americana": 29,
+                "Blues": 28,
+                "UK Garage / Bass": 20,
+                "House": 2,
+            },
+        )
+        self.assertEqual(self._by_family(r"straight"), {"Punk / Hardcore": 37})
+
+    def test_the_shipped_json_is_what_the_workbook_builds(self) -> None:
+        """And rebuilding keeps the aliases that were never in the workbook."""
+
+        import json
+        import sys
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        workbook = root / "Music_Genre_Master_Database_v0.2.xlsx"
+        shipped = root / "src/kihachi_music_ai/data/genres.json"
+        if not workbook.exists():  # pragma: no cover - workbook not installed
+            self.skipTest("workbook not present")
+        sys.path.insert(0, str(root / "tools"))
+        import build_genre_data
+
+        rebuilt = build_genre_data.build(
+            workbook, "0.2", build_genre_data.existing_aliases(shipped)
+        )
+
+        self.assertEqual(rebuilt, json.loads(shipped.read_text(encoding="utf-8")))
+        self.assertEqual(sum(1 for g in rebuilt["genres"] if g["aliases"]), 557)
+
+    def test_a_rebuild_without_the_merge_would_have_dropped_them(self) -> None:
+        """Why the merge is not decoration: the workbook has 131 of the 557."""
+
+        import sys
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        workbook = root / "Music_Genre_Master_Database_v0.2.xlsx"
+        if not workbook.exists():  # pragma: no cover - workbook not installed
+            self.skipTest("workbook not present")
+        sys.path.insert(0, str(root / "tools"))
+        import build_genre_data
+
+        bare = build_genre_data.build(workbook, "0.2")
+
+        self.assertEqual(sum(1 for g in bare["genres"] if g["aliases"]), 131)
+
+
 class AliasSafetyTests(unittest.TestCase):
     """Invariants that hold whatever `genres.json` grows into.
 

@@ -46,6 +46,12 @@ class Genre:
     bpm_min: float | None
     bpm_max: float | None
     meter: str
+    #: The workbook's own words for the groove ("swing or syncopated
+    #: improvisation", "fast straight eighths; d-beat; breakdowns"). Inherited
+    #: per family -- 51 distinct values over 1020 rows -- which is why it was
+    #: left out of the JSON until now, and is no reason not to read it: `meter`
+    #: is inherited the same way and states the blues shuffle.
+    rhythm_character: str
     mood_tags: tuple[str, ...]
     region: str
 
@@ -72,6 +78,7 @@ def load_database() -> tuple[Genre, ...]:
             bpm_min=entry["bpm_min"],
             bpm_max=entry["bpm_max"],
             meter=entry["meter"],
+            rhythm_character=entry.get("rhythm_character", ""),
             mood_tags=tuple(entry["mood_tags"]),
             region=entry["region"],
         )
