@@ -247,17 +247,17 @@ class AliasCoverageTests(unittest.TestCase):
         Bass, UK Garage / Bass, Breakbeat / Breaks -- 39 more with Hip-Hop /
         Rap, 37 more with the rest of the dancefloor (Disco, EDM / Future
         Bass, Hardcore Electronic), 33 more with Punk / Hardcore and 46 more
-        with Rock -- the first family where every unnamed row could be named --
-        leaving 541 rows that still cannot be named in Japanese at all. The
-        count is asserted so that adding aliases stays a deliberate act with a
-        number attached.
+        with Rock and 46 more with Metal -- the two families where every
+        unnamed row could be named -- leaving 495 rows that still cannot be
+        named in Japanese at all. The count is asserted so that adding aliases
+        stays a deliberate act with a number attached.
         """
 
         database = load_database()
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 479)
+        self.assertEqual(len(with_alias), 525)
         self.assertEqual(
             [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
         )

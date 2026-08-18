@@ -4322,7 +4322,11 @@
    "name": "Heavy Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ヘヴィメタル",
+    "ヘビーメタル",
+    "ヘヴィメタ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4358,7 +4362,9 @@
    "name": "Speed Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スピードメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4375,7 +4381,9 @@
    "name": "Thrash Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スラッシュメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4392,7 +4400,9 @@
    "name": "Death Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "デスメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4409,7 +4419,10 @@
    "name": "Melodic Death Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "メロディックデスメタル",
+    "メロデス"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4426,7 +4439,9 @@
    "name": "Technical Death Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "テクニカルデスメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4443,7 +4458,9 @@
    "name": "Brutal Death Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ブルータルデスメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4460,7 +4477,9 @@
    "name": "Progressive Death Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "プログレッシブデスメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4477,7 +4496,9 @@
    "name": "Black Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ブラックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4494,7 +4515,9 @@
    "name": "Raw Black Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ロウブラックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4511,7 +4534,9 @@
    "name": "Atmospheric Black Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アトモスフェリックブラックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4528,7 +4553,9 @@
    "name": "Symphonic Black Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "シンフォニックブラックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4545,7 +4572,9 @@
    "name": "Melodic Black Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "メロディックブラックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4562,7 +4591,9 @@
    "name": "Depressive Black Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "デプレッシブブラックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4579,7 +4610,9 @@
    "name": "Post-Black Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポストブラックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4596,7 +4629,9 @@
    "name": "Blackgaze",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ブラックゲイズ"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4613,7 +4648,9 @@
    "name": "War Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ウォーメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4630,7 +4667,9 @@
    "name": "Blackened Death Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ブラッケンドデスメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4647,7 +4686,9 @@
    "name": "Doom Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ドゥームメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4664,7 +4705,9 @@
    "name": "Traditional Doom",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "トラディショナルドゥーム"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4681,7 +4724,9 @@
    "name": "Epic Doom",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エピックドゥーム"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4698,7 +4743,9 @@
    "name": "Funeral Doom",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フューネラルドゥーム"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4715,7 +4762,9 @@
    "name": "Death-Doom",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "デスドゥーム"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4732,7 +4781,9 @@
    "name": "Drone Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ドローンメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4749,7 +4800,9 @@
    "name": "Sludge Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "スラッジメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4766,7 +4819,9 @@
    "name": "Stoner Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ストーナーメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4783,7 +4838,9 @@
    "name": "Gothic Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ゴシックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4800,7 +4857,9 @@
    "name": "Power Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "パワーメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4817,7 +4876,9 @@
    "name": "Symphonic Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "シンフォニックメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4834,7 +4895,10 @@
    "name": "Progressive Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "プログレッシブメタル",
+    "プログレメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4851,7 +4915,9 @@
    "name": "Neoclassical Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ネオクラシカルメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4868,7 +4934,9 @@
    "name": "Folk Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "フォークメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4885,7 +4953,10 @@
    "name": "Viking Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ヴァイキングメタル",
+    "バイキングメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4902,7 +4973,9 @@
    "name": "Pagan Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ペイガンメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4919,7 +4992,9 @@
    "name": "Industrial Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "インダストリアルメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4936,7 +5011,10 @@
    "name": "Alternative Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "オルタナティブメタル",
+    "オルタナメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4953,7 +5031,9 @@
    "name": "Nu Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ニューメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4970,7 +5050,10 @@
    "name": "Groove Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "グルーヴメタル",
+    "グルーブメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -4987,7 +5070,9 @@
    "name": "Metalcore",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "メタルコア"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -5004,7 +5089,9 @@
    "name": "Melodic Metalcore",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "メロディックメタルコア"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -5021,7 +5108,9 @@
    "name": "Deathcore",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "デスコア"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -5038,7 +5127,9 @@
    "name": "Mathcore",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "マスコア"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -5055,7 +5146,9 @@
    "name": "Djent",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ジェント"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -5072,7 +5165,9 @@
    "name": "Electronicore",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "エレクトロニコア"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -5089,7 +5184,9 @@
    "name": "Avant-Garde Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "アヴァンギャルドメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
@@ -5106,7 +5203,9 @@
    "name": "Post-Metal",
    "parent": "Metal",
    "level": "subgenre",
-   "aliases": [],
+   "aliases": [
+    "ポストメタル"
+   ],
    "bpm_min": 80.0,
    "bpm_max": 220.0,
    "meter": "4/4; odd meters in progressive styles",
