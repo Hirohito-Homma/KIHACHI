@@ -246,17 +246,18 @@ class AliasCoverageTests(unittest.TestCase):
         with the electronic families next to them -- Trance, Jungle / Drum &
         Bass, UK Garage / Bass, Breakbeat / Breaks -- 39 more with Hip-Hop /
         Rap, 37 more with the rest of the dancefloor (Disco, EDM / Future
-        Bass, Hardcore Electronic) and 33 more with Punk / Hardcore, leaving
-        587 rows that still cannot be named in Japanese at all. The count is
-        asserted so that adding aliases stays a deliberate act with a number
-        attached.
+        Bass, Hardcore Electronic), 33 more with Punk / Hardcore and 46 more
+        with Rock -- the first family where every unnamed row could be named --
+        leaving 541 rows that still cannot be named in Japanese at all. The
+        count is asserted so that adding aliases stays a deliberate act with a
+        number attached.
         """
 
         database = load_database()
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 433)
+        self.assertEqual(len(with_alias), 479)
         self.assertEqual(
             [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
         )
