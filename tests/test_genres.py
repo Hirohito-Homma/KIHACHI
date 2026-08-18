@@ -248,16 +248,16 @@ class AliasCoverageTests(unittest.TestCase):
         Rap, 37 more with the rest of the dancefloor (Disco, EDM / Future
         Bass, Hardcore Electronic), 33 more with Punk / Hardcore and 46 more
         with Rock and 46 more with Metal -- the two families where every
-        unnamed row could be named -- leaving 495 rows that still cannot be
-        named in Japanese at all. The count is asserted so that adding aliases
-        stays a deliberate act with a number attached.
+        unnamed row could be named -- and 32 more with Jazz, leaving 463 rows
+        that still cannot be named in Japanese at all. The count is asserted
+        so that adding aliases stays a deliberate act with a number attached.
         """
 
         database = load_database()
         with_alias = [genre for genre in database if genre.aliases]
 
         self.assertEqual(len(database), 1020)
-        self.assertEqual(len(with_alias), 525)
+        self.assertEqual(len(with_alias), 557)
         self.assertEqual(
             [m.genre.slug for m in match_genres("シカゴブルース。")], ["chicago_blues"]
         )
@@ -467,6 +467,7 @@ class AliasSafetyTests(unittest.TestCase):
                 "ダークサイケ (Dark Psytrance) contains ダーク (dark)",
                 "ダークサイトランス (Dark Psytrance) contains ダーク (dark)",
                 "ダークサイドジャングル (Darkside Jungle) contains ダーク (dark)",
+                "ダークジャズ (Dark Jazz) contains ダーク (dark)",
                 "ダークステップ (Darkstep) contains ダーク (dark)",
                 "ディープダブ (Deep Dub) contains ダブ (dub)",
                 "デジタルダブ (Digital Dub) contains ダブ (dub)",
