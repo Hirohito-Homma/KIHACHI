@@ -14,8 +14,8 @@ that R&B / Soul / Funk's profile is exactly today's constants is simply saying
 out loud whose numbers everyone has been getting.
 
 **What the database cannot tell us.** ``genres.json`` carries names, aliases,
-BPM ranges, a meter string, mood tags and a region. It has no density, no
-articulation, no harmonic rhythm. Deriving those from ``mood_tags`` would be
+BPM ranges, a meter string, a ``rhythm_character`` string, mood tags and a
+region. It has no density, no articulation, no harmonic rhythm. Deriving those from ``mood_tags`` would be
 inventing a mapping and calling it data. So this is a hand-written table, like
 ``ableton.LIVE_GENRE_BY_FAMILY``, at family level -- the level the database's
 own attributes are actually distinct at (~51 profiles across 1020 rows) -- and
@@ -148,6 +148,62 @@ def _meter_profile(slug: str) -> Profile | None:
     return Profile(swing=TRIPLET_SWING)
 
 
+#: The ``rhythm_character`` phrases this reads, and the offbeat position each
+#: one gets. Written as a position, never as a `swing` number, for the reason
+#: PR #61 recorded: 0.667 *looks* like a shuffle and is a third of one.
+#:
+#: **Every amount here was chosen by playing it.** The column states a
+#: direction and no amount, so an amount taken from the tradition's name would
+#: be invention -- and the one time that was checked, the tradition was wrong.
+#: Jazz swing is a triplet by definition, `swing_for_offbeat(2/3)`; against
+#: straight, and against 0.55 and 0.62, the triplet lost. 0.58 won, which is a
+#: lean rather than a shuffle. Big Band, 110 BPM, seed 8, three parts, one
+#: variable.
+#:
+#: So a phrase belongs here only after someone has heard it. Four of the six
+#: families the column marks are deliberately absent:
+#:
+#: * **Country / Americana** (29 rows, "two-step, train beat, shuffle") and
+#:   **UK Garage / Bass** (20 rows, "2-step skips; shuffled hats") state a
+#:   swing this would act on, and neither has been played. The tradition says
+#:   triplet for the first and something lighter for the second, and the
+#:   tradition is exactly what jazz just disproved.
+#: * **Hip-Hop / Rap** (50 rows) inherits one sentence, "sampled/programmed
+#:   breakbeats, swing, trap hats", in which `swing` sits between two facts
+#:   about sampling. Boom bap swings and trap does not, and the sentence is the
+#:   same for both.
+#: * **Blues** (28 rows) already shuffles through ``_meter_profile``'s `12/8`,
+#:   which states the subdivision instead of describing it. Reading both would
+#:   change nothing and hide which one is load-bearing.
+#:
+#: `straight` phrases are not read either: the 37 Punk / Hardcore rows that say
+#: "fast straight eighths" are already straight, because their family states no
+#: swing, so reading it would move nothing and imply it might.
+SWING_PHRASES: dict[str, float] = {
+    # Jazz, 41 rows. Heard: 0.58, over the triplet its own name claims.
+    "swing or syncopated improvisation": 0.58,
+}
+
+
+def _rhythm_profile(slug: str) -> Profile | None:
+    """What a genre's own ``rhythm_character`` says about its feel.
+
+    The database's other groove column, carried in PR #77 and unread until
+    now. ``_meter_profile`` states a subdivision; this one describes a beat in
+    prose, so it is matched whole rather than by keyword -- 51 strings cover
+    1020 rows, and "swing" appears inside a sentence about samplers as readily
+    as inside a claim that the music swings.
+    """
+
+    record = find(slug)
+    if record is None:
+        return None
+    phrase = (record.rhythm_character or "").strip()
+    if phrase not in SWING_PHRASES:
+        return None
+    return Profile(swing=swing_for_offbeat(SWING_PHRASES[phrase]))
+
+
 def profile_for(genres: Sequence[tuple[str, float]]) -> Profile:
     """The heaviest genre's family numbers, with per-genre opinions on top.
 
@@ -169,9 +225,16 @@ def profile_for(genres: Sequence[tuple[str, float]]) -> Profile:
         if family and family in FAMILY_PROFILES:
             profile = FAMILY_PROFILES[family]
             break
-    # The meter is the genre's own statement, so it outranks its family -- and
-    # `GENRE_PROFILES` outranks it in turn, because a row written by hand is
-    # someone disagreeing with the database on purpose.
+    # Both groove columns are the genre's own statement, so they outrank its
+    # family -- and `GENRE_PROFILES` outranks them in turn, because a row
+    # written by hand is someone disagreeing with the database on purpose.
+    # `rhythm_character` goes first of the two: it describes the beat, while
+    # `meter` states the subdivision, and a stated subdivision is the harder
+    # fact.
+    for name, _weight in sorted(genres, key=lambda item: item[1]):
+        derived = _rhythm_profile(name)
+        if derived is not None:
+            profile = profile.overlaid_with(derived)
     for name, _weight in sorted(genres, key=lambda item: item[1]):
         derived = _meter_profile(name)
         if derived is not None:

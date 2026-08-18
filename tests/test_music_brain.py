@@ -196,8 +196,50 @@ class StatedDarknessTests(unittest.TestCase):
         self.assertEqual(swing("少し跳ねるテクノ。"), 0.553333)
         self.assertEqual(swing("シャッフルで、テクノ。"), 0.606667)
         self.assertEqual(swing("かなりスウィングさせて、テクノ。"), 0.66)
+        # ...and the degree still decides, though 「スウィング」 also names a
+        # genre whose own swing would otherwise answer for it -- see
+        # `WordThatNamesAFeelAndAGenreTests`.
+        self.assertEqual(swing("スウィングさせて、テクノ。"), 0.606667)
         self.assertEqual(swing("スウィングしないテクノ。"), 0.5)
         self.assertEqual(swing("ストレートなテクノ。"), 0.5)
+
+    def test_a_word_that_names_a_feel_and_a_genre_is_read_as_the_feel(self) -> None:
+        """「スウィング」 is the `swung` trait word and the Swing genre's alias.
+
+        Harmless until the database's groove column reached `groove.swing`:
+        the Swing row then carried a swing of its own, sat above whatever the
+        brief asked for, and answered the question the brief's own word had
+        asked. 「スウィングしないテクノ」 composed *swung*, and 「かなりスウィング
+        させて」 composed exactly what the plain form did.
+
+        The genre still matches -- it is a real reading of the word, and `dub`
+        depends on that shape -- it just does not supply the feel its name
+        already stated.
+        """
+
+        def swing(prompt: str) -> float:
+            return MusicBrain(seed=1).analyze(prompt).groove.swing
+
+        def genres(prompt: str) -> list[str]:
+            return [g.name for g in MusicBrain(seed=1).analyze(prompt).style.genres]
+
+        self.assertEqual(swing("スウィングしないテクノ。"), 0.5)
+        self.assertIn("swing", genres("スウィングしないテクノ。"))
+        self.assertLess(swing("スウィングさせて、テクノ。"), swing("かなりスウィングさせて、テクノ。"))
+
+    def test_a_genre_named_by_anything_else_still_brings_its_own_feel(self) -> None:
+        """The rule is about the word, not about the row: 「ジャズ」 is not a
+        trait word, so Jazz arrives with the swing the database gives it."""
+
+        from kihachi_music_ai.composer import swing_for_offbeat
+
+        self.assertEqual(
+            MusicBrain(seed=1).analyze("ジャズ。").groove.swing, swing_for_offbeat(0.58)
+        )
+        self.assertEqual(
+            MusicBrain(seed=1).analyze("ビッグバンド。").groove.swing,
+            swing_for_offbeat(0.58),
+        )
 
     def test_syncopation_was_reachable_by_no_genre_at_all(self) -> None:
         """Swing had one genre of a thousand; this had none.

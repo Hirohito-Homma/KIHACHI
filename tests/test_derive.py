@@ -176,12 +176,66 @@ class MeterDerivedSwingTests(unittest.TestCase):
 
         self.assertEqual(spec.groove.swing, 0.5)
 
-    def test_jazz_is_left_straight_because_the_database_says_nothing(self) -> None:
-        """The uncomfortable half. Every Jazz row reads `4/4; 3/4; odd meters
-        possible`, including the genre literally called `swing`."""
+    def test_jazz_swings_because_the_other_column_says_so(self) -> None:
+        """This asserted the opposite until 2026-08-18, and the reason was wrong.
 
-        self.assertEqual(MusicBrain(seed=8).analyze("ジャズ。").groove.swing, 0.5)
-        self.assertIsNone(profile_for([("swing", 1.0)]).swing)
+        Every Jazz row does read `4/4; 3/4; odd meters possible`, so `meter`
+        is silent -- and the conclusion drawn from that was that the database
+        had nothing to say, which made a jazz swing a hand-written invention.
+        `rhythm_character` says "swing or syncopated improvisation" on all 41
+        rows and was simply not carried into the JSON (PR #77).
+        """
+
+        from kihachi_music_ai.composer import swing_for_offbeat
+
+        heard = swing_for_offbeat(0.58)
+
+        self.assertEqual(MusicBrain(seed=8).analyze("ジャズ。").groove.swing, heard)
+        self.assertEqual(profile_for([("swing", 1.0)]).swing, heard)
+        self.assertEqual(profile_for([("big_band", 1.0)]).swing, heard)
+
+    def test_the_name_of_the_tradition_was_the_wrong_amount(self) -> None:
+        """Jazz swing is a triplet by definition, and the triplet lost.
+
+        Played against straight and against 0.55 and 0.62 -- Big Band, 110
+        BPM, seed 8, one variable -- `swing_for_offbeat(2/3)` was the worst of
+        the five and straight beat it. This is why the column's amounts are
+        heard rather than derived from what the phrase is called: it names a
+        tradition, and the tradition is not a number this composer wants.
+        """
+
+        from kihachi_music_ai.composer import swing_for_offbeat
+
+        self.assertLess(profile_for([("big_band", 1.0)]).swing, TRIPLET_SWING)
+        self.assertEqual(profile_for([("big_band", 1.0)]).swing, swing_for_offbeat(0.58))
+
+    def test_the_families_the_column_marks_and_this_does_not_read(self) -> None:
+        """Four of six, each for its own reason -- see `SWING_PHRASES`.
+
+        Country and UK Garage state a swing and have not been played, which
+        after jazz is a reason to wait rather than a formality. Hip-Hop's
+        sentence is about a sampler. Blues already shuffles through `meter`.
+        """
+
+        from kihachi_music_ai.derive import _meter_profile, _rhythm_profile
+
+        for slug in ("trap", "boom_bap", "chicago_blues", "uk_garage", "country"):
+            with self.subTest(slug=slug):
+                self.assertIsNone(_rhythm_profile(slug))
+        self.assertIsNotNone(_meter_profile("chicago_blues"))
+
+    def test_a_row_that_says_straight_is_already_straight(self) -> None:
+        """So "fast straight eighths" is not read: it would move nothing.
+
+        The 37 Punk / Hardcore rows sit at the composer's own 0.5 because
+        their family states no swing. Reading the phrase would produce the
+        same number while implying the column had been consulted.
+        """
+
+        from kihachi_music_ai.derive import _rhythm_profile
+
+        self.assertIsNone(_rhythm_profile("punk_rock"))
+        self.assertEqual(MusicBrain(seed=8).analyze("パンクロック。").groove.swing, 0.5)
 
 
 if __name__ == "__main__":
