@@ -428,15 +428,78 @@ class NegationTests(unittest.TestCase):
         rules asked for it.
         """
 
-        for text, names in (
-            ("暗すぎるシンセリードは避けて。", ("dark", "synth")),
-            ("暗いシンセは入れないで。", ("dark", "synth")),
-            ("ダブのシンセは避けて。", ("dub", "synth")),
-            ("サイケなアルペジオは無しで。", ("psychedelic", "arp")),
+        for text, refused, asked in (
+            ("暗すぎるシンセリードは避けて。", "dark", "synth"),
+            ("暗いシンセは入れないで。", "dark", "synth"),
+            ("ダブのシンセは避けて。", "dub", "synth"),
+            ("サイケなアルペジオは無しで。", "psychedelic", "arp"),
+            ("no dark synth", "dark", "synth"),
+            ("avoid a dub arp", "dub", "arp"),
         ):
-            for name in names:
-                with self.subTest(text=text, name=name):
-                    self.assertTrue(read(text).refused(name))
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertTrue(traits.refused(refused))
+                # And stops there: the thing described is not refused with its
+                # description. See `_head`.
+                self.assertFalse(traits.refused(asked))
+
+    def test_a_refusal_of_a_described_thing_is_about_the_description(self) -> None:
+        """「暗すぎるシンセリード」 asks for a lead, and asks it not to be dark.
+
+        A decision about what the brief means, made on 2026-08-19 with both
+        readings in front of us: the model reported the darkness and said
+        nothing about the lead. It costs the other reading --
+        「サイケなアルペジオは無しで」 now asks for a plain arpeggio, and a brief
+        that wants no arpeggio at all says 「アルペジオは無しで」.
+        """
+
+        traits = read("暗すぎるシンセリードは避けて、ミニマルなハウスで。")
+
+        self.assertTrue(traits.refused("dark"))
+        self.assertEqual(traits.strength_of("synth"), PLAIN_STRENGTH)
+        self.assertEqual(traits.strength_of("minimal"), PLAIN_STRENGTH)
+
+    def test_only_the_last_word_of_a_phrase_is_the_thing_described(self) -> None:
+        """A description that is itself described is still a description.
+
+        In 「暗すぎるサイケなシンセ」 the darkness describes the psychedelia and
+        the psychedelia describes the synth. Both descriptions are refused and
+        only the synth is spared, because sparing anything that something
+        describes would leave 「暗すぎる」 refusing by itself.
+        """
+
+        traits = read("暗すぎるサイケなシンセは避けて。")
+
+        self.assertTrue(traits.refused("dark"))
+        self.assertTrue(traits.refused("psychedelic"))
+        self.assertFalse(traits.refused("synth"))
+
+    def test_a_head_with_nothing_describing_it_is_refused_as_before(self) -> None:
+        """The sparing needs a description; without one nothing changes."""
+
+        self.assertTrue(read("シンセは避けて。").refused("synth"))
+        self.assertTrue(read("アルペジオは無しで。").refused("arp"))
+        self.assertTrue(read("no synth").refused("synth"))
+
+    def test_a_list_beside_a_phrase_keeps_its_own_reading(self) -> None:
+        """「暗いシンセとスラップは避けて」 refuses the darkness and the slap."""
+
+        traits = read("暗いシンセとスラップは避けて。")
+
+        self.assertTrue(traits.refused("dark"))
+        self.assertTrue(traits.refused("slap"))
+        self.assertFalse(traits.refused("synth"))
+
+    def test_two_mentions_that_overlap_are_not_a_phrase(self) -> None:
+        """「せわしなく変わ」 holds 「せわしな」, so the gap between them runs
+        backwards. Read as a phrase, the longer one would be spared from a
+        refusal that names it.
+        """
+
+        traits = read("せわしなく変わるのはなし。")
+
+        self.assertTrue(traits.refused("busy"))
+        self.assertTrue(traits.refused("fast_changes"))
 
     def test_a_refusal_still_stops_at_a_particle(self) -> None:
         """The reach is one noun phrase, not everything earlier in the clause.
@@ -709,7 +772,6 @@ class NegationTests(unittest.TestCase):
             ("スラップ・サイケはなし。", ("slap", "psychedelic")),
             ("no slap and psychedelia", ("slap", "psychedelic")),
             ("no vocoder or arp", ("vocoder", "arp")),
-            ("no dark synth", ("dark", "synth")),
         ):
             for name in names:
                 with self.subTest(text=text, name=name):
