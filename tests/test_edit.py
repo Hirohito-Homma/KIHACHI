@@ -78,6 +78,83 @@ class InstructionParsingTests(unittest.TestCase):
         self.assertEqual(len(later.sections) + len(earlier.sections), len(self.spec.arrangement))
         self.assertNotEqual(later.sections, earlier.sections)
 
+    def test_a_revision_can_refuse_a_quality(self) -> None:
+        """「ゴーストノートは無しで」 used to *raise* the ghost notes.
+
+        No word in it is a decrease word and the direction defaults to up, so
+        the instruction did the opposite of what it said -- 0.34 to 0.54. That
+        is the failure `intent` fixed in #82 and #84, still live on this side of
+        the vocabulary until now. The words are the brief reader's own, for the
+        same reason the degree words are shared.
+        """
+
+        for text in (
+            "ゴーストノートは無しで",
+            "ゴーストノートは要らない",
+            "ゴーストノートは禁止",
+            "ゴーストノートは入れないで",
+            "no ghost notes",
+            "without ghost notes",
+        ):
+            with self.subTest(text=text):
+                intent = parse_edit_instruction(text, self.spec)
+                self.assertTrue(intent.refusal)
+                self.assertEqual(intent.direction, -1)
+
+    def test_a_refusal_lands_on_the_low_pole(self) -> None:
+        """The same rule the brief reader states, and here the clamp does it."""
+
+        edit = build_spec_edit(self.spec, "シンコペは禁止")
+
+        self.assertEqual(edit["interpretation"]["direction"], "refuse")
+        self.assertTrue(edit["changes"])
+        for change in edit["changes"]:
+            with self.subTest(path=change["path"]):
+                self.assertGreater(float(change["from"]), 0.0)
+                self.assertEqual(float(change["to"]), 0.0)
+
+    def test_refusing_space_says_so_instead_of_guessing(self) -> None:
+        """The one quality already spelled as an absence.
+
+        「スペースは要らない」 asks for *more* density, and 「隙間は無しで」 asks the
+        same thing, and a bag of words cannot tell either from a refusal of
+        whatever made the space. Every other quality has a low pole that "none
+        of it" plainly means.
+        """
+
+        for text in ("スペースは要らない", "隙間は無しで", "no space"):
+            with self.subTest(text=text):
+                with self.assertRaises(EditInstructionError):
+                    parse_edit_instruction(text, self.spec)
+
+    def test_the_removal_verb_still_names_a_quality(self) -> None:
+        """「抜い」 is a verb negator in `intent` and this module's own word for
+        making space, so it is read here as the quality it names and not as a
+        refusal -- 「後半のドラムを抜いて」 keeps the reading it always had.
+        """
+
+        intent = parse_edit_instruction("後半のドラムを抜いて", self.spec)
+
+        self.assertFalse(intent.refusal)
+        self.assertEqual(intent.direction, -1)
+        self.assertEqual(intent.magnitude, 0.2)
+
+    def test_a_double_negative_is_known_wrong_and_pinned(self) -> None:
+        """「減らさないで」 asks for the edit *not* to happen, and reads as a
+        decrease.
+
+        This parser is a bag of words with no positions in it, which is why the
+        suffix negators are left out of `REFUSAL_WORDS` altogether: a bare
+        「ない」 would turn every one of these into a refusal of the quality,
+        which is wrong in a second direction. `intent` counts negations per
+        mention because it knows where each one sits; nothing here does.
+        """
+
+        intent = parse_edit_instruction("ゴーストノートを減らさないで", self.spec)
+
+        self.assertFalse(intent.refusal)
+        self.assertEqual(intent.direction, -1)
+
     def test_an_unrecognised_instruction_is_refused(self) -> None:
         for text in ("", "   ", "make it better somehow"):
             with self.assertRaises(EditInstructionError):

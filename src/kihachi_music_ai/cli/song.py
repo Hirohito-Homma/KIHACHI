@@ -77,10 +77,16 @@ def edit(args: argparse.Namespace) -> int:
     print(f"Planned KIHACHI edit: {args.project}")
     print(f"- instruction: {spec_edit['instruction']}")
     interpretation = spec_edit["interpretation"]
-    print(
-        f"- reading: {', '.join(interpretation['qualities'])} "
-        f"{interpretation['direction']} by {interpretation['magnitude']}"
-    )
+    qualities = ", ".join(interpretation["qualities"])
+    if interpretation["direction"] == "refuse":
+        # A refusal has no magnitude worth printing: it lands on the low pole
+        # whatever the value was, and the changes below say what that means.
+        print(f"- reading: {qualities} refused, down to the low pole")
+    else:
+        print(
+            f"- reading: {qualities} "
+            f"{interpretation['direction']} by {interpretation['magnitude']}"
+        )
     target = spec_edit["target"]
     sections = target["sections"]
     print(

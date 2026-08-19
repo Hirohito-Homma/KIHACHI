@@ -30,6 +30,9 @@ from typing import Any, Mapping, Sequence
 from .composer import compose_tracks
 from .intent import (
     EARLIER_HALF_WORDS,
+    ENGLISH_NEGATORS,
+    JAPANESE_NEGATORS,
+    JAPANESE_VERB_NEGATORS,
     LARGE_WORDS,
     LATER_HALF_WORDS,
     SMALL_WORDS,
@@ -79,6 +82,35 @@ QUALITY_WORDS: dict[str, tuple[str, ...]] = {
 
 INCREASE_WORDS = ("もっと", "更に", "さらに", "上げ", "増やし", "強く", "more", "increase", "raise", "up")
 DECREASE_WORDS = ("抑え", "減ら", "弱く", "下げ", "less", "reduce", "lower", "down", "薄く", "控え")
+
+#: 「抜い」 is one of `intent`'s verb negators and this module's own word for
+#: *making* space (「ドラムを抜いて」), so it names a quality here rather than
+#: refusing one. Reading it both ways would turn one instruction into two
+#: readings that disagree about which direction it asks for.
+_NOT_A_REFUSAL_HERE = ("抜い",)
+
+#: Words that refuse a quality rather than nudging it. **The brief reader's
+#: own lists**, for the reason the degree words are shared: 「無しで」 must mean
+#: the same thing when asking for a song and when correcting one, and until
+#: now it meant nothing at all here -- 「ゴーストノートは無しで」 raised the ghost
+#: notes from 0.34 to 0.54, because no word in it was a decrease word and the
+#: direction defaults to up. That is the failure `intent` fixed in #82 and #84,
+#: still live on this side of the vocabulary.
+#:
+#: The suffix negators are deliberately left out. This parser is a bag of words
+#: with no positions in it, so a bare 「ない」 cannot tell 「入れないで」 from
+#: 「減らさないで」, and the second is a refusal of the *edit* rather than of the
+#: quality.
+REFUSAL_WORDS = (
+    JAPANESE_NEGATORS
+    + tuple(word for word in JAPANESE_VERB_NEGATORS if word not in _NOT_A_REFUSAL_HERE)
+    + ENGLISH_NEGATORS
+)
+
+#: A refusal lands on the low pole and does not go past it -- the same rule the
+#: brief reader states, and here it falls out of the clamp in :func:`_move`:
+#: any current value minus 1.0 is 0.0.
+REFUSAL_MAGNITUDE = 1.0
 # ``SMALL_WORDS`` / ``LARGE_WORDS`` now live in :mod:`.intent` and are imported
 # above, unchanged. They are the same words a *brief* uses, and keeping two
 # copies meant "少し" could mean one thing when asking for a song and another
@@ -102,6 +134,7 @@ class EditIntent:
     qualities: tuple[str, ...]
     direction: int
     magnitude: float
+    refusal: bool = False
 
 
 def parse_edit_instruction(instruction: str, spec: SongSpec) -> EditIntent:
@@ -132,17 +165,34 @@ def parse_edit_instruction(instruction: str, spec: SongSpec) -> EditIntent:
         track for track, words in TRACK_WORDS.items() if _matches(lowered, words)
     )
 
-    direction = -1 if _matches(lowered, DECREASE_WORDS) else 1
-    if _matches(lowered, LARGE_WORDS):
-        magnitude = LARGE_MAGNITUDE
-    elif _matches(lowered, SMALL_WORDS):
-        magnitude = SMALL_MAGNITUDE
+    refusal = _matches(lowered, REFUSAL_WORDS)
+    if refusal and "space" in qualities:
+        # Every other quality has a low pole that "none of it" plainly means.
+        # This one is already spelled as an absence, so refusing it is asking
+        # for the opposite of less -- and this parser cannot tell
+        # 「スペースは要らない」 (denser) from 「隙間は無しで」 (denser) from a
+        # refusal of the thing that made the space. It says so instead of
+        # picking one.
+        raise EditInstructionError(
+            "refusing 'space' is ambiguous: it already means less of something. "
+            "Say which way to move instead, as in 「密度を上げて」"
+        )
+    if refusal:
+        direction, magnitude = -1, REFUSAL_MAGNITUDE
     else:
-        magnitude = DEFAULT_MAGNITUDE
-    # "space" and "sparse" already mean less, so they invert a plain "more".
-    if "space" in qualities and not _matches(lowered, DECREASE_WORDS):
-        direction = -1 if len(qualities) == 1 else direction
-    return EditIntent(sections, tracks or TRACK_NAMES, qualities, direction, magnitude)
+        direction = -1 if _matches(lowered, DECREASE_WORDS) else 1
+        if _matches(lowered, LARGE_WORDS):
+            magnitude = LARGE_MAGNITUDE
+        elif _matches(lowered, SMALL_WORDS):
+            magnitude = SMALL_MAGNITUDE
+        else:
+            magnitude = DEFAULT_MAGNITUDE
+        # "space" and "sparse" already mean less, so they invert a plain "more".
+        if "space" in qualities and not _matches(lowered, DECREASE_WORDS):
+            direction = -1 if len(qualities) == 1 else direction
+    return EditIntent(
+        sections, tracks or TRACK_NAMES, qualities, direction, magnitude, refusal
+    )
 
 
 def build_spec_edit(spec: SongSpec, instruction: str) -> dict[str, Any]:
@@ -199,7 +249,9 @@ def build_spec_edit(spec: SongSpec, instruction: str) -> dict[str, Any]:
         },
         "interpretation": {
             "qualities": list(intent.qualities),
-            "direction": "increase" if intent.direction > 0 else "decrease",
+            "direction": (
+                "refuse" if intent.refusal else "increase" if intent.direction > 0 else "decrease"
+            ),
             "magnitude": intent.magnitude,
         },
         "changes": changes,
