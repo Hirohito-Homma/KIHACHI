@@ -676,6 +676,45 @@ class NegationTests(unittest.TestCase):
         self.assertTrue(traits.refused("slap"))
         self.assertTrue(traits.refused("psychedelic"))
 
+    def test_a_joiner_is_a_word_and_not_the_letters_it_spells(self) -> None:
+        """The gap between two mentions holds joiners, or it holds a sentence.
+
+        `_JOINERS` was a character class, so it matched any gap spelled from
+        the letters of its own words: ``"and add a"`` is nothing but ``a n d``
+        and a space, and 「は」 -- the particle that *separates* two statements
+        -- was admitted because 「または」 ends in it. Both leaked a refusal onto
+        a mention the brief asks for, which is the failure this module treats
+        as the expensive one.
+        """
+
+        for text, asked, refused in (
+            ("avoid dark and add a sub bass", "sub", "dark"),
+            ("no slap on a dub track", "dub", "slap"),
+            ("ダブはサイケ抜きで。", "dub", "psychedelic"),
+            ("ミニマルはスラップ抜きで。", "minimal", "slap"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertFalse(traits.refused(asked))
+                self.assertTrue(traits.refused(refused))
+
+    def test_the_joiners_themselves_still_cover_both(self) -> None:
+        """Every word the class was spelling out, now matched whole."""
+
+        for text, names in (
+            ("スラップとサイケはなし。", ("slap", "psychedelic")),
+            ("スラップやサイケはなし。", ("slap", "psychedelic")),
+            ("ダブおよびサイケはなし。", ("dub", "psychedelic")),
+            ("ダブまたはサイケはなし。", ("dub", "psychedelic")),
+            ("スラップ・サイケはなし。", ("slap", "psychedelic")),
+            ("no slap and psychedelia", ("slap", "psychedelic")),
+            ("no vocoder or arp", ("vocoder", "arp")),
+            ("no dark synth", ("dark", "synth")),
+        ):
+            for name in names:
+                with self.subTest(text=text, name=name):
+                    self.assertTrue(read(text).refused(name))
+
     def test_a_refusal_lands_on_the_low_pole_not_beyond_it(self) -> None:
         """Refusing is worth exactly what not mentioning is worth, and no more."""
 
@@ -766,6 +805,35 @@ class RecognitionTests(unittest.TestCase):
 
     def test_an_ascii_word_has_to_start_a_word(self) -> None:
         self.assertEqual(read("overloaded tone").strength_of("synth"), 0.0)
+
+    def test_a_mention_covers_the_whole_word_it_matched(self) -> None:
+        """Where two of a trait's spellings start together, the longer wins.
+
+        ``mutate`` is listed before ``mutated`` and matched "mutated" with a
+        ``d`` left over, so the mention ended one letter inside its own word --
+        and the gap that a refusal has to cross began with that letter. The
+        old joiner class happened to contain ``d`` and ``r``, which is the only
+        reason 「no mutated and arp」 and 「no sequencer and synth」 ever read
+        as lists.
+        """
+
+        for text, name, evidence in (
+            ("mutated arp", "mutation", "mutated"),
+            ("no sequencer", "arp", "sequencer"),
+            ("psychedelia", "psychedelic", "psychedelia"),
+        ):
+            with self.subTest(text=text):
+                trait = read(text).find(name)
+                assert trait is not None
+                self.assertEqual(trait.evidence, evidence)
+
+        for text, names in (
+            ("no mutated and arp", ("mutation", "arp")),
+            ("no sequencer and synth", ("arp", "synth")),
+        ):
+            for name in names:
+                with self.subTest(text=text, name=name):
+                    self.assertTrue(read(text).refused(name))
 
     def test_japanese_is_matched_as_a_substring(self) -> None:
         self.assertEqual(read("ファンキーなスラップベース").strength_of("slap"), PLAIN_STRENGTH)

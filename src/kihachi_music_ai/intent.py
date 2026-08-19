@@ -183,7 +183,16 @@ _CLAUSE_SPLIT = re.compile(r"[、。，．,.;；\n\r]+")
 #: Text that joins two mentions into one list, so a single negator covers both:
 #: ``"スラップとサイケはなし"``. Anything else between them (``"にしてサイケは無し"``)
 #: means they are separate statements and only the nearest one is refused.
-_JOINERS = re.compile(r"^[\sとやおよびまたは・/／&＆+＋and or,]*$", re.IGNORECASE)
+#:
+#: **The joiners are whole words, not the letters they are spelled with.** This
+#: was a character class, so it matched any gap built from those letters --
+#: ``and`` contributed ``a n d`` and 「または」 contributed 「ま た は」. So
+#: ``"avoid dark and add a sub bass"`` refused the sub it asks for, because
+#: ``"and add a"`` is nothing but those letters, and 「ダブはサイケ抜きで」 refused
+#: the dub, because 「は」 -- the particle that *separates* two statements -- was
+#: admitted by 「または」 ending in it. Every one of those is a false refusal, the
+#: failure this module treats as the expensive one.
+_JOINERS = re.compile(r"^(?:[\s・/／&＆+＋,]|と|や|および|または|and|or)*$", re.IGNORECASE)
 
 #: Where in the song a clause is talking about. These are `edit`'s own words --
 #: it has resolved 「後半」 and 「序盤」 into arrangement spans since v0.1, so a
@@ -488,6 +497,14 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
     ASCII words must start a word -- the rule :mod:`.edit` already uses, so
     ``lead`` no longer fires inside ``overloaded``. Japanese has no word
     boundaries, so substring is the only option there.
+
+    **Where two of a trait's own spellings start together, the longer one is
+    the mention.** ``mutation``, ``mutate`` and ``mutated`` are all this
+    vocabulary's words for the same trait, and "mutated" was read as
+    ``mutate`` with a ``d`` left over -- the mention ended one letter inside
+    its own word, and everything measured from that end (what a refusal may
+    cross, where a degree word stops) was measuring from the wrong place.
+    ``sequencer`` read as ``sequence`` the same way.
     """
 
     best: tuple[int, int, str] | None = None
@@ -499,7 +516,11 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
         else:
             index = lowered.find(folded)
             span = (index, index + len(folded)) if index >= 0 else None
-        if span is not None and (best is None or span[0] < best[0]):
+        if span is not None and (
+            best is None
+            or span[0] < best[0]
+            or (span[0] == best[0] and span[1] > best[1])
+        ):
             best = (span[0], span[1], word)
     return best
 
