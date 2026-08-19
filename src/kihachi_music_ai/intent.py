@@ -684,10 +684,47 @@ def _nearest_after(mentions: Sequence[tuple[int, int, str, str]], position: int)
     return None
 
 
+#: What may sit between two mentions that are **one noun phrase**: the joining
+#: kana, and the tail of the first word. Nothing else -- not a particle, which
+#: is what separates one statement from the next. 「暗すぎる|シンセリード」 is one
+#: thing to refuse and 「ミニマル|にして|サイケ」 is two statements, of which only
+#: the second is refused.
+_DESCRIBING_GAP = re.compile(r"^[のない]*$")
+
+
+def _describes(lowered: str, end: int, start: int) -> bool:
+    """Whether the mention ending at ``end`` describes the one at ``start``.
+
+    A refusal names a phrase, and the phrase can be built out of two words this
+    vocabulary knows: 「暗すぎるシンセリードは避けて」 refused the lead and left
+    `dark` standing as a **request**, which is the opposite of the sentence.
+
+    The same gap rule as :func:`_attaches`, one notch stricter -- no particles
+    at all, because between a modifier and its noun there are none.
+    """
+
+    gap = lowered[end:start]
+    for tail in _ADJECTIVAL_TAILS:
+        if gap.startswith(tail):
+            gap = gap[len(tail):]
+            break
+    return bool(_DESCRIBING_GAP.match(gap))
+
+
 def _joined_before(lowered: str, mentions, anchor: int) -> set[int]:
+    """Mentions the refusal at ``anchor`` also covers, walking backwards.
+
+    Two ways to be covered: standing in a list with it (「スラップとサイケは
+    なし」) or describing it (「暗すぎるシンセリード」). Both are one statement;
+    「ミニマルにしてサイケは無し」 is two and refuses only the second.
+    """
+
     joined: set[int] = set()
     index = anchor
-    while index > 0 and _JOINERS.match(lowered[mentions[index - 1][1] : mentions[index][0]]):
+    while index > 0 and (
+        _JOINERS.match(lowered[mentions[index - 1][1] : mentions[index][0]])
+        or _describes(lowered, mentions[index - 1][1], mentions[index][0])
+    ):
         index -= 1
         joined.add(index)
     return joined

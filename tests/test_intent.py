@@ -413,6 +413,49 @@ class NegationTests(unittest.TestCase):
         self.assertTrue(read("暗くはない。").refused("dark"))
         self.assertEqual(read("暗くなくはない。").strength_of("dark"), SMALL_STRENGTH)
 
+    def test_a_refusal_reaches_the_word_that_describes_what_it_refuses(self) -> None:
+        """A phrase can be built from two words this vocabulary knows.
+
+        「暗すぎるシンセリードは避けて」 refused the lead and left `dark` standing
+        as a **request** -- the opposite of the sentence -- because a refusal
+        reached the nearest mention and stopped. Adjacent mentions were already
+        covered, since an empty gap matches the list joiner; what was missing is
+        the gap that holds a modifier: 「暗い|シンセ」, 「ダブ|の|シンセ」,
+        「暗|すぎる|シンセ」.
+
+        Found by `compare-readings` over the 30-brief sweep: the model refused
+        `dark` in 「暗すぎるシンセリードは避けて、ミニマルなハウスで。」 and the
+        rules asked for it.
+        """
+
+        for text, names in (
+            ("暗すぎるシンセリードは避けて。", ("dark", "synth")),
+            ("暗いシンセは入れないで。", ("dark", "synth")),
+            ("ダブのシンセは避けて。", ("dub", "synth")),
+            ("サイケなアルペジオは無しで。", ("psychedelic", "arp")),
+        ):
+            for name in names:
+                with self.subTest(text=text, name=name):
+                    self.assertTrue(read(text).refused(name))
+
+    def test_a_refusal_still_stops_at_a_particle(self) -> None:
+        """The reach is one noun phrase, not everything earlier in the clause.
+
+        Between a modifier and its noun there are no particles, so the gap rule
+        here is one notch stricter than the verb's: 「ミニマルにしてサイケは無し」
+        is two statements and only the second is refused, which is the case
+        `_JOINERS` was written for and this must not undo.
+        """
+
+        for text, asked, refused in (
+            ("ミニマルにしてサイケは無し。", "minimal", "psychedelic"),
+            ("ダブにしてスラップは避けて。", "dub", "slap"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertFalse(traits.refused(asked))
+                self.assertTrue(traits.refused(refused))
+
     def test_the_noun_forms_keep_the_reach_they_had(self) -> None:
         """Known-wrong, and pinned rather than fixed.
 
