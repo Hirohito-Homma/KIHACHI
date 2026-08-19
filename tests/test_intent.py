@@ -761,6 +761,33 @@ class NegationTests(unittest.TestCase):
                 self.assertFalse(traits.refused(asked))
                 self.assertTrue(traits.refused(refused))
 
+    def test_mo_joins_a_list_like_every_other_joiner(self) -> None:
+        """The commonest joiner in a refusal, and the one nobody wrote down.
+
+        「ダブもサイケもなし」 refused the psychedelia and asked for the dub.
+        Safe for the same reason 「と」 and 「や」 are: a gap joins only when it is
+        nothing but joiners, so 「ダブもいいけどサイケは無し」 is still two
+        statements.
+        """
+
+        for text, names in (
+            ("ダブもサイケもなし。", ("dub", "psychedelic")),
+            ("スラップもサイケも避けて。", ("slap", "psychedelic")),
+            ("ボコーダーもアルペジオも入れないで。", ("vocoder", "arp")),
+        ):
+            for name in names:
+                with self.subTest(text=text, name=name):
+                    self.assertTrue(read(text).refused(name))
+
+        for text, asked, refused in (
+            ("ダブもいいけどサイケは無し。", "dub", "psychedelic"),
+            ("ミニマルにしてサイケもなし。", "minimal", "psychedelic"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertFalse(traits.refused(asked))
+                self.assertTrue(traits.refused(refused))
+
     def test_the_joiners_themselves_still_cover_both(self) -> None:
         """Every word the class was spelling out, now matched whole."""
 
