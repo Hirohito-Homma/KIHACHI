@@ -636,7 +636,11 @@ def _refusals(lowered: str, mentions: Sequence[tuple[int, int, str, str]]) -> di
     spans: dict[int, list[tuple[int, int]]] = {}
 
     def refuse(anchor: int, joined: set[int], start: int, end: int) -> None:
+        # Not every mention the statement covers is refused by it: the thing a
+        # description describes is left alone, which is what :func:`_head` is.
         for index in {anchor, *joined}:
+            if _head(lowered, mentions, index):
+                continue
             spans.setdefault(index, []).append((start, end))
 
     for word in JAPANESE_NEGATORS:
@@ -708,9 +712,14 @@ def _nearest_after(mentions: Sequence[tuple[int, int, str, str]], position: int)
 #: What may sit between two mentions that are **one noun phrase**: the joining
 #: kana, and the tail of the first word. Nothing else -- not a particle, which
 #: is what separates one statement from the next. 「暗すぎる|シンセリード」 is one
-#: thing to refuse and 「ミニマル|にして|サイケ」 is two statements, of which only
-#: the second is refused.
-_DESCRIBING_GAP = re.compile(r"^[のない]*$")
+#: thing and 「ミニマル|にして|サイケ」 is two statements.
+#:
+#: Whitespace is here for the English half of the vocabulary, which puts the
+#: modifier first with nothing between: `dark synth` is 「暗いシンセ」 and
+#: `dark and synth` is a list. The list joiner matches a bare space too, so this
+#: does not change what a refusal *reaches* -- it changes what the reach is
+#: called, and :func:`_head` needs the two told apart.
+_DESCRIBING_GAP = re.compile(r"^(?:[のない]*|\s+)$")
 
 
 def _describes(lowered: str, end: int, start: int) -> bool:
@@ -720,10 +729,22 @@ def _describes(lowered: str, end: int, start: int) -> bool:
     vocabulary knows: 「暗すぎるシンセリードは避けて」 refused the lead and left
     `dark` standing as a **request**, which is the opposite of the sentence.
 
+    Which of the two the refusal is actually about is :func:`_head`'s question,
+    not this one. This says the two words are one phrase; that says the phrase
+    is refused by its description and not by the thing described.
+
     The same gap rule as :func:`_attaches`, one notch stricter -- no particles
     at all, because between a modifier and its noun there are none.
+
+    **Two mentions that overlap are not a phrase.** 「せわしなく変わ」 holds
+    「せわしな」, so one stretch of text is two traits starting at the same
+    character, and the text between them is not a gap at all -- it runs
+    backwards. Without this, :func:`_head` read the longer of the two as a thing
+    described by the shorter and spared it from a refusal that named it.
     """
 
+    if start < end:
+        return False
     gap = lowered[end:start]
     for tail in _ADJECTIVAL_TAILS:
         if gap.startswith(tail):
@@ -732,12 +753,50 @@ def _describes(lowered: str, end: int, start: int) -> bool:
     return bool(_DESCRIBING_GAP.match(gap))
 
 
+def _head(lowered: str, mentions, index: int) -> bool:
+    """Whether this mention is the **thing described**, rather than a description.
+
+    A refusal that names a described thing is about the description, and the
+    thing itself stays: 「暗すぎるシンセリードは避けて」 refuses `dark` and leaves
+    `synth` standing as a request -- a synth lead is wanted, one that is not too
+    dark. That is a **decision about what the brief means** and not a measured
+    fact; it is the reading the model gave when it read that brief in the
+    2026-08-19 sweep, where it reported the darkness and said nothing about the
+    lead, and the one a person picked when the two readers were put side by
+    side.
+
+    It costs the other reading. 「サイケなアルペジオは無しで」 now asks for an
+    arpeggio -- a plain one -- where before it refused arpeggios altogether, and
+    a brief that means the latter has to say it without a modifier:
+    「アルペジオは無しで」.
+
+    Only the **last** word of a phrase is the thing described. In
+    「暗すぎるサイケなシンセ」 the darkness describes the psychedelia and the
+    psychedelia describes the synth, so both descriptions are refused and only
+    the synth is spared; a mention that describes something else is a
+    description, whatever describes it in turn.
+    """
+
+    described = index > 0 and _describes(
+        lowered, mentions[index - 1][1], mentions[index][0]
+    )
+    describes_the_next = index + 1 < len(mentions) and _describes(
+        lowered, mentions[index][1], mentions[index + 1][0]
+    )
+    return described and not describes_the_next
+
+
 def _joined_before(lowered: str, mentions, anchor: int) -> set[int]:
     """Mentions the refusal at ``anchor`` also covers, walking backwards.
 
     Two ways to be covered: standing in a list with it (「スラップとサイケは
     なし」) or describing it (「暗すぎるシンセリード」). Both are one statement;
     「ミニマルにしてサイケは無し」 is two and refuses only the second.
+
+    Covered is not the same as refused. Everything one statement reaches is
+    collected here, and :func:`_head` then drops the thing a description
+    describes -- 「暗いシンセとスラップは避けて」 reaches all three and refuses the
+    darkness and the slap.
     """
 
     joined: set[int] = set()

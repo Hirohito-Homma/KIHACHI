@@ -41,10 +41,12 @@ SWEEP = Path(__file__).resolve().parents[1] / "sweeps" / "2026-08-19"
 KNOWN: dict[tuple[str, str], tuple[str, str]] = {
     ("s01", "synth"): (
         RULES_ONLY,
-        "「暗すぎるシンセリードは避けて」: the rules refuse the lead as well as the "
-        "darkness and the model says nothing about it. A question about what "
-        "the brief means -- no synth lead at all, or a lead that is not too "
-        "dark -- and not a bug with a known answer.",
+        "「暗すぎるシンセリードは避けて」: the model says nothing about the lead. "
+        "The question of what the brief means was decided on 2026-08-19 -- a "
+        "lead is wanted, one that is not too dark -- so the rules now read it "
+        "as a plain request rather than a refusal. The disagreement stays "
+        "because the model filed no trait at all, and a reader that says "
+        "nothing is not the same as one that agrees.",
     ),
     ("s03", "dark"): (
         STRENGTH,
