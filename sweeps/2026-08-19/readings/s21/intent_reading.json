@@ -1,0 +1,23 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "かなり暗めに、でも重苦しくはしないで。",
+  "brief_sha256": "4bb6c4888b20e81c54b9fa29cd1c9a7e03ea715cccae1ee6342bdaa9929f077d",
+  "traits": [
+    {
+      "name": "dark",
+      "polarity": 1,
+      "strength": 1.5,
+      "evidence": "かなり暗め"
+    },
+    {
+      "name": "dark",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "重苦しくはしないで"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

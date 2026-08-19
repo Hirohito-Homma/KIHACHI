@@ -1,0 +1,25 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "歯切れのいいキックで、レガート奏法は入れないで。",
+  "brief_sha256": "5a35e1d04b735e6b9e55ae98ef1e1f929a964cd50091362856bc2f02a7057622",
+  "traits": [
+    {
+      "name": "staccato",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "歯切れのいい"
+    },
+    {
+      "name": "legato",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "レガート奏法は入れないで"
+    }
+  ],
+  "unmapped": [
+    "キック"
+  ],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

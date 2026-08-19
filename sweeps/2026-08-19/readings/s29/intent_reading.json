@@ -1,0 +1,26 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "後半だけダブを濃くして、前半は平坦に。",
+  "brief_sha256": "5c7004d8b406c9d30ca13e46e4db838dcdc61f70597f1e90557869eba9188241",
+  "traits": [
+    {
+      "name": "dub",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "ダブを濃くして"
+    },
+    {
+      "name": "flat",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "平坦",
+      "scope": "first_half"
+    }
+  ],
+  "unmapped": [
+    "後半だけ"
+  ],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

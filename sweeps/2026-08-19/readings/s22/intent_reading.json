@@ -1,0 +1,23 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "ミニマルすぎる展開は避けて、起伏を付けて。",
+  "brief_sha256": "33af1f8587b8f9cd003faad58d7fcce9cf35f2283650c279eaf7582dced65b0b",
+  "traits": [
+    {
+      "name": "minimal",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "ミニマルすぎる展開は避けて"
+    },
+    {
+      "name": "contrast",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "起伏を付けて"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

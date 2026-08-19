@@ -1,0 +1,23 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "アルペジオは省いて、ダブっぽい処理も要らない。",
+  "brief_sha256": "19d148f177bcf8d6c54dc1cc7006b30539c98cbea5db2682cdeaca50b1c877ae",
+  "traits": [
+    {
+      "name": "arp",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "アルペジオは省いて"
+    },
+    {
+      "name": "dub",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "ダブっぽい処理も要らない"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

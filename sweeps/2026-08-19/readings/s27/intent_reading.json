@@ -1,0 +1,23 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "展開が速すぎるのは避けて、ワンコードで。",
+  "brief_sha256": "8445eacc7c910871c3af307ffd2a384e4e6a9ed2c8bcf2cb2d0adbc2387d881d",
+  "traits": [
+    {
+      "name": "fast_changes",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "展開が速すぎるのは避けて"
+    },
+    {
+      "name": "slow_changes",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "ワンコード"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

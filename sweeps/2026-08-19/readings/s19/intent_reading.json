@@ -1,0 +1,19 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "アルペジは要らないが、シーケンスっぽさは残して。",
+  "brief_sha256": "e536e2e3e38137f0ae803416eee8aa0c3826a7513403d21e11424c25fe71d131",
+  "traits": [
+    {
+      "name": "arp",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "アルペジは要らない"
+    }
+  ],
+  "unmapped": [
+    "シーケンスっぽさは残して"
+  ],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}
