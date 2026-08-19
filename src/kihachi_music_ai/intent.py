@@ -488,6 +488,14 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
     ASCII words must start a word -- the rule :mod:`.edit` already uses, so
     ``lead`` no longer fires inside ``overloaded``. Japanese has no word
     boundaries, so substring is the only option there.
+
+    **Where two of a trait's own spellings start together, the longer one is
+    the mention.** ``mutation``, ``mutate`` and ``mutated`` are all this
+    vocabulary's words for the same trait, and "mutated" was read as
+    ``mutate`` with a ``d`` left over -- the mention ended one letter inside
+    its own word, and everything measured from that end (what a refusal may
+    cross, where a degree word stops) was measuring from the wrong place.
+    ``sequencer`` read as ``sequence`` the same way.
     """
 
     best: tuple[int, int, str] | None = None
@@ -499,7 +507,11 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
         else:
             index = lowered.find(folded)
             span = (index, index + len(folded)) if index >= 0 else None
-        if span is not None and (best is None or span[0] < best[0]):
+        if span is not None and (
+            best is None
+            or span[0] < best[0]
+            or (span[0] == best[0] and span[1] > best[1])
+        ):
             best = (span[0], span[1], word)
     return best
 

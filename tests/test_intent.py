@@ -767,6 +767,35 @@ class RecognitionTests(unittest.TestCase):
     def test_an_ascii_word_has_to_start_a_word(self) -> None:
         self.assertEqual(read("overloaded tone").strength_of("synth"), 0.0)
 
+    def test_a_mention_covers_the_whole_word_it_matched(self) -> None:
+        """Where two of a trait's spellings start together, the longer wins.
+
+        ``mutate`` is listed before ``mutated`` and matched "mutated" with a
+        ``d`` left over, so the mention ended one letter inside its own word --
+        and the gap that a refusal has to cross began with that letter. The
+        old joiner class happened to contain ``d`` and ``r``, which is the only
+        reason 「no mutated and arp」 and 「no sequencer and synth」 ever read
+        as lists.
+        """
+
+        for text, name, evidence in (
+            ("mutated arp", "mutation", "mutated"),
+            ("no sequencer", "arp", "sequencer"),
+            ("psychedelia", "psychedelic", "psychedelia"),
+        ):
+            with self.subTest(text=text):
+                trait = read(text).find(name)
+                assert trait is not None
+                self.assertEqual(trait.evidence, evidence)
+
+        for text, names in (
+            ("no mutated and arp", ("mutation", "arp")),
+            ("no sequencer and synth", ("arp", "synth")),
+        ):
+            for name in names:
+                with self.subTest(text=text, name=name):
+                    self.assertTrue(read(text).refused(name))
+
     def test_japanese_is_matched_as_a_substring(self) -> None:
         self.assertEqual(read("ファンキーなスラップベース").strength_of("slap"), PLAIN_STRENGTH)
 
