@@ -478,8 +478,15 @@ def _section_changes(
 ) -> list[dict[str, Any]]:
     changes: list[dict[str, Any]] = []
     for section in _target_sections(spec, intent):
+        # Only three of the seven tracks carry a density of their own; the four
+        # in `EXTRA_TRACKS` fall back to the section energy and have no field to
+        # move. An instruction that names a track always resolves to one of the
+        # three, because those are the only keys `TRACK_WORDS` has -- but one
+        # that names none defaults to every track there is, and 「密度を上げて」
+        # raised `KeyError: 'sub'` from inside the planner. The same lookup in
+        # `SectionSpec.density` has always been a `.get`.
         fields = (
-            [DENSITY_FIELDS[track] for track in intent.tracks]
+            [DENSITY_FIELDS[track] for track in intent.tracks if track in DENSITY_FIELDS]
             if path == "@density"
             else [path]
         )
