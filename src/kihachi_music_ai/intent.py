@@ -512,21 +512,33 @@ def _first_span(lowered: str, words: Sequence[str]) -> tuple[int, int, str] | No
     its own word, and everything measured from that end (what a refusal may
     cross, where a degree word stops) was measuring from the wrong place.
     ``sequencer`` read as ``sequence`` the same way.
+
+    **An ASCII mention runs to the end of the word it started.** The
+    vocabulary spells `quantiz` and a brief writes "quantized", so the mention
+    used to stop four letters early and the gap after it began with ``ed`` --
+    which no joiner matches, so "no quantized and arp" refused the quantising
+    and asked for the arp. 「アルペジ|オ」 is the same shape on the Japanese
+    side, where `_attaches` and :data:`_ADJECTIVAL_TAILS` have handled it since
+    #87. Only for spellings that end in a letter: ``even `` carries its own
+    space, and running past that would swallow the word after it.
     """
 
     best: tuple[int, int, str] | None = None
     for word in words:
         folded = word.casefold()
         if folded.isascii():
-            match = re.search(rf"(?<![a-z0-9]){re.escape(folded)}", lowered)
+            rest = r"[a-z0-9]*" if folded[-1].isalnum() else ""
+            match = re.search(rf"(?<![a-z0-9]){re.escape(folded)}{rest}", lowered)
             span = (match.start(), match.end()) if match else None
         else:
             index = lowered.find(folded)
             span = (index, index + len(folded)) if index >= 0 else None
+        # Earliest mention wins; then the longer span, and then the longer
+        # spelling -- `mutate` and `mutated` now cover the same characters of
+        # "mutated", and the evidence a report quotes should be the whole word.
         if span is not None and (
             best is None
-            or span[0] < best[0]
-            or (span[0] == best[0] and span[1] > best[1])
+            or (span[0], -span[1], -len(word)) < (best[0], -best[1], -len(best[2]))
         ):
             best = (span[0], span[1], word)
     return best

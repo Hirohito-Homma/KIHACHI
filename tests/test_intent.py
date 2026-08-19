@@ -895,6 +895,42 @@ class RecognitionTests(unittest.TestCase):
     def test_an_ascii_word_has_to_start_a_word(self) -> None:
         self.assertEqual(read("overloaded tone").strength_of("synth"), 0.0)
 
+    def test_an_english_mention_runs_to_the_end_of_its_word(self) -> None:
+        """`quantiz` is the spelling and "quantized" is what a brief writes.
+
+        The mention used to stop where the vocabulary's spelling stopped, so the
+        gap to the next mention began with the rest of the word -- ``ed and`` --
+        and no joiner matches that. 「アルペジ|オ」 is the same shape on the
+        Japanese side, handled since #87.
+        """
+
+        for text, names in (
+            ("no quantized and arp", ("tight", "arp")),
+            ("no syncopated or sub bass", ("syncopated", "sub")),
+            ("no stabs and arp", ("synth", "arp")),
+            ("no mutations or sub bass", ("mutation", "sub")),
+        ):
+            for name in names:
+                with self.subTest(text=text, name=name):
+                    self.assertTrue(read(text).refused(name))
+
+    def test_a_spelling_that_carries_a_space_does_not_run_past_it(self) -> None:
+        """``even `` holds its own boundary, and the word after it is not part
+        of the mention.
+
+        The space is what keeps `straight` out of "evening", so the mention
+        cannot be grown past it without growing over the next word too. The cost
+        is a miss rather than a false refusal: "no even eighths and arp" refuses
+        the straightness and leaves the arp alone, because ``eighths`` stands
+        between them and is not a joiner.
+        """
+
+        traits = read("no even eighths and arp")
+
+        self.assertTrue(traits.refused("straight"))
+        self.assertFalse(traits.refused("arp"))
+        self.assertEqual(read("evening session").strength_of("straight"), 0.0)
+
     def test_a_mention_covers_the_whole_word_it_matched(self) -> None:
         """Where two of a trait's spellings start together, the longer wins.
 
