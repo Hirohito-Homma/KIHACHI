@@ -192,7 +192,14 @@ _CLAUSE_SPLIT = re.compile(r"[、。，．,.;；\n\r]+")
 #: the dub, because 「は」 -- the particle that *separates* two statements -- was
 #: admitted by 「または」 ending in it. Every one of those is a false refusal, the
 #: failure this module treats as the expensive one.
-_JOINERS = re.compile(r"^(?:[\s・/／&＆+＋,]|と|や|および|または|and|or)*$", re.IGNORECASE)
+#:
+#: 「も」 was never written down. Every other way this vocabulary joins two
+#: things was here and the commonest one in a refusal was not, so
+#: 「ダブもサイケもなし」 refused the psychedelia and asked for the dub -- 834 of
+#: 834 briefs in that shape. It is safe for the same reason the rest are: a gap
+#: matches only when it is **nothing but** joiners, so 「ダブもいいけどサイケは
+#: 無し」 and 「暗くもないシンセ」 do not join anything.
+_JOINERS = re.compile(r"^(?:[\s・/／&＆+＋,]|と|や|も|および|または|and|or)*$", re.IGNORECASE)
 
 #: Where in the song a clause is talking about. These are `edit`'s own words --
 #: it has resolved 「後半」 and 「序盤」 into arrangement spans since v0.1, so a
