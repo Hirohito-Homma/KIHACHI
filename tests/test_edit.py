@@ -118,6 +118,32 @@ class SpecDiffTests(unittest.TestCase):
         self.assertIn("already at its limit", warning)
         self.assertNotIn("no per-section parameter", warning)
 
+    def test_a_density_edit_that_names_no_track_plans_instead_of_crashing(self) -> None:
+        """Four of the seven tracks have no density of their own.
+
+        `intent.tracks` falls back to every track when the instruction names
+        none, and the planner looked each one's density field up directly, so
+        「密度を上げて」 -- a plain instruction with nothing wrong with it -- raised
+        `KeyError: 'sub'` from inside `build_spec_edit`. 84 of 1080 instructions
+        over this vocabulary crashed that way, all of them the density and space
+        qualities with no track named.
+        """
+
+        edit = build_spec_edit(self.spec, "もっと密度を上げて")
+
+        self.assertEqual(
+            {change["path"] for change in edit["changes"] if change["scope"] == "section"},
+            {"bass_density", "drum_density", "chord_density"},
+        )
+
+    def test_naming_a_track_still_moves_only_that_track(self) -> None:
+        edit = build_spec_edit(self.spec, "ドラムの密度を上げて")
+
+        self.assertEqual(
+            {change["path"] for change in edit["changes"] if change["scope"] == "section"},
+            {"drum_density"},
+        )
+
     def test_planning_never_mutates_the_spec(self) -> None:
         before = self.spec.to_json()
 
