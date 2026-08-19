@@ -183,7 +183,16 @@ _CLAUSE_SPLIT = re.compile(r"[、。，．,.;；\n\r]+")
 #: Text that joins two mentions into one list, so a single negator covers both:
 #: ``"スラップとサイケはなし"``. Anything else between them (``"にしてサイケは無し"``)
 #: means they are separate statements and only the nearest one is refused.
-_JOINERS = re.compile(r"^[\sとやおよびまたは・/／&＆+＋and or,]*$", re.IGNORECASE)
+#:
+#: **The joiners are whole words, not the letters they are spelled with.** This
+#: was a character class, so it matched any gap built from those letters --
+#: ``and`` contributed ``a n d`` and 「または」 contributed 「ま た は」. So
+#: ``"avoid dark and add a sub bass"`` refused the sub it asks for, because
+#: ``"and add a"`` is nothing but those letters, and 「ダブはサイケ抜きで」 refused
+#: the dub, because 「は」 -- the particle that *separates* two statements -- was
+#: admitted by 「または」 ending in it. Every one of those is a false refusal, the
+#: failure this module treats as the expensive one.
+_JOINERS = re.compile(r"^(?:[\s・/／&＆+＋,]|と|や|および|または|and|or)*$", re.IGNORECASE)
 
 #: Where in the song a clause is talking about. These are `edit`'s own words --
 #: it has resolved 「後半」 and 「序盤」 into arrangement spans since v0.1, so a

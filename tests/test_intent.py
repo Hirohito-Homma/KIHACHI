@@ -676,6 +676,45 @@ class NegationTests(unittest.TestCase):
         self.assertTrue(traits.refused("slap"))
         self.assertTrue(traits.refused("psychedelic"))
 
+    def test_a_joiner_is_a_word_and_not_the_letters_it_spells(self) -> None:
+        """The gap between two mentions holds joiners, or it holds a sentence.
+
+        `_JOINERS` was a character class, so it matched any gap spelled from
+        the letters of its own words: ``"and add a"`` is nothing but ``a n d``
+        and a space, and 「は」 -- the particle that *separates* two statements
+        -- was admitted because 「または」 ends in it. Both leaked a refusal onto
+        a mention the brief asks for, which is the failure this module treats
+        as the expensive one.
+        """
+
+        for text, asked, refused in (
+            ("avoid dark and add a sub bass", "sub", "dark"),
+            ("no slap on a dub track", "dub", "slap"),
+            ("ダブはサイケ抜きで。", "dub", "psychedelic"),
+            ("ミニマルはスラップ抜きで。", "minimal", "slap"),
+        ):
+            with self.subTest(text=text):
+                traits = read(text)
+                self.assertFalse(traits.refused(asked))
+                self.assertTrue(traits.refused(refused))
+
+    def test_the_joiners_themselves_still_cover_both(self) -> None:
+        """Every word the class was spelling out, now matched whole."""
+
+        for text, names in (
+            ("スラップとサイケはなし。", ("slap", "psychedelic")),
+            ("スラップやサイケはなし。", ("slap", "psychedelic")),
+            ("ダブおよびサイケはなし。", ("dub", "psychedelic")),
+            ("ダブまたはサイケはなし。", ("dub", "psychedelic")),
+            ("スラップ・サイケはなし。", ("slap", "psychedelic")),
+            ("no slap and psychedelia", ("slap", "psychedelic")),
+            ("no vocoder or arp", ("vocoder", "arp")),
+            ("no dark synth", ("dark", "synth")),
+        ):
+            for name in names:
+                with self.subTest(text=text, name=name):
+                    self.assertTrue(read(text).refused(name))
+
     def test_a_refusal_lands_on_the_low_pole_not_beyond_it(self) -> None:
         """Refusing is worth exactly what not mentioning is worth, and no more."""
 
