@@ -1,0 +1,23 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "四つ打ちで、跳ねなくていい。",
+  "brief_sha256": "7a8c128fa20ef13a775d79abc3a45112fbe38baf73999f363abc278d3cf59dd7",
+  "traits": [
+    {
+      "name": "straight",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "四つ打ち"
+    },
+    {
+      "name": "swung",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "跳ねなくていい"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

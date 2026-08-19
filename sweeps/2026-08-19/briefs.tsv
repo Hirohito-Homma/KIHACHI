@@ -1,0 +1,31 @@
+#brief	targets
+暗すぎるシンセリードは避けて、ミニマルなハウスで。	added tail + compound tail + attributive
+アルペジオは省いて、ダブっぽい処理も要らない。	compound tail + added tail + noun negator
+サイケデリックなパッドは避けて、暗めにして。	attributive な + suffix hedge
+歯切れのいいキックで、レガート奏法は入れないで。	の+い chain + compound tail
+明るめのシンセで、手数はかなり多めに。	suffix hedge + stated degree + trailing degree
+暗くしてこもる音は避けて。	conjunctive control -- dark must stay a request
+ダブっぽくして低音を足さないで。	conjunctive control -- dub must stay a request
+ミニマルにして無駄を省いて、後半はメリハリを付けて。	object control + scope
+暗いから低音は足さないで。	connective control -- the rejected boundary rule's counterexample
+ワンコードでずっと同じ和音を引っ張って、スラップは抜きで。	slow_changes + refusal, no span word (the #83 non-determinism)
+前半はスカスカに、後半は手数を詰め込め。	scope both halves + the imperative that is not a hedge
+ベースは食い込め、タイトすぎるのは避けて。	imperative exception + added tail on a refusal
+スウィングしないテクノで、暗さは控えめに。	feel word vs genre + INTENT_ONLY_SMALL
+シャッフル感は避けて、ストレートなビートで。	compound tail + attributive な on the opposite pole
+ボコーダーは厳禁で、シンセのリードだけ残して。	verb-strength refusal + の joiner
+暗くなくはない、くらいの明るさで。	double negation -- litotes reads at SMALL
+手数は少なくない。	pinned known-wrong
+スラップ抜きじゃない、少しは欲しい。	cancelled refusal + stated degree
+アルペジは要らないが、シーケンスっぽさは残して。	noun negator + added tail on the same trait
+ダブディレイも排除して、サブベースラインも省いて。	two compound tails, two verbs
+かなり暗めに、でも重苦しくはしないで。	stated degree beats suffix hedge + くない
+ミニマルすぎる展開は避けて、起伏を付けて。	added tail + contrast
+人間っぽいヨレは要らない、ジャストで。	loose refusal + tight request
+四つ打ちで、跳ねなくていい。	straight + なく negator
+サイケっぽいフレーズは入れないで、代わりに余白を。	added tail + sparse
+暗そうな曲は避けて、明るめで。	added tail そうな + suffix hedge on the opposite pole
+展開が速すぎるのは避けて、ワンコードで。	added tail on fast_changes + slow_changes
+スタッカート気味の刻みは省いて、伸ばして。	気味 tail + legato
+後半だけダブを濃くして、前半は平坦に。	scope + flat
+ダブでまとめて、余計な音は足さないで。	the kana that is not a hedge + object control

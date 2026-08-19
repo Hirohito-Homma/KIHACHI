@@ -1,0 +1,23 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "シャッフル感は避けて、ストレートなビートで。",
+  "brief_sha256": "548435bd98a2c96a9c6d843e8a60061f9a4347d233d95748764ba04b4d974370",
+  "traits": [
+    {
+      "name": "swung",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "シャッフル感は避けて"
+    },
+    {
+      "name": "straight",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "ストレートなビートで"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

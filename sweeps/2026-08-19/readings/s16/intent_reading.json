@@ -1,0 +1,17 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "暗くなくはない、くらいの明るさで。",
+  "brief_sha256": "662bd8ab8e4bd957490dcefa87eeb57cd11e0e7c155690ceddc53572bed31d46",
+  "traits": [
+    {
+      "name": "dark",
+      "polarity": 1,
+      "strength": 0.5,
+      "evidence": "暗くなくはない"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

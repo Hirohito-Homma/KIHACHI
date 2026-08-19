@@ -1,0 +1,25 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "ベースは食い込め、タイトすぎるのは避けて。",
+  "brief_sha256": "836b1197755252181b55b158baa9743f3fe70a85eff5d63b798275c68c2dac62",
+  "traits": [
+    {
+      "name": "syncopated",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "食い込"
+    },
+    {
+      "name": "tight",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "タイトすぎるのは避けて"
+    }
+  ],
+  "unmapped": [
+    "ベースは"
+  ],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

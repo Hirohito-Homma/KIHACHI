@@ -1,0 +1,25 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "ボコーダーは厳禁で、シンセのリードだけ残して。",
+  "brief_sha256": "1784f7dc333580bd4b1318265d5dd7d6607afec2376e172253667e5faa408ad0",
+  "traits": [
+    {
+      "name": "vocoder",
+      "polarity": -1,
+      "strength": 1.5,
+      "evidence": "ボコーダーは厳禁"
+    },
+    {
+      "name": "synth",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "シンセのリード"
+    }
+  ],
+  "unmapped": [
+    "だけ残して"
+  ],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

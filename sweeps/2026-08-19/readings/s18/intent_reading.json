@@ -1,0 +1,17 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "スラップ抜きじゃない、少しは欲しい。",
+  "brief_sha256": "738f38d8c31714c8d05962839dc9b66998c3d9f3df6a5164a0b4dcb45e1b3585",
+  "traits": [
+    {
+      "name": "slap",
+      "polarity": 1,
+      "strength": 0.5,
+      "evidence": "スラップ抜きじゃない、少しは欲しい"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

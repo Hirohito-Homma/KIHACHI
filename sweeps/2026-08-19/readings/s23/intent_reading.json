@@ -1,0 +1,23 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "人間っぽいヨレは要らない、ジャストで。",
+  "brief_sha256": "d1fe0efdc6c1c373f093b5b9afcca72e374f425db4a3be949b8b844ba1b483a6",
+  "traits": [
+    {
+      "name": "loose",
+      "polarity": -1,
+      "strength": 1.0,
+      "evidence": "人間っぽいヨレは要らない"
+    },
+    {
+      "name": "tight",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "ジャストで"
+    }
+  ],
+  "unmapped": [],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}

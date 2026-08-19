@@ -1,0 +1,19 @@
+{
+  "intent_reading_version": "0.1",
+  "scope": "a_translation_of_the_brief_not_a_judgement_about_it",
+  "model": "claude-opus-5",
+  "brief": "ダブっぽくして低音を足さないで。",
+  "brief_sha256": "2f7759c2dd124c704896991146df324ee8027e093b4d1a771bebbf14345aa03f",
+  "traits": [
+    {
+      "name": "dub",
+      "polarity": 1,
+      "strength": 1.0,
+      "evidence": "ダブっぽくして"
+    }
+  ],
+  "unmapped": [
+    "低音を足さないで"
+  ],
+  "note": "traits are named in the brain's own vocabulary and were checked against it; every evidence string was found in the brief. unmapped is what the vocabulary could not say -- the reason to read this file"
+}
