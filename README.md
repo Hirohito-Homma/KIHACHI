@@ -324,12 +324,34 @@ python3 -m kihachi_music_ai apply-edit projects/my-song projects/my-song-v2
 |---|---|
 | パート | ベース/bass/低音/スラップ、ドラム/kick/パーカッション、コード/シンセ/stab |
 | 範囲 | セクション名、drop/ドロップ、breakdown、intro、build、outro、前半/後半 |
-| 質 | 変態/mutation、シンコペ、密度/厚く、激しく/energy、ゴースト、オクターブ、スペース/抜いて、ディレイ/fx |
+| 質 | 変態/mutation、シンコペ、**スウィング/シャッフル/跳ね**、密度/厚く、激しく/energy、ゴースト、オクターブ、スペース/抜いて、ディレイ/fx |
 | 方向 | もっと/上げ/増やし ↔ 抑え/減らし/下げ/薄く |
 | 拒否 | 無し/要らない/禁止/入れないで/使わないで、no/without/avoid |
 | 強さ | 少し (0.1) / 既定 (0.2) / かなり (0.35) |
 
 セクション名は識別子として扱い、走査前に除去します（`dub_breakdown` の中の "down" が減少語として誤認されるため）。ASCII語は語頭境界を要求します（"group" の中の "up" を弾き、かつ "densely" は "dense" にマッチさせるため）。
+
+### スウィングは修正指示から動かせます（v0.2）
+
+**「跳ね」と `swing` は `groove.syncopation` を動かしていました。**ブリーフ側は
+`swung` traitが入って以来ずっとこれらを `groove.swing` として読んでいるので、
+**同じ語が、頼むときと直すときで違うノブに届いていた**ことになります。
+「スウィング」「シャッフル」に至ってはこちらの語彙に無く、指示ごと拒否されていました
+（swing語48件すべてが「別のノブ」か「読めない」）。
+
+`swing` を独立したqualityにして、語はブリーフ側の `TRAIT_WORDS["swung"]` をそのまま
+使います。`syncopation` の語は「シンコペ/syncopat/うねら」に戻しました。
+
+**この値だけ範囲が0〜1ではありません。** 0.5がストレート、0.667が三連スウィングなので、
+0.2動かすと音楽ではなくなります。強さは**その範囲に対する割合**として読みます
+（`PARAMETER_RANGE`）。範囲が1.0幅の他のパラメータは計算が一切変わりません。
+
+```
+- reading: swing increase by 0.2
+    (song-wide): groove.swing 0.54 -> 0.572      ← 0.74 ではなく
+- reading: swing refused, down to the low pole
+    (song-wide): groove.swing 0.54 -> 0.5        ← ストレート。0.0 ではなく
+```
 
 ### 拒否は「低い極」に着地します
 

@@ -113,6 +113,72 @@ class InstructionParsingTests(unittest.TestCase):
                 self.assertGreater(float(change["from"]), 0.0)
                 self.assertEqual(float(change["to"]), 0.0)
 
+    def test_a_word_about_the_swing_reaches_the_swing(self) -> None:
+        """One word must not mean two knobs.
+
+        「跳ね」 and `swing` sat in this module's `syncopation` list and moved
+        `groove.syncopation`, while the brief reader has read them as
+        `groove.swing` since the `swung` trait landed -- and 「スウィング」 and
+        「シャッフル」 were not in this vocabulary at all, so a correction naming
+        them was refused outright. 48 of 48 instructions over the swing words
+        reached the wrong parameter or nothing.
+        """
+
+        for text in (
+            "もっと跳ねさせて",
+            "スウィングを増やして",
+            "シャッフル感をもっと",
+            "もっとswingさせて",
+        ):
+            with self.subTest(text=text):
+                intent = parse_edit_instruction(text, self.spec)
+                self.assertEqual(intent.qualities, ("swing",))
+
+        edit = build_spec_edit(self.spec, "もっと跳ねさせて")
+
+        self.assertEqual({change["path"] for change in edit["changes"]}, {"groove.swing"})
+
+    def test_the_syncopation_words_still_reach_the_syncopation(self) -> None:
+        intent = parse_edit_instruction("シンコペをもっと", self.spec)
+
+        self.assertEqual(intent.qualities, ("syncopation",))
+
+    def test_the_swing_moves_inside_its_own_range(self) -> None:
+        """0.5 is straight and 0.667 is triplet, so a 0.2 move is not music.
+
+        A magnitude is a share of the parameter's range. Refusing the swing
+        lands on 0.5 -- straight -- rather than on zero, which is not a swing
+        value at all.
+        """
+
+        edit = build_spec_edit(self.spec, "もっとスウィングさせて")
+        change = edit["changes"][0]
+
+        self.assertEqual(change["path"], "groove.swing")
+        self.assertAlmostEqual(
+            float(change["to"]) - float(change["from"]), 0.2 * (0.66 - 0.5), places=4
+        )
+
+        refused = build_spec_edit(self.spec, "スウィングは無しで")
+
+        self.assertEqual(float(refused["changes"][0]["to"]), 0.5)
+
+    def test_every_other_parameter_moves_exactly_as_it_did(self) -> None:
+        """The range is 1.0 wide for everything else, so the arithmetic is the
+        arithmetic it always was -- a move of the magnitude, or the clamp.
+        """
+
+        edit = build_spec_edit(self.spec, "もっと変態的に")
+
+        self.assertTrue(edit["changes"])
+        for change in edit["changes"]:
+            with self.subTest(path=change["path"], section=change.get("section")):
+                moved = float(change["to"]) - float(change["from"])
+                self.assertTrue(
+                    abs(moved - 0.2) < 1e-9 or float(change["to"]) == 1.0,
+                    f"{change} moved by {moved}",
+                )
+
     def test_refusing_space_says_so_instead_of_guessing(self) -> None:
         """The one quality already spelled as an absence.
 
