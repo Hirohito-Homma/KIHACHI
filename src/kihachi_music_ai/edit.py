@@ -36,6 +36,7 @@ from .intent import (
     LARGE_WORDS,
     LATER_HALF_WORDS,
     SMALL_WORDS,
+    TRAIT_WORDS,
     contains as _contains,
     matches as _matches,
 )
@@ -61,6 +62,7 @@ TRACK_WORDS: dict[str, tuple[str, ...]] = {
 QUALITY_TARGETS: dict[str, tuple[tuple[str, str], ...]] = {
     "mutation": (("section", "mutation"), ("song", "bass.mutation")),
     "syncopation": (("song", "groove.syncopation"), ("song", "bass.syncopation")),
+    "swing": (("song", "groove.swing"),),
     "density": (("section", "@density"),),
     "energy": (("section", "energy"),),
     "ghost": (("song", "bass.ghost_note_probability"),),
@@ -71,7 +73,15 @@ QUALITY_TARGETS: dict[str, tuple[tuple[str, str], ...]] = {
 
 QUALITY_WORDS: dict[str, tuple[str, ...]] = {
     "mutation": ("変態", "ミューテーション", "mutation", "mutate", "mutated", "weird", "twisted"),
-    "syncopation": ("シンコペ", "syncopat", "跳ね", "うねら", "swing"),
+    # 「跳ね」 and `swing` used to be here, and they name the swing rather than
+    # the syncopation: they moved `groove.syncopation` while the brief reader
+    # has read them as `groove.swing` since the `swung` trait landed. One word,
+    # two knobs, depending on whether you were asking for a song or correcting
+    # one.
+    "syncopation": ("シンコペ", "syncopat", "うねら"),
+    # The brief reader's own list, like the degree words: a correction and a
+    # brief must not disagree about what 「シャッフル」 means.
+    "swing": TRAIT_WORDS["swung"],
     "density": ("密度", "詰め", "busy", "dense", "thick", "厚く", "細かく"),
     "energy": ("激し", "energy", "エネルギー", "派手", "強烈", "hard", "harder", "intense"),
     "ghost": ("ゴースト", "ghost"),
@@ -109,8 +119,22 @@ REFUSAL_WORDS = (
 
 #: A refusal lands on the low pole and does not go past it -- the same rule the
 #: brief reader states, and here it falls out of the clamp in :func:`_move`:
-#: any current value minus 1.0 is 0.0.
+#: any current value minus a full magnitude is the bottom of its range.
 REFUSAL_MAGNITUDE = 1.0
+
+#: Parameters whose usable range is **not** 0 to 1, with the range they have.
+#:
+#: `groove.swing` is the only one so far and it is not close: 0.5 is straight
+#: and 0.667 is triplet swing, so the whole feel lives in a sixth of the unit
+#: interval and a 0.2 move would leave music behind entirely. The poles are the
+#: brief reader's (`music_brain._SWUNG_POLE`, `_STRAIGHT_POLE`), so 「もっと
+#: 跳ねさせて」 walks the same axis whether it is asked for or corrected.
+#:
+#: A magnitude is read as a **share of the range**, which leaves every other
+#: parameter exactly where it was -- the range is 1.0 wide, so the arithmetic is
+#: unchanged -- and gives a refusal the right meaning here too: refusing the
+#: swing lands on 0.5, which is straight.
+PARAMETER_RANGE: dict[str, tuple[float, float]] = {"groove.swing": (0.5, 0.66)}
 # ``SMALL_WORDS`` / ``LARGE_WORDS`` now live in :mod:`.intent` and are imported
 # above, unchanged. They are the same words a *brief* uses, and keeping two
 # copies meant "少し" could mean one thing when asking for a song and another
@@ -546,7 +570,7 @@ def _section_changes(
             current = _read_section(section, field)
             if current is None:
                 current = section.energy
-            moved = _move(current, intent.direction, intent.magnitude)
+            moved = _move(current, intent.direction, intent.magnitude, field)
             if abs(moved - current) < 1e-9:
                 continue
             changes.append(
@@ -573,7 +597,7 @@ def _song_changes(
     if group in TRACK_NAMES and group not in intent.tracks:
         return []
     current = float(getattr(getattr(spec, group), field))
-    moved = _move(current, intent.direction, intent.magnitude)
+    moved = _move(current, intent.direction, intent.magnitude, path)
     if abs(moved - current) < 1e-9:
         return []
     return [
@@ -593,8 +617,12 @@ def _read_section(section: SectionSpec, field: str) -> float | None:
     return None if value is None else float(value)
 
 
-def _move(current: float, direction: int, magnitude: float) -> float:
-    return round(max(0.0, min(1.0, current + direction * magnitude)), 4)
+def _move(current: float, direction: int, magnitude: float, path: str = "") -> float:
+    """Move ``current`` by a share of its parameter's range, and clamp to it."""
+
+    low, high = PARAMETER_RANGE.get(path, (0.0, 1.0))
+    moved = current + direction * magnitude * (high - low)
+    return round(max(low, min(high, moved)), 4)
 
 
 def _deduplicate(changes: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:

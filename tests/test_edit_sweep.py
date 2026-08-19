@@ -6,7 +6,8 @@ can generate its own instruction space, and a Spec Diff whose shape can be
 checked without knowing which answer is musically right:
 
 * nothing crashes; `EditInstructionError` is the only refusal;
-* an increase only moves up, a decrease only down, a refusal lands on 0.0;
+* an increase only moves up, a decrease only down, a refusal lands on the
+  bottom of its parameter's range;
 * a named place is the only place touched, or the plan says why not;
 * a named track is the only density touched;
 * every section is accounted for exactly once, and the plan says it has not run;
@@ -33,6 +34,7 @@ import unittest
 
 from kihachi_music_ai.edit import (
     EditInstructionError,
+    PARAMETER_RANGE,
     QUALITY_WORDS,
     apply_spec_edit,
     build_spec_edit,
@@ -129,14 +131,19 @@ class EditSweepTests(unittest.TestCase):
 
         #99 was here: 「ゴーストノートは無しで」 raised the ghost notes, because a
         refusal named no decrease word and the direction defaults to up.
+
+        The low pole is the bottom of the *parameter's* range and not 0.0.
+        This test said 0.0 until `groove.swing` arrived, whose range is 0.5 to
+        0.66 -- and it failed on the day it arrived, which is what it is for.
         """
 
         for text, intent, edit in self.planned:
             with self.subTest(text=text):
                 for change in edit["changes"]:
                     before, after = float(change["from"]), float(change["to"])
+                    floor = PARAMETER_RANGE.get(change["path"], (0.0, 1.0))[0]
                     if intent.refusal:
-                        self.assertEqual(after, 0.0)
+                        self.assertEqual(after, floor)
                     elif intent.direction > 0:
                         self.assertGreater(after, before)
                     else:
