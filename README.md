@@ -1368,8 +1368,8 @@ ADR-0010でレンダーが曲でなくなったことで、この留保は解消
 python3 -m kihachi_music_ai transcribe-sample projects/my-song --name mid-bass
 ```
 
-`audio/samples/mid-bass.mid` と `mid-bass.transcription.json` を書きます。後者（`transcription_version=0.3`）には
-入力SHA-256、sample rate、実測秒数、BPM、キー、検出音符数、`voiced_fraction`など、転写の取りこぼしを監査するcoverageを保存します。
+`audio/samples/mid-bass.mid` と `mid-bass.transcription.json` を書きます。後者（`transcription_version=0.4`）には
+入力WAVと生成MIDIのSHA-256、sample rate、実測秒数、BPM、キー、検出音符数、`voiced_fraction`など、転写の取りこぼしと成果物の同一性を監査するcoverageを保存します。
 BPMはmanifestから取ります（その拍で切ったので、
 4小節から推定し直すのは既に分かっていることを当てに行くだけです）。
 

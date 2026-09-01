@@ -10,11 +10,13 @@ import unittest
 import wave
 from array import array
 from pathlib import Path
+from unittest import mock
 
 from kihachi_music_ai.cli import main
 from kihachi_music_ai.midi import read_midi
 from kihachi_music_ai.transcribe import (
     ONSET_SNAP_SEC,
+    _atomic_write_text,
     read_wav_mono,
     transcribe,
     transcribe_sample_file,
@@ -140,6 +142,20 @@ class MixTests(unittest.TestCase):
 
 
 class FileTests(unittest.TestCase):
+    def test_atomic_text_write_preserves_existing_artifact_on_replace_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / "coverage.json"
+            destination.write_text("old\n", encoding="utf-8")
+
+            with mock.patch(
+                "kihachi_music_ai.transcribe.os.replace", side_effect=OSError("disk full")
+            ):
+                with self.assertRaisesRegex(OSError, "disk full"):
+                    _atomic_write_text(destination, "new\n")
+
+            self.assertEqual(destination.read_text(encoding="utf-8"), "old\n")
+            self.assertEqual(list(Path(temp).iterdir()), [destination])
+
     def test_sample_manifest_command_writes_a_readable_midi_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
@@ -178,7 +194,7 @@ class FileTests(unittest.TestCase):
             coverage_path = destination.with_suffix(".transcription.json")
             self.assertTrue(coverage_path.is_file())
             coverage_record = json.loads(coverage_path.read_text(encoding="utf-8"))
-            self.assertEqual(coverage_record["transcription_version"], "0.3")
+            self.assertEqual(coverage_record["transcription_version"], "0.4")
             self.assertEqual(coverage_record["bpm"], BPM)
             self.assertEqual(coverage_record["key"], "D# minor")
             self.assertEqual(coverage_record["sample_rate"], RATE)
@@ -188,9 +204,41 @@ class FileTests(unittest.TestCase):
                 coverage_record["source_sha256"],
                 hashlib.sha256(audio.read_bytes()).hexdigest(),
             )
+            self.assertEqual(
+                coverage_record["midi_sha256"],
+                hashlib.sha256(destination.read_bytes()).hexdigest(),
+            )
             self.assertEqual(len(read_midi(destination).notes), len(transcription.notes))
             with self.assertRaises(FileExistsError):
                 transcribe_sample_file(project, name="mid")
+
+            midi_before = destination.read_bytes()
+            coverage_before = coverage_path.read_bytes()
+            manifest = json.loads((project / "sample_manifest.json").read_text())
+            manifest["samples"][0]["bpm"] = BPM + 1
+            (project / "sample_manifest.json").write_text(json.dumps(manifest))
+            with mock.patch(
+                "kihachi_music_ai.transcribe._atomic_write_text",
+                side_effect=OSError("disk full"),
+            ):
+                with self.assertRaisesRegex(OSError, "disk full"):
+                    transcribe_sample_file(project, name="mid", overwrite=True)
+            self.assertEqual(destination.read_bytes(), midi_before)
+            self.assertEqual(coverage_path.read_bytes(), coverage_before)
+
+            destination.unlink()
+            coverage_path.unlink()
+            with mock.patch(
+                "kihachi_music_ai.transcribe._atomic_write_text",
+                side_effect=OSError("disk full"),
+            ):
+                with self.assertRaisesRegex(OSError, "disk full"):
+                    transcribe_sample_file(project, name="mid")
+            self.assertFalse(destination.exists())
+            self.assertFalse(coverage_path.exists())
+            self.assertFalse(
+                any(path.name.startswith(".") for path in audio.parent.iterdir())
+            )
 
     def test_manifest_hash_mismatch_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -358,6 +406,33 @@ class ManifestSafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "manifest root must be an object"):
                 transcribe_sample_file(project, name="mid")
 
+    def test_manifest_entries_must_be_named_objects(self) -> None:
+        cases = (
+            ([42], "entry 0 must be an object"),
+            ([{}], "entry 0 has a missing or non-string name"),
+            ([{"name": 42}], "entry 0 has a missing or non-string name"),
+        )
+        for samples, message in cases:
+            with self.subTest(samples=samples), tempfile.TemporaryDirectory() as temp:
+                project = Path(temp)
+                (project / "sample_manifest.json").write_text(
+                    json.dumps({"samples": samples}), encoding="utf-8"
+                )
+
+                with self.assertRaisesRegex(ValueError, message):
+                    transcribe_sample_file(project, name="mid")
+
+    def test_duplicate_sample_names_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            (project / "sample_manifest.json").write_text(
+                json.dumps({"samples": [{"name": "mid"}, {"name": "mid"}]}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "duplicate sample name"):
+                transcribe_sample_file(project, name="mid")
+
     def test_non_string_manifest_path_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
@@ -374,6 +449,35 @@ class ManifestSafetyTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "non-string manifest path"):
                 transcribe_sample_file(project, name="mid")
+
+    def test_manifest_sha256_must_be_lowercase_hex(self) -> None:
+        cases = (
+            (42, "non-string manifest sha256"),
+            ("not-a-digest", "invalid manifest sha256"),
+            ("A" * 64, "invalid manifest sha256"),
+        )
+        for sha256, message in cases:
+            with self.subTest(sha256=sha256), tempfile.TemporaryDirectory() as temp:
+                project = Path(temp)
+                (project / "sample_manifest.json").write_text(
+                    json.dumps(
+                        {
+                            "samples": [
+                                {
+                                    "name": "mid",
+                                    "path": "audio/mid.wav",
+                                    "sha256": sha256,
+                                    "bpm": BPM,
+                                    "key": "D# minor",
+                                }
+                            ]
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                with self.assertRaisesRegex(ValueError, message):
+                    transcribe_sample_file(project, name="mid")
 
     def test_non_numeric_manifest_bpm_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

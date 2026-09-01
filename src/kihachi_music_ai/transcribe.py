@@ -24,6 +24,9 @@ Pure and stdlib-only.
 from __future__ import annotations
 
 import hashlib
+import os
+import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
@@ -32,7 +35,7 @@ from .material import detect_onsets
 from .midi import MidiNote
 from .pitch import PitchFrame, track_pitch
 
-TRANSCRIPTION_VERSION = "0.3"
+TRANSCRIPTION_VERSION = "0.4"
 
 MAX_SEMITONE_STEP = 0.75
 """How far the pitch may move inside one note before it becomes the next note.
@@ -71,6 +74,54 @@ def _sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _atomic_write_text(path: Path, content: str) -> None:
+    """Replace a text artifact only after its complete contents are on disk."""
+
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            prefix=f".{path.name}-",
+            dir=path.parent,
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(content)
+        os.replace(temporary, path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _atomic_write_bytes(path: Path, content: bytes) -> None:
+    """Binary counterpart used so a MIDI file is never partially replaced."""
+
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            prefix=f".{path.name}-",
+            dir=path.parent,
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(content)
+        os.replace(temporary, path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _restore_artifact(path: Path, previous: bytes | None) -> None:
+    if previous is None:
+        path.unlink(missing_ok=True)
+    else:
+        _atomic_write_bytes(path, previous)
 
 
 def _nearest(values: Sequence[float], target: float) -> float | None:
@@ -221,7 +272,7 @@ def transcribe_sample_file(
 
     import json
 
-    from .midi import write_midi
+    from .midi import build_midi_bytes
 
     project_dir = Path(project_dir)
     manifest_path = project_dir / "sample_manifest.json"
@@ -238,10 +289,19 @@ def transcribe_sample_file(
     records = manifest.get("samples")
     if not isinstance(records, list):
         raise ValueError("sample manifest must contain a samples list")
-    record = next(
-        (item for item in records if isinstance(item, dict) and item.get("name") == name),
-        None,
-    )
+    seen_names: set[str] = set()
+    for index, item in enumerate(records):
+        if not isinstance(item, dict):
+            raise ValueError(f"sample manifest entry {index} must be an object")
+        item_name = item.get("name")
+        if not isinstance(item_name, str):
+            raise ValueError(
+                f"sample manifest entry {index} has a missing or non-string name"
+            )
+        if item_name in seen_names:
+            raise ValueError(f"duplicate sample name in manifest: {item_name!r}")
+        seen_names.add(item_name)
+    record = next((item for item in records if item["name"] == name), None)
     if record is None:
         raise ValueError(f"no sample named {name!r} in {manifest_path}")
     for field in ("path", "bpm", "key"):
@@ -266,14 +326,19 @@ def transcribe_sample_file(
         raise ValueError(f"sample {name!r} has an invalid manifest key") from exc
     if normalized_key != key:
         raise ValueError(f"sample {name!r} has an invalid manifest key: {key!r}")
+    expected_sha256 = record.get("sha256")
+    if expected_sha256 is not None:
+        if not isinstance(expected_sha256, str):
+            raise ValueError(f"sample {name!r} has a non-string manifest sha256")
+        if re.fullmatch(r"[0-9a-f]{64}", expected_sha256) is None:
+            raise ValueError(f"sample {name!r} has an invalid manifest sha256")
 
     project_root = project_dir.resolve()
     audio_path = (project_root / record["path"]).resolve()
     if project_root not in audio_path.parents:
         raise ValueError(f"sample path escapes project: {record['path']}")
-    expected_sha256 = record.get("sha256")
     source_sha256 = _sha256(audio_path)
-    if expected_sha256 is not None and source_sha256 != str(expected_sha256):
+    if expected_sha256 is not None and source_sha256 != expected_sha256:
         raise ValueError(f"sample sha256 does not match manifest: {audio_path}")
     samples, rate = read_wav_mono(audio_path)
     transcription = transcribe(samples, rate, bpm=bpm)
@@ -281,14 +346,13 @@ def transcribe_sample_file(
     coverage_path = audio_path.with_suffix(".transcription.json")
     if (destination.exists() or coverage_path.exists()) and not overwrite:
         raise FileExistsError(f"refusing to overwrite transcription: {destination}")
-    write_midi(
-        destination,
+    midi_payload = build_midi_bytes(
         transcription.notes,
         track_name=f"{name} (transcribed)",
         bpm=bpm,
         key=key,
     )
-    coverage_path.write_text(
+    coverage_payload = (
         json.dumps(
             {
                 "transcription_version": TRANSCRIPTION_VERSION,
@@ -300,12 +364,21 @@ def transcribe_sample_file(
                 "bpm": bpm,
                 "key": key,
                 "midi_file": str(destination.relative_to(project_root)),
+                "midi_sha256": hashlib.sha256(midi_payload).hexdigest(),
                 "coverage": transcription.coverage,
             },
             ensure_ascii=False,
             indent=2,
         )
-        + "\n",
-        encoding="utf-8",
+        + "\n"
     )
+    previous_midi = destination.read_bytes() if destination.is_file() else None
+    previous_coverage = coverage_path.read_bytes() if coverage_path.is_file() else None
+    try:
+        _atomic_write_bytes(destination, midi_payload)
+        _atomic_write_text(coverage_path, coverage_payload)
+    except BaseException:
+        _restore_artifact(coverage_path, previous_coverage)
+        _restore_artifact(destination, previous_midi)
+        raise
     return destination, transcription
