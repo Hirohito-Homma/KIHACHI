@@ -245,6 +245,8 @@ def transcribe_sample_file(
     for field in ("path", "bpm", "key"):
         if field not in record:
             raise ValueError(f"sample {name!r} is missing manifest field: {field}")
+    if not isinstance(record["path"], str):
+        raise ValueError(f"sample {name!r} has a non-string manifest path")
 
     project_root = project_dir.resolve()
     audio_path = (project_root / record["path"]).resolve()
