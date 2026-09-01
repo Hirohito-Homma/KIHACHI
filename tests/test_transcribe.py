@@ -12,7 +12,12 @@ from pathlib import Path
 
 from kihachi_music_ai.cli import main
 from kihachi_music_ai.midi import read_midi
-from kihachi_music_ai.transcribe import ONSET_SNAP_SEC, transcribe, transcribe_sample_file
+from kihachi_music_ai.transcribe import (
+    ONSET_SNAP_SEC,
+    read_wav_mono,
+    transcribe,
+    transcribe_sample_file,
+)
 
 RATE = 48000.0
 BPM = 120.0
@@ -209,6 +214,37 @@ class FileTests(unittest.TestCase):
                 )
             self.assertIn("Transcribed KIHACHI sample:", output.getvalue())
             self.assertEqual(main(["transcribe-sample", str(project), "--name", "mid"]), 2)
+
+
+class WavInputTests(unittest.TestCase):
+    def test_stereo_input_is_averaged_to_mono(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "stereo.wav"
+            samples = array("h", [1000, -1000, 3000, 1000])
+            with wave.open(str(path), "wb") as sink:
+                sink.setnchannels(2)
+                sink.setsampwidth(2)
+                sink.setframerate(int(RATE))
+                sink.writeframes(samples.tobytes())
+
+            mono, rate = read_wav_mono(path)
+
+            self.assertEqual(rate, RATE)
+            self.assertEqual(len(mono), 2)
+            self.assertAlmostEqual(mono[0], 0.0)
+            self.assertAlmostEqual(mono[1], 2000 / 32768)
+
+    def test_non_16_bit_input_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "eight-bit.wav"
+            with wave.open(str(path), "wb") as sink:
+                sink.setnchannels(1)
+                sink.setsampwidth(1)
+                sink.setframerate(int(RATE))
+                sink.writeframes(b"\x80\x80")
+
+            with self.assertRaisesRegex(ValueError, "expected 16-bit audio"):
+                read_wav_mono(path)
 
 
 if __name__ == "__main__":
