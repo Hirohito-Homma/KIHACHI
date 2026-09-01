@@ -233,9 +233,18 @@ def transcribe_sample_file(
     version = manifest.get("manifest_version")
     if version is not None and version != SAMPLE_MANIFEST_VERSION:
         raise ValueError(f"unsupported sample manifest version: {version!r}")
-    record = next((item for item in manifest["samples"] if item["name"] == name), None)
+    records = manifest.get("samples")
+    if not isinstance(records, list):
+        raise ValueError("sample manifest must contain a samples list")
+    record = next(
+        (item for item in records if isinstance(item, dict) and item.get("name") == name),
+        None,
+    )
     if record is None:
         raise ValueError(f"no sample named {name!r} in {manifest_path}")
+    for field in ("path", "bpm", "key"):
+        if field not in record:
+            raise ValueError(f"sample {name!r} is missing manifest field: {field}")
 
     project_root = project_dir.resolve()
     audio_path = (project_root / record["path"]).resolve()
