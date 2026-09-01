@@ -1368,7 +1368,8 @@ ADR-0010でレンダーが曲でなくなったことで、この留保は解消
 python3 -m kihachi_music_ai transcribe-sample projects/my-song --name mid-bass
 ```
 
-`audio/samples/mid-bass.mid` を書きます。BPMはmanifestから取ります（その拍で切ったので、
+`audio/samples/mid-bass.mid` と `mid-bass.transcription.json` を書きます。後者には検出音符数と
+`voiced_fraction`など、転写の取りこぼしを監査するcoverageを保存します。BPMはmanifestから取ります（その拍で切ったので、
 4小節から推定し直すのは既に分かっていることを当てに行くだけです）。
 
 **音高はトラッカー、時刻はオンセットから取ります。**トラッカーのホップは128 ms＝120 BPMで

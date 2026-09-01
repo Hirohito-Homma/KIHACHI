@@ -172,6 +172,9 @@ class FileTests(unittest.TestCase):
             destination, transcription = transcribe_sample_file(project, name="mid")
 
             self.assertTrue(destination.is_file())
+            coverage_path = destination.with_suffix(".transcription.json")
+            self.assertTrue(coverage_path.is_file())
+            self.assertIn('"voiced_fraction"', coverage_path.read_text(encoding="utf-8"))
             self.assertEqual(len(read_midi(destination).notes), len(transcription.notes))
             with self.assertRaises(FileExistsError):
                 transcribe_sample_file(project, name="mid")

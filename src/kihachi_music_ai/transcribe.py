@@ -227,7 +227,8 @@ def transcribe_sample_file(
     samples, rate = read_wav_mono(audio_path)
     transcription = transcribe(samples, rate, bpm=float(record["bpm"]))
     destination = audio_path.with_suffix(".mid")
-    if destination.exists() and not overwrite:
+    coverage_path = audio_path.with_suffix(".transcription.json")
+    if (destination.exists() or coverage_path.exists()) and not overwrite:
         raise FileExistsError(f"refusing to overwrite transcription: {destination}")
     write_midi(
         destination,
@@ -235,5 +236,20 @@ def transcribe_sample_file(
         track_name=f"{name} (transcribed)",
         bpm=float(record["bpm"]),
         key=str(record["key"]),
+    )
+    coverage_path.write_text(
+        json.dumps(
+            {
+                "transcription_version": TRANSCRIPTION_VERSION,
+                "sample": name,
+                "source_audio": record["path"],
+                "midi_file": str(destination.relative_to(project_dir)),
+                "coverage": transcription.coverage,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
     )
     return destination, transcription
