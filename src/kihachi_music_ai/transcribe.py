@@ -234,7 +234,8 @@ def transcribe_sample_file(
 
     audio_path = project_dir / record["path"]
     expected_sha256 = record.get("sha256")
-    if expected_sha256 is not None and _sha256(audio_path) != str(expected_sha256):
+    source_sha256 = _sha256(audio_path)
+    if expected_sha256 is not None and source_sha256 != str(expected_sha256):
         raise ValueError(f"sample sha256 does not match manifest: {audio_path}")
     samples, rate = read_wav_mono(audio_path)
     transcription = transcribe(samples, rate, bpm=float(record["bpm"]))
@@ -255,6 +256,7 @@ def transcribe_sample_file(
                 "transcription_version": TRANSCRIPTION_VERSION,
                 "sample": name,
                 "source_audio": record["path"],
+                "source_sha256": source_sha256,
                 "midi_file": str(destination.relative_to(project_dir)),
                 "coverage": transcription.coverage,
             },
