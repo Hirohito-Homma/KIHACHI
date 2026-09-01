@@ -21,6 +21,18 @@ class CopilotSpecificationTests(unittest.TestCase):
         readme = (path.parents[1] / "README.md").read_text(encoding="utf-8")
         self.assertIn("transcription_version=0.3", readme)
 
+        repo = path.parents[1]
+        for relative in (
+            "src/kihachi_music_ai/models.py",
+            "src/kihachi_music_ai/composer.py",
+            "src/kihachi_music_ai/transcribe.py",
+            "src/kihachi_music_ai/cli/parser.py",
+            "docs/adr/0001-standalone-core.md",
+            "docs/adr/0008-stem-separation-boundary.md",
+        ):
+            with self.subTest(path=relative):
+                self.assertTrue((repo / relative).is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
