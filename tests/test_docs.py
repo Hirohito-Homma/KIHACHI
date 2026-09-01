@@ -18,6 +18,8 @@ class CopilotSpecificationTests(unittest.TestCase):
         ):
             with self.subTest(anchor=anchor):
                 self.assertIn(anchor, text)
+        readme = (path.parents[1] / "README.md").read_text(encoding="utf-8")
+        self.assertIn("transcription_version=0.3", readme)
 
 
 if __name__ == "__main__":
