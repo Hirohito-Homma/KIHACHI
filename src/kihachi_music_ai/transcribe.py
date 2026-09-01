@@ -295,6 +295,8 @@ def transcribe_sample_file(
                 "sample": name,
                 "source_audio": record["path"],
                 "source_sha256": source_sha256,
+                "sample_rate": rate,
+                "duration_sec": round(len(samples) / rate, 6),
                 "bpm": bpm,
                 "key": key,
                 "midi_file": str(destination.relative_to(project_root)),
