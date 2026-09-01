@@ -1373,6 +1373,18 @@ python3 -m kihachi_music_ai transcribe-sample projects/my-song --name mid-bass
 BPMはmanifestから取ります（その拍で切ったので、
 4小節から推定し直すのは既に分かっていることを当てに行くだけです）。
 
+保存後は再生成せず、WAV・MIDI・coverageの対応を読み取り専用で検査できます。
+
+```bash
+python3 -m kihachi_music_ai audit-transcription projects/my-song --name mid-bass
+python3 -m kihachi_music_ai audit-transcription projects/my-song --all
+```
+
+入力WAVとMIDIのSHA-256、manifestとのパス対応、MIDI実読込み後の音符数を照合します。
+`--all`はmanifest内で既に転写JSONがある素材を全件検証し、未転写素材は件数を明示してskipします。
+壊れた成果物や旧版があっても残りを検査し、失敗を全件表示して終了コード2を返します。
+これは**同一性と構造の検証**であり、転写が音楽的に良いか、取りこぼしが許容範囲かは判断しません。
+
 **音高はトラッカー、時刻はオンセットから取ります。**トラッカーのホップは128 ms＝120 BPMで
 4分の1拍あり、それだけでは使い物になりません。合成した4音のラインで、トラッカー単独の開始は
 最大0.23拍ずれ、**オンセット併用で0/1/2/3拍ちょうど**になりました。

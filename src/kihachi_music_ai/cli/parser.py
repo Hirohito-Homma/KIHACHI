@@ -347,6 +347,21 @@ def build_parser() -> argparse.ArgumentParser:
     transcribe_sample.add_argument("--name", required=True, help="sample to transcribe")
     transcribe_sample.add_argument("--overwrite", action="store_true")
 
+    audit_transcription = subparsers.add_parser(
+        "audit-transcription",
+        help="verify a transcription's WAV, MIDI, hashes, and note count (reads only)",
+    )
+    audit_transcription.add_argument(
+        "project", type=Path, help="project holding sample_manifest.json"
+    )
+    audit_selection = audit_transcription.add_mutually_exclusive_group(required=True)
+    audit_selection.add_argument("--name", help="one transcribed sample to verify")
+    audit_selection.add_argument(
+        "--all",
+        action="store_true",
+        help="verify every existing transcription; report untranscribed samples as skipped",
+    )
+
     review_samples = subparsers.add_parser(
         "review-samples",
         help="rank a project's cut samples as material (reads only)",

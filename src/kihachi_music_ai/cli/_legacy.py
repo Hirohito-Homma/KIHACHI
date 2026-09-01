@@ -60,7 +60,11 @@ from ..adapters.intent_llm import (
 from ..agreement import compare_readings, describe as describe_agreement
 from ..brief import describe as describe_brief, read_coverage
 from ..material import describe as describe_material, review_sample
-from ..transcribe import transcribe_sample_file
+from ..transcribe import (
+    audit_project_transcriptions,
+    audit_transcription,
+    transcribe_sample_file,
+)
 from ..sampler import cut_sample
 from ..select import (
     build_shortlist,
@@ -719,6 +723,32 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "transcribe one stem"
                 )
             return 0
+
+        if args.command == "audit-transcription":
+            if args.all:
+                batch = audit_project_transcriptions(args.project)
+                audits = batch["audits"]
+                print(f"Verified KIHACHI transcriptions: {batch['project']}")
+                print(
+                    f"- {batch['verified']} verified; {batch['failed']} failed; "
+                    f"{batch['skipped_untranscribed']} untranscribed samples skipped"
+                )
+            else:
+                audit = audit_transcription(args.project, name=args.name)
+                audits = [audit]
+                print(f"Verified KIHACHI transcription: {audit['sample']}")
+            for audit in audits:
+                print(
+                    f"- {audit['sample']}: {audit['notes']} notes, "
+                    f"coverage {audit['voiced_fraction']:.0%}"
+                )
+                print(f"  WAV sha256: {audit['source_sha256']}")
+                print(f"  MIDI sha256: {audit['midi_sha256']}")
+            if args.all:
+                for failure in batch["failures"]:
+                    print(f"- {failure['sample']}: FAILED - {failure['error']}")
+            print("- read only: verified identity and structure, not musical quality")
+            return 2 if args.all and batch["failed"] else 0
 
         if args.command == "review-samples":
             reviews = []

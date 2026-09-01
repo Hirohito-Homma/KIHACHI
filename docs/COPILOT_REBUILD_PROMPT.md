@@ -57,7 +57,7 @@ SongSpecはdataclassで検証し、BPM、キー、拍子、尺、ジャンル、
 
 ## 5. 必須CLIと安全規則
 
-READMEに記載された`compose`、`analyze`、`review`、`edit`、`apply-edit`、`render-chunks`、`cut-sample`、`transcribe-sample`、`stems prepare/import`、`ableton-plan`等を実装する。各コマンドは入力不備を短いエラーにし、元Audioや既存成果物を変更しない。manifestの版数、パス、SHA-256、BPM、キーを検証する。
+READMEに記載された`compose`、`analyze`、`review`、`edit`、`apply-edit`、`render-chunks`、`cut-sample`、`transcribe-sample`、`audit-transcription`、`stems prepare/import`、`ableton-plan`等を実装する。各コマンドは入力不備を短いエラーにし、元Audioや既存成果物を変更しない。manifestの版数、パス、SHA-256、BPM、キーを検証する。
 
 ## 5.1. 実装ファイルの責務
 

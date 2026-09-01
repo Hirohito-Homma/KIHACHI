@@ -17,6 +17,8 @@ from kihachi_music_ai.midi import read_midi
 from kihachi_music_ai.transcribe import (
     ONSET_SNAP_SEC,
     _atomic_write_text,
+    audit_project_transcriptions,
+    audit_transcription,
     read_wav_mono,
     transcribe,
     transcribe_sample_file,
@@ -209,6 +211,53 @@ class FileTests(unittest.TestCase):
                 hashlib.sha256(destination.read_bytes()).hexdigest(),
             )
             self.assertEqual(len(read_midi(destination).notes), len(transcription.notes))
+            audit = audit_transcription(project, name="mid")
+            self.assertEqual(audit["status"], "verified")
+            self.assertEqual(audit["notes"], len(transcription.notes))
+            batch = audit_project_transcriptions(project)
+            self.assertEqual(batch["verified"], 1)
+            self.assertEqual(batch["skipped_untranscribed"], 0)
+
+            midi_verified = destination.read_bytes()
+            destination.write_bytes(midi_verified + b"tampered")
+            with self.assertRaisesRegex(ValueError, "MIDI sha256 does not match"):
+                audit_transcription(project, name="mid")
+            failed_batch = audit_project_transcriptions(project)
+            self.assertEqual(failed_batch["status"], "failed")
+            self.assertEqual(failed_batch["failed"], 1)
+            self.assertIn("MIDI sha256", failed_batch["failures"][0]["error"])
+            destination.write_bytes(midi_verified)
+
+            coverage_verified = coverage_path.read_bytes()
+            escaped = json.loads(coverage_verified)
+            escaped["midi_file"] = "../outside.mid"
+            coverage_path.write_text(json.dumps(escaped), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "MIDI path escapes project"):
+                audit_transcription(project, name="mid")
+            coverage_path.write_bytes(coverage_verified)
+
+            metadata_cases = (
+                ("sample_rate", RATE + 1, "sample rate does not match"),
+                ("duration_sec", 99.0, "duration does not match"),
+                ("bpm", BPM + 1, "BPM does not match"),
+                ("key", "C major", "key does not match"),
+            )
+            for field, value, message in metadata_cases:
+                with self.subTest(field=field):
+                    altered = json.loads(coverage_verified)
+                    altered[field] = value
+                    coverage_path.write_text(json.dumps(altered), encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, message):
+                        audit_transcription(project, name="mid")
+            coverage_path.write_bytes(coverage_verified)
+
+            altered = json.loads(coverage_verified)
+            altered["coverage"]["transcription_version"] = "0.3"
+            coverage_path.write_text(json.dumps(altered), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "coverage transcription version"):
+                audit_transcription(project, name="mid")
+            coverage_path.write_bytes(coverage_verified)
+
             with self.assertRaises(FileExistsError):
                 transcribe_sample_file(project, name="mid")
 
@@ -308,6 +357,36 @@ class FileTests(unittest.TestCase):
                 )
             self.assertIn("Transcribed KIHACHI sample:", output.getvalue())
             self.assertIn("- coverage:", output.getvalue())
+            audit_output = io.StringIO()
+            with contextlib.redirect_stdout(audit_output):
+                self.assertEqual(
+                    main(["audit-transcription", str(project), "--name", "mid"]),
+                    0,
+                )
+            self.assertIn("Verified KIHACHI transcription", audit_output.getvalue())
+            self.assertIn("read only", audit_output.getvalue())
+
+            manifest_path = project / "sample_manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["samples"].append(
+                {
+                    "name": "later",
+                    "path": "audio/samples/later.wav",
+                    "bpm": BPM,
+                    "key": "D# minor",
+                }
+            )
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            batch_output = io.StringIO()
+            with contextlib.redirect_stdout(batch_output):
+                self.assertEqual(
+                    main(["audit-transcription", str(project), "--all"]),
+                    0,
+                )
+            self.assertIn(
+                "1 verified; 0 failed; 1 untranscribed samples skipped",
+                batch_output.getvalue(),
+            )
             self.assertEqual(main(["transcribe-sample", str(project), "--name", "mid"]), 2)
             self.assertEqual(
                 main(["transcribe-sample", str(project), "--name", "missing"]),
