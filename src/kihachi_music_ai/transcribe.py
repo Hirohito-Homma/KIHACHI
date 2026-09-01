@@ -251,6 +251,8 @@ def transcribe_sample_file(
         bpm = float(record["bpm"])
     except (TypeError, ValueError) as exc:
         raise ValueError(f"sample {name!r} has a non-numeric manifest bpm") from exc
+    if not 30.0 <= bpm <= 300.0:
+        raise ValueError(f"sample {name!r} manifest bpm must be between 30 and 300")
     if not isinstance(record["key"], str):
         raise ValueError(f"sample {name!r} has a non-string manifest key")
 
