@@ -99,7 +99,10 @@ DECREASE_WORDS = ("抑え", "減ら", "弱く", "下げ", "less", "reduce", "low
 # used to lower ghost notes).  This is intentionally narrower than the general
 # refusal vocabulary, whose standalone forms still mean "remove this quality".
 _NEGATED_CHANGE_PATTERNS = (
-    re.compile(r"(?:抑え|減ら|増や|弱く|強く|下げ|上げ)(?:さ)?ない(?:で|ください)?"),
+    re.compile(
+        r"(?:抑え|減ら|減少させ|増や|増加させ|弱く|強く|下げ|上げ|高め)"
+        r"(?:さ)?ない(?:で|ください)?"
+    ),
     re.compile(r"\b(?:do not|don't|dont|never)\s+(?:reduce|increase|lower|raise|decrease)\b"),
 )
 

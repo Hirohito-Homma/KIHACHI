@@ -218,6 +218,8 @@ class InstructionParsingTests(unittest.TestCase):
             "ゴーストノートを増やさないで",
             "ゴーストノートを下げないで",
             "ゴーストノートを上げないで",
+            "ゴーストノートを減少させないで",
+            "ゴーストノートを高めないで",
             "do not reduce ghost notes",
             "don't increase ghost notes",
         ):
