@@ -700,6 +700,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             coverage = transcription.coverage
             print(f"Transcribed KIHACHI sample: {written}")
+            print(f"- coverage: {written.with_suffix('.transcription.json')}")
             print(
                 f"- {coverage['notes']} notes from {coverage['voiced_frames']} voiced "
                 f"frames of {coverage['frames']} ({coverage['voiced_fraction']:.0%})"

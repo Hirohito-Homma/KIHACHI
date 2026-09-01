@@ -253,6 +253,7 @@ class FileTests(unittest.TestCase):
                     0,
                 )
             self.assertIn("Transcribed KIHACHI sample:", output.getvalue())
+            self.assertIn("- coverage:", output.getvalue())
             self.assertEqual(main(["transcribe-sample", str(project), "--name", "mid"]), 2)
 
 
