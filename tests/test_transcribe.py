@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import json
 import contextlib
+import hashlib
 import io
 import tempfile
 import unittest
@@ -177,6 +178,36 @@ class FileTests(unittest.TestCase):
             self.assertIn('"voiced_fraction"', coverage_path.read_text(encoding="utf-8"))
             self.assertEqual(len(read_midi(destination).notes), len(transcription.notes))
             with self.assertRaises(FileExistsError):
+                transcribe_sample_file(project, name="mid")
+
+    def test_manifest_hash_mismatch_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            audio = project / "audio" / "samples" / "mid.wav"
+            audio.parent.mkdir(parents=True)
+            with wave.open(str(audio), "wb") as sink:
+                sink.setnchannels(1)
+                sink.setsampwidth(2)
+                sink.setframerate(int(RATE))
+                sink.writeframes(array("h", [0, 0]).tobytes())
+            (project / "sample_manifest.json").write_text(
+                json.dumps(
+                    {
+                        "samples": [
+                            {
+                                "name": "mid",
+                                "path": "audio/samples/mid.wav",
+                                "sha256": hashlib.sha256(b"wrong").hexdigest(),
+                                "bpm": BPM,
+                                "key": "D# minor",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "sha256 does not match"):
                 transcribe_sample_file(project, name="mid")
 
     def test_cli_transcribe_sample_reports_output_and_refuses_overwrite(self) -> None:

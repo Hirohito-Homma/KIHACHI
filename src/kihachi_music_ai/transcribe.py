@@ -23,6 +23,7 @@ Pure and stdlib-only.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
@@ -62,6 +63,14 @@ two are allowed to be apart before the onset is treated as somebody else's.
 class Transcription:
     notes: tuple[MidiNote, ...]
     coverage: dict[str, Any]
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _nearest(values: Sequence[float], target: float) -> float | None:
@@ -224,6 +233,9 @@ def transcribe_sample_file(
         raise KeyError(f"no sample named {name!r} in {manifest_path}")
 
     audio_path = project_dir / record["path"]
+    expected_sha256 = record.get("sha256")
+    if expected_sha256 is not None and _sha256(audio_path) != str(expected_sha256):
+        raise ValueError(f"sample sha256 does not match manifest: {audio_path}")
     samples, rate = read_wav_mono(audio_path)
     transcription = transcribe(samples, rate, bpm=float(record["bpm"]))
     destination = audio_path.with_suffix(".mid")
