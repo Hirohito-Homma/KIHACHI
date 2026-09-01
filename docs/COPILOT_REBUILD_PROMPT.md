@@ -59,6 +59,22 @@ SongSpecはdataclassで検証し、BPM、キー、拍子、尺、ジャンル、
 
 READMEに記載された`compose`、`analyze`、`review`、`edit`、`apply-edit`、`render-chunks`、`cut-sample`、`transcribe-sample`、`stems prepare/import`、`ableton-plan`等を実装する。各コマンドは入力不備を短いエラーにし、元Audioや既存成果物を変更しない。manifestの版数、パス、SHA-256、BPM、キーを検証する。
 
+## 5.1. 実装ファイルの責務
+
+必須の責務境界は次の通り。ファイルを統合・改名する場合も、公開CLIとSongSpec契約を維持する。
+
+```text
+models.py / music_brain.py / intent.py / genres.py / theory.py  # 契約と解釈
+arrangement.py / groove.py / mutation.py / composer.py / midi.py # 作曲とSMF
+pipeline.py / prompt_compiler.py / derive.py                    # 出力経路
+analyzer.py / spectrum.py / loudness.py / defects.py             # WAV測定
+reviewer.py / revision.py / repaint_planner.py / decision.py     # レビュー境界
+sampler.py / stems.py / transcribe.py                            # 素材・stem・転写
+ableton.py / instrumental.py                                     # 外部Live計画
+adapters/ace_step.py / adapters/intent_llm.py                    # 外部サービス
+cli/parser.py / cli/_legacy.py                                   # CLI配線
+```
+
 ## 6. テストと完了条件
 
 - `python -m unittest discover -s tests` と `python -m pytest -q` が通る。
