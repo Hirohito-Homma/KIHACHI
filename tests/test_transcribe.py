@@ -178,7 +178,7 @@ class FileTests(unittest.TestCase):
             coverage_path = destination.with_suffix(".transcription.json")
             self.assertTrue(coverage_path.is_file())
             coverage_record = json.loads(coverage_path.read_text(encoding="utf-8"))
-            self.assertEqual(coverage_record["transcription_version"], "0.2")
+            self.assertEqual(coverage_record["transcription_version"], "0.3")
             self.assertEqual(coverage_record["bpm"], BPM)
             self.assertEqual(coverage_record["key"], "D# minor")
             self.assertEqual(coverage_record["sample_rate"], RATE)

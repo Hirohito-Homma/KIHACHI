@@ -32,7 +32,7 @@ from .material import detect_onsets
 from .midi import MidiNote
 from .pitch import PitchFrame, track_pitch
 
-TRANSCRIPTION_VERSION = "0.2"
+TRANSCRIPTION_VERSION = "0.3"
 
 MAX_SEMITONE_STEP = 0.75
 """How far the pitch may move inside one note before it becomes the next note.
