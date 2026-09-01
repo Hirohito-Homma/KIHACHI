@@ -228,6 +228,11 @@ def transcribe_sample_file(
     if not manifest_path.is_file():
         raise FileNotFoundError(f"no samples cut here: {manifest_path}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    from .sampler import SAMPLE_MANIFEST_VERSION
+
+    version = manifest.get("manifest_version")
+    if version is not None and version != SAMPLE_MANIFEST_VERSION:
+        raise ValueError(f"unsupported sample manifest version: {version!r}")
     record = next((item for item in manifest["samples"] if item["name"] == name), None)
     if record is None:
         raise KeyError(f"no sample named {name!r} in {manifest_path}")

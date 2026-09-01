@@ -318,6 +318,17 @@ class ManifestSafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "escapes project"):
                 transcribe_sample_file(project, name="escape")
 
+    def test_unknown_manifest_version_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            (project / "sample_manifest.json").write_text(
+                json.dumps({"manifest_version": "sample-manifest-v99", "samples": []}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "unsupported sample manifest version"):
+                transcribe_sample_file(project, name="mid")
+
 
 if __name__ == "__main__":
     unittest.main()
