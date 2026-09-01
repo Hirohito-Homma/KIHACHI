@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import math
 import json
+import contextlib
+import io
 import tempfile
 import unittest
 import wave
 from array import array
 from pathlib import Path
 
+from kihachi_music_ai.cli import main
 from kihachi_music_ai.midi import read_midi
 from kihachi_music_ai.transcribe import ONSET_SNAP_SEC, transcribe, transcribe_sample_file
 
@@ -167,6 +170,45 @@ class FileTests(unittest.TestCase):
             self.assertEqual(len(read_midi(destination).notes), len(transcription.notes))
             with self.assertRaises(FileExistsError):
                 transcribe_sample_file(project, name="mid")
+
+    def test_cli_transcribe_sample_reports_output_and_refuses_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            audio = project / "audio" / "samples" / "mid.wav"
+            audio.parent.mkdir(parents=True)
+            samples = array(
+                "h",
+                [int(max(-1.0, min(1.0, value)) * 32767) for value in line([D_SHARP_2])],
+            )
+            with wave.open(str(audio), "wb") as sink:
+                sink.setnchannels(1)
+                sink.setsampwidth(2)
+                sink.setframerate(int(RATE))
+                sink.writeframes(samples.tobytes())
+            (project / "sample_manifest.json").write_text(
+                json.dumps(
+                    {
+                        "samples": [
+                            {
+                                "name": "mid",
+                                "path": "audio/samples/mid.wav",
+                                "bpm": BPM,
+                                "key": "D# minor",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(
+                    main(["transcribe-sample", str(project), "--name", "mid"]),
+                    0,
+                )
+            self.assertIn("Transcribed KIHACHI sample:", output.getvalue())
+            self.assertEqual(main(["transcribe-sample", str(project), "--name", "mid"]), 2)
 
 
 if __name__ == "__main__":
