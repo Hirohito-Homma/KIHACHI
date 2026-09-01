@@ -176,6 +176,7 @@ class FileTests(unittest.TestCase):
             coverage_path = destination.with_suffix(".transcription.json")
             self.assertTrue(coverage_path.is_file())
             coverage_record = json.loads(coverage_path.read_text(encoding="utf-8"))
+            self.assertEqual(coverage_record["transcription_version"], "0.2")
             self.assertIn("voiced_fraction", coverage_record["coverage"])
             self.assertEqual(
                 coverage_record["source_sha256"],
