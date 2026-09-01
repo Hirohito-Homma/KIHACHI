@@ -157,10 +157,12 @@ class FileTests(unittest.TestCase):
             (project / "sample_manifest.json").write_text(
                 json.dumps(
                     {
+                        "manifest_version": "sample-manifest-v1",
                         "samples": [
                             {
                                 "name": "mid",
                                 "path": "audio/samples/mid.wav",
+                                "sha256": hashlib.sha256(audio.read_bytes()).hexdigest(),
                                 "bpm": BPM,
                                 "key": "D# minor",
                             }
