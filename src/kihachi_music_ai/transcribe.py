@@ -228,6 +228,8 @@ def transcribe_sample_file(
     if not manifest_path.is_file():
         raise FileNotFoundError(f"no samples cut here: {manifest_path}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError("sample manifest root must be an object")
     from .sampler import SAMPLE_MANIFEST_VERSION
 
     version = manifest.get("manifest_version")

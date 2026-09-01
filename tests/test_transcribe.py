@@ -346,6 +346,14 @@ class ManifestSafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "missing manifest field: bpm"):
                 transcribe_sample_file(project, name="mid")
 
+    def test_non_object_manifest_root_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            (project / "sample_manifest.json").write_text("[]", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "manifest root must be an object"):
+                transcribe_sample_file(project, name="mid")
+
     def test_non_string_manifest_path_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
