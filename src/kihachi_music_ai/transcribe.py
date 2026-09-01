@@ -232,7 +232,10 @@ def transcribe_sample_file(
     if record is None:
         raise KeyError(f"no sample named {name!r} in {manifest_path}")
 
-    audio_path = project_dir / record["path"]
+    project_root = project_dir.resolve()
+    audio_path = (project_root / record["path"]).resolve()
+    if project_root not in audio_path.parents:
+        raise ValueError(f"sample path escapes project: {record['path']}")
     expected_sha256 = record.get("sha256")
     source_sha256 = _sha256(audio_path)
     if expected_sha256 is not None and source_sha256 != str(expected_sha256):
@@ -257,7 +260,7 @@ def transcribe_sample_file(
                 "sample": name,
                 "source_audio": record["path"],
                 "source_sha256": source_sha256,
-                "midi_file": str(destination.relative_to(project_dir)),
+                "midi_file": str(destination.relative_to(project_root)),
                 "coverage": transcription.coverage,
             },
             ensure_ascii=False,

@@ -288,5 +288,36 @@ class WavInputTests(unittest.TestCase):
                 read_wav_mono(path)
 
 
+class ManifestSafetyTests(unittest.TestCase):
+    def test_manifest_path_cannot_escape_the_project(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            project.mkdir()
+            outside = Path(temp) / "outside.wav"
+            with wave.open(str(outside), "wb") as sink:
+                sink.setnchannels(1)
+                sink.setsampwidth(2)
+                sink.setframerate(int(RATE))
+                sink.writeframes(array("h", [0, 0]).tobytes())
+            (project / "sample_manifest.json").write_text(
+                json.dumps(
+                    {
+                        "samples": [
+                            {
+                                "name": "escape",
+                                "path": "../outside.wav",
+                                "bpm": BPM,
+                                "key": "D# minor",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "escapes project"):
+                transcribe_sample_file(project, name="escape")
+
+
 if __name__ == "__main__":
     unittest.main()
