@@ -235,7 +235,7 @@ def transcribe_sample_file(
         raise ValueError(f"unsupported sample manifest version: {version!r}")
     record = next((item for item in manifest["samples"] if item["name"] == name), None)
     if record is None:
-        raise KeyError(f"no sample named {name!r} in {manifest_path}")
+        raise ValueError(f"no sample named {name!r} in {manifest_path}")
 
     project_root = project_dir.resolve()
     audio_path = (project_root / record["path"]).resolve()

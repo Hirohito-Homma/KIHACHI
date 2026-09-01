@@ -255,6 +255,10 @@ class FileTests(unittest.TestCase):
             self.assertIn("Transcribed KIHACHI sample:", output.getvalue())
             self.assertIn("- coverage:", output.getvalue())
             self.assertEqual(main(["transcribe-sample", str(project), "--name", "mid"]), 2)
+            self.assertEqual(
+                main(["transcribe-sample", str(project), "--name", "missing"]),
+                2,
+            )
 
 
 class WavInputTests(unittest.TestCase):
