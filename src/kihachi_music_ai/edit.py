@@ -93,6 +93,16 @@ QUALITY_WORDS: dict[str, tuple[str, ...]] = {
 INCREASE_WORDS = ("もっと", "更に", "さらに", "上げ", "増やし", "強く", "more", "increase", "raise", "up")
 DECREASE_WORDS = ("抑え", "減ら", "弱く", "下げ", "less", "reduce", "lower", "down", "薄く", "控え")
 
+# A negator attached to a directional verb refuses the *edit*, not the
+# musical quality.  Treating these as an ordinary decrease/increase silently
+# does the opposite of what the user asked for (for example, 「減らさないで」
+# used to lower ghost notes).  This is intentionally narrower than the general
+# refusal vocabulary, whose standalone forms still mean "remove this quality".
+_NEGATED_CHANGE_PATTERNS = (
+    re.compile(r"(?:抑え|減ら|増や|弱く|強く|下げ|上げ)(?:さ)?ない(?:で|ください)?"),
+    re.compile(r"\b(?:do not|don't|dont|never)\s+(?:reduce|increase|lower|raise|decrease)\b"),
+)
+
 #: 「抜い」 is one of `intent`'s verb negators and this module's own word for
 #: *making* space (「ドラムを抜いて」), so it names a quality here rather than
 #: refusing one. Reading it both ways would turn one instruction into two
@@ -183,6 +193,11 @@ def parse_edit_instruction(instruction: str, spec: SongSpec) -> EditIntent:
         raise EditInstructionError(
             "no musical quality recognised in the instruction; expected one of: "
             + ", ".join(sorted(QUALITY_WORDS))
+        )
+
+    if any(pattern.search(lowered) for pattern in _NEGATED_CHANGE_PATTERNS):
+        raise EditInstructionError(
+            "instruction negates the change; say what direction to move instead"
         )
 
     tracks = tuple(

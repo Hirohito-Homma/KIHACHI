@@ -205,21 +205,25 @@ class InstructionParsingTests(unittest.TestCase):
         self.assertEqual(intent.direction, -1)
         self.assertEqual(intent.magnitude, 0.2)
 
-    def test_a_double_negative_is_known_wrong_and_pinned(self) -> None:
-        """「減らさないで」 asks for the edit *not* to happen, and reads as a
-        decrease.
+    def test_a_negated_move_is_refused_instead_of_moving_the_wrong_way(self) -> None:
+        """Not doing an edit is neither its direction nor the opposite one.
 
-        This parser is a bag of words with no positions in it, which is why the
-        suffix negators are left out of `REFUSAL_WORDS` altogether: a bare
-        「ない」 would turn every one of these into a refusal of the quality,
-        which is wrong in a second direction. `intent` counts negations per
-        mention because it knows where each one sits; nothing here does.
+        「減らさないで」 used to decrease, and 「増やさないで」 used to
+        increase. The instruction has not said where to move the value, so the
+        safe result is no plan and an actionable error.
         """
 
-        intent = parse_edit_instruction("ゴーストノートを減らさないで", self.spec)
-
-        self.assertFalse(intent.refusal)
-        self.assertEqual(intent.direction, -1)
+        for text in (
+            "ゴーストノートを減らさないで",
+            "ゴーストノートを増やさないで",
+            "ゴーストノートを下げないで",
+            "ゴーストノートを上げないで",
+            "do not reduce ghost notes",
+            "don't increase ghost notes",
+        ):
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(EditInstructionError, "negates the change"):
+                    parse_edit_instruction(text, self.spec)
 
     def test_an_unrecognised_instruction_is_refused(self) -> None:
         for text in ("", "   ", "make it better somehow"):
@@ -475,6 +479,19 @@ class ApplyEditProjectTests(unittest.TestCase):
 
 
 class EditCliTests(unittest.TestCase):
+    def test_a_negated_move_writes_no_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source"
+            compose_project(LONG_PROMPT, source)
+            error = io.StringIO()
+
+            with contextlib.redirect_stderr(error):
+                status = main(["edit", str(source), "ゴーストノートを減らさないで"])
+
+            self.assertNotEqual(status, 0)
+            self.assertIn("negates the change", error.getvalue())
+            self.assertFalse((source / "spec_edit.json").exists())
+
     def test_plan_then_apply_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
