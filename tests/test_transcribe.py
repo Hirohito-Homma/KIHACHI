@@ -361,6 +361,23 @@ class ManifestSafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "non-string manifest path"):
                 transcribe_sample_file(project, name="mid")
 
+    def test_non_numeric_manifest_bpm_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            (project / "sample_manifest.json").write_text(
+                json.dumps(
+                    {
+                        "samples": [
+                            {"name": "mid", "path": "audio/mid.wav", "bpm": [], "key": "D# minor"}
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "non-numeric manifest bpm"):
+                transcribe_sample_file(project, name="mid")
+
 
 if __name__ == "__main__":
     unittest.main()

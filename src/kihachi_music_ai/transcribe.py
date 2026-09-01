@@ -247,6 +247,12 @@ def transcribe_sample_file(
             raise ValueError(f"sample {name!r} is missing manifest field: {field}")
     if not isinstance(record["path"], str):
         raise ValueError(f"sample {name!r} has a non-string manifest path")
+    try:
+        bpm = float(record["bpm"])
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"sample {name!r} has a non-numeric manifest bpm") from exc
+    if not isinstance(record["key"], str):
+        raise ValueError(f"sample {name!r} has a non-string manifest key")
 
     project_root = project_dir.resolve()
     audio_path = (project_root / record["path"]).resolve()
@@ -257,7 +263,7 @@ def transcribe_sample_file(
     if expected_sha256 is not None and source_sha256 != str(expected_sha256):
         raise ValueError(f"sample sha256 does not match manifest: {audio_path}")
     samples, rate = read_wav_mono(audio_path)
-    transcription = transcribe(samples, rate, bpm=float(record["bpm"]))
+    transcription = transcribe(samples, rate, bpm=bpm)
     destination = audio_path.with_suffix(".mid")
     coverage_path = audio_path.with_suffix(".transcription.json")
     if (destination.exists() or coverage_path.exists()) and not overwrite:
@@ -266,7 +272,7 @@ def transcribe_sample_file(
         destination,
         transcription.notes,
         track_name=f"{name} (transcribed)",
-        bpm=float(record["bpm"]),
+        bpm=bpm,
         key=str(record["key"]),
     )
     coverage_path.write_text(
