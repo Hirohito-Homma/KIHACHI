@@ -257,6 +257,15 @@ def transcribe_sample_file(
         raise ValueError(f"sample {name!r} manifest bpm must be between 30 and 300")
     if not isinstance(record["key"], str):
         raise ValueError(f"sample {name!r} has a non-string manifest key")
+    key = record["key"]
+    from .theory import parse_key
+
+    try:
+        normalized_key, _, _, _ = parse_key(key, default="")
+    except ValueError as exc:
+        raise ValueError(f"sample {name!r} has an invalid manifest key") from exc
+    if normalized_key != key:
+        raise ValueError(f"sample {name!r} has an invalid manifest key: {key!r}")
 
     project_root = project_dir.resolve()
     audio_path = (project_root / record["path"]).resolve()
@@ -277,7 +286,7 @@ def transcribe_sample_file(
         transcription.notes,
         track_name=f"{name} (transcribed)",
         bpm=bpm,
-        key=str(record["key"]),
+        key=key,
     )
     coverage_path.write_text(
         json.dumps(
