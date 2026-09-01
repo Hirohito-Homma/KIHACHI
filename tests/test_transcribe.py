@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import math
+import json
 import tempfile
 import unittest
+import wave
+from array import array
 from pathlib import Path
 
-from kihachi_music_ai.transcribe import ONSET_SNAP_SEC, transcribe
+from kihachi_music_ai.midi import read_midi
+from kihachi_music_ai.transcribe import ONSET_SNAP_SEC, transcribe, transcribe_sample_file
 
 RATE = 48000.0
 BPM = 120.0
@@ -124,6 +128,45 @@ class MixTests(unittest.TestCase):
         result = transcribe(mixed, RATE, bpm=BPM)
 
         self.assertLess(result.coverage["voiced_fraction"], 0.5)
+
+
+class FileTests(unittest.TestCase):
+    def test_sample_manifest_command_writes_a_readable_midi_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            audio = project / "audio" / "samples" / "mid.wav"
+            audio.parent.mkdir(parents=True)
+            samples = array(
+                "h",
+                [int(max(-1.0, min(1.0, value)) * 32767) for value in line([D_SHARP_2])],
+            )
+            with wave.open(str(audio), "wb") as sink:
+                sink.setnchannels(1)
+                sink.setsampwidth(2)
+                sink.setframerate(int(RATE))
+                sink.writeframes(samples.tobytes())
+            (project / "sample_manifest.json").write_text(
+                json.dumps(
+                    {
+                        "samples": [
+                            {
+                                "name": "mid",
+                                "path": "audio/samples/mid.wav",
+                                "bpm": BPM,
+                                "key": "D# minor",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            destination, transcription = transcribe_sample_file(project, name="mid")
+
+            self.assertTrue(destination.is_file())
+            self.assertEqual(len(read_midi(destination).notes), len(transcription.notes))
+            with self.assertRaises(FileExistsError):
+                transcribe_sample_file(project, name="mid")
 
 
 if __name__ == "__main__":
