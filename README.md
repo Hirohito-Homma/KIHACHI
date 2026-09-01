@@ -1697,7 +1697,8 @@ low/high比が142089や919623まで発散します。閾値はミックスで較
 | 1つのtraitを2つの語で呼ぶと、片方だけ拒否できない | 「アルペジは要らないが、シーケンスっぽさは残して」は`アルペジ`も`シーケンス`も同じ`arp` traitなので、同じノブにoffとonを同時に頼んでいます。モデルも同じ壁に当たり、後半を`unmapped`に入れました（2026-08-19、`sweeps/2026-08-19/readings/s19`） | 別々のtraitで言い直す。語彙を割るには`TRAIT_WORDS`に新しいtraitと、それを読む側の欄が要ります |
 | True peak未実装 | — | インターサンプルピークにはオーバーサンプリングが必要なため見送り |
 
-コード進行と低域の2つは、原因の切り分けにstem分離が要ります（v0.1の範囲外）。
+コード進行と低域の2つは、v0.1時点では原因の切り分けにstem分離が必要でした。
+現在はv0.2でstem取り込みを実装し、上記の進行不一致と低域偏重の対照測定に使っています。
 
 ## v0.1の境界
 
@@ -1713,7 +1714,10 @@ uv run kihachi ace-step render  projects/my-song --from-brief prompt.json
 ```
 
   SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。`render` の場合、テールガードの切り戻し先はブリーフ自身の `total_bars`・`bpm`・`time_signature` から求めた長さです（SongSpec側のグリッドに切り戻すと、尺を書き換えたブリーフはまさにその部分を失います）。どのブリーフでレンダーしたかは `ace_step_result.json` の `render_brief`（パス・SHA-256・SongSpecとの一致）に残ります。
-- Audio-to-MIDI、Ableton Live展開、LLM接続は次段階です。ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
+- Audio-to-MIDI、Ableton Live展開、LLM接続は**v0.1では範囲外でした**。現在はv0.2として、
+  単音素材の`transcribe-sample`と`audit-transcription`、`ableton-plan`からAbletonGPT経由の実機適用、
+  任意の`intent prepare/read`を実装済みです。KIHACHI自身はLiveを直接操作せず、LLMにも曲を書かせません。
+  ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
 - stem分離はv0.2で取り込み済みです（ADR-0008）。複数候補については`shortlist`が順位と根拠を出しますが、**採用は自動化していません**（ADR-0009）。測れない次元が残る以上、最後は試聴です。
 
 ## ACE-Step 1.5アダプター

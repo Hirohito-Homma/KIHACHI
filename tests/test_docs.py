@@ -21,6 +21,10 @@ class CopilotSpecificationTests(unittest.TestCase):
         readme = (path.parents[1] / "README.md").read_text(encoding="utf-8")
         self.assertIn("transcription_version=0.4", readme)
         self.assertIn("audit-transcription", readme)
+        self.assertNotIn(
+            "Audio-to-MIDI、Ableton Live展開、LLM接続は次段階です", readme
+        )
+        self.assertIn("KIHACHI自身はLiveを直接操作せず", readme)
 
         repo = path.parents[1]
         for relative in (
