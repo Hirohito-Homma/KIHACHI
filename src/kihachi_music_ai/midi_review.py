@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .composer import swung_position
+from .density_diagnostic import density_diagnostics
 from .midi import MidiNote, read_midi
 from .models import CORE_TRACKS, SongSpec
 from .project_artifacts import require_managed_midi
@@ -173,6 +174,7 @@ def review_midi_tracks(
         "sections": sections,
         "coverage": coverage,
         "groove": groove,
+        "density": density_diagnostics(spec, tracks),
         "alignment": {
             "score": total,
             "grade": (
