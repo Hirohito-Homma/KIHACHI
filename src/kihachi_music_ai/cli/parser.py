@@ -63,6 +63,47 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    audio_slice = subparsers.add_parser(
+        "audio-slice",
+        help=(
+            "compose from a brief, render through ACE-Step, analyze, and run the "
+            "audio-aware review + critic path (requires an ACE-Step endpoint)"
+        ),
+    )
+    audio_slice.add_argument("prompt", help="natural-language music brief")
+    audio_slice.add_argument("--output", type=Path, help="output directory")
+    audio_slice.add_argument("--seed", type=int, default=8, help="deterministic composition seed")
+    audio_slice.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="replace existing compose, render, analysis, and review artifacts",
+    )
+    audio_slice.add_argument(
+        "--preferences",
+        type=Path,
+        help=(
+            "apply learned priors from a `learn` output. Off by default: the same "
+            "prompt and seed must keep producing the same song unless asked otherwise"
+        ),
+    )
+    audio_slice.add_argument(
+        "--no-lyrics",
+        action="store_true",
+        help="render instrumental, ignoring the project's lyrics.txt",
+    )
+    audio_slice.add_argument(
+        "--tail-guard-bars",
+        type=float,
+        default=None,
+        help=(
+            "extra bars of render buffer past the song grid; defaults to "
+            f"{DEFAULT_TAIL_GUARD_BARS} for text2music. Pass 0 to disable"
+        ),
+    )
+    add_ace_connection_arguments(audio_slice)
+    audio_slice.add_argument("--wait-timeout", type=float, default=600.0)
+    audio_slice.add_argument("--poll-interval", type=float, default=2.0)
+
     serve = subparsers.add_parser(
         "serve", help="open the brief screen in a local browser tab (writes nothing)"
     )
