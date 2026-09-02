@@ -118,6 +118,10 @@ class LoopTests(unittest.TestCase):
             self.assertTrue(calls)
             self.assertEqual(calls[0].name, "song-rev01")
             self.assertEqual(calls[0].parent, project.parent)
+            self.assertEqual(
+                (calls[0] / "vocoder.mid").read_bytes(),
+                (project / "vocoder.mid").read_bytes(),
+            )
 
     def test_an_existing_round_directory_stops_the_loop_rather_than_replacing_it(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

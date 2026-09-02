@@ -30,6 +30,7 @@ from typing import Any, Mapping, Sequence
 from .genres import family_of
 from .midi import MidiNote, read_midi
 from .models import TRACK_NAMES, SongSpec
+from .project_artifacts import require_managed_midi
 
 ARRANGEMENT_PLAN_VERSION = "0.1"
 
@@ -283,14 +284,11 @@ def plan_project_arrangement(
         raise FileNotFoundError(f"SongSpec not found: {spec_path}")
     spec = SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
 
-    tracks: dict[str, tuple[MidiNote, ...]] = {}
-    files: list[Path] = []
-    for name in spec.parts():
-        path = project_dir / f"{name}.mid"
-        if not path.is_file():
-            raise FileNotFoundError(f"MIDI track not found: {path}")
-        tracks[name] = read_midi(path).notes
-        files.append(path)
+    files = require_managed_midi(project_dir, spec, context="Ableton project")
+    tracks = {
+        name: read_midi(path).notes
+        for name, path in zip(spec.parts(), files, strict=True)
+    }
 
     plan = build_arrangement_plan(
         spec,
@@ -308,7 +306,7 @@ def plan_project_arrangement(
     destination.write_text(
         json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    return ArrangementPlanManifest(project_dir, tuple(files), destination, plan)
+    return ArrangementPlanManifest(project_dir, files, destination, plan)
 
 
 def parse_send_binding(text: str) -> dict[str, Any]:

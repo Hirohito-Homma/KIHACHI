@@ -25,7 +25,8 @@ from typing import Any, Mapping, Sequence
 
 from .composer import swung_position
 from .midi import MidiNote, read_midi
-from .models import SongSpec
+from .models import CORE_TRACKS, SongSpec
+from .project_artifacts import require_managed_midi
 from .theory import NOTE_TO_PC, SCALES, chord_pitches, chord_root
 
 MIDI_REVIEW_VERSION = "0.1"
@@ -39,9 +40,8 @@ MIDI_ALIGNMENT_WEIGHTS = {
     "section_energy": 0.30,
     "coverage": 0.15,
 }
-TRACK_FILES = ("bass", "drums", "chords")
-"""The parts a SongSpec that names no instruments writes. Specs that do name
-them are read through ``spec.parts()`` instead."""
+TRACK_FILES = CORE_TRACKS
+"""Backward-compatible name for the default parts, not project resolution."""
 
 
 @dataclass(frozen=True)
@@ -60,15 +60,12 @@ def review_project_midi(project_dir: Path) -> MidiReviewManifest:
         raise FileNotFoundError(f"SongSpec not found: {spec_path}")
     spec = SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
 
-    tracks: dict[str, tuple[MidiNote, ...]] = {}
-    files: list[Path] = []
-    for name in spec.parts():
-        path = project_dir / f"{name}.mid"
-        if not path.is_file():
-            raise FileNotFoundError(f"MIDI track not found: {path}")
-        tracks[name] = read_midi(path).notes
-        files.append(path)
-    return MidiReviewManifest(project_dir, tuple(files), review_midi_tracks(spec, tracks))
+    files = require_managed_midi(project_dir, spec, context="MIDI review project")
+    tracks = {
+        name: read_midi(path).notes
+        for name, path in zip(spec.parts(), files, strict=True)
+    }
+    return MidiReviewManifest(project_dir, files, review_midi_tracks(spec, tracks))
 
 
 def groove_report(spec: SongSpec, tracks: Mapping[str, Sequence[MidiNote]]) -> dict[str, Any]:

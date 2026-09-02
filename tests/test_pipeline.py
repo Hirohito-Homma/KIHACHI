@@ -41,6 +41,29 @@ class PipelineTests(unittest.TestCase):
             compose_project(EXAMPLE, output, overwrite=True)
             self.assertEqual(marker.read_text(encoding="utf-8"), "keep")
 
+    def test_legacy_core_three_project_keeps_its_artifact_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            manifest = compose_project("Tech House。", Path(temp) / "legacy")
+
+            self.assertEqual(
+                tuple(path.name for path in manifest.files),
+                ARTIFACT_NAMES,
+            )
+            self.assertTrue(all(path.is_file() for path in manifest.files))
+
+    def test_overwrite_removes_only_midi_managed_by_the_previous_spec(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "mutation-signal"
+            compose_project(EXAMPLE, output)
+            imported = output / "reference.mid"
+            imported.write_bytes(b"user-owned reference MIDI")
+
+            compose_project("Tech House。vocoderなしで。", output, overwrite=True)
+
+            self.assertFalse((output / "vocoder.mid").exists())
+            self.assertEqual(imported.read_bytes(), b"user-owned reference MIDI")
+            self.assertTrue(all((output / name).is_file() for name in ARTIFACT_NAMES))
+
     def test_cli_reports_generated_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             stdout = io.StringIO()

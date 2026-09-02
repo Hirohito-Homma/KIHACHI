@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 from .adapters.ace_step import resolve_repaint_window
 from .models import SongSpec
+from .project_artifacts import managed_midi_names, require_managed_midi
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS, validate_guard_bars
 
 REPAINT_PLAN_VERSION = "0.1"
@@ -27,13 +28,7 @@ MIN_BAR_CANDIDATE_BARS = 4
 # conformance hint.  Give it enough context on both sides and use a slightly
 # wider waveform blend than the generic musical repaint plan.
 DISCONTINUITY_WAV_CROSSFADE_SEC = 0.5
-STAGED_DESIGN_ARTIFACTS = (
-    "song_spec.json",
-    "bass.mid",
-    "drums.mid",
-    "chords.mid",
-    "prompt.txt",
-)
+STAGED_DESIGN_ARTIFACTS = ("song_spec.json", "prompt.txt")
 # Copied when present. Projects composed before the lyrics module have no sheet,
 # and projects composed before ``prompt.json`` have no structured brief; staging
 # either of those must still work.
@@ -73,6 +68,12 @@ def stage_repaint_project(
     if plan.get("song_spec_sha256") != song_spec_sha256(spec):
         raise ValueError("repaint plan SongSpec does not match the source project")
 
+    require_managed_midi(source_project, spec, context="repaint source project")
+    required_design_artifacts = (
+        "song_spec.json",
+        *managed_midi_names(spec),
+        "prompt.txt",
+    )
     for name in STAGED_DESIGN_ARTIFACTS:
         path = source_project / name
         if not path.is_file():
@@ -99,7 +100,7 @@ def stage_repaint_project(
         name for name in OPTIONAL_DESIGN_ARTIFACTS if (source_project / name).is_file()
     )
     stage_names = (
-        *STAGED_DESIGN_ARTIFACTS,
+        *required_design_artifacts,
         *optional_present,
         "repaint_plan.json",
         "applied_repaint_plan.json",
@@ -107,7 +108,7 @@ def stage_repaint_project(
         "repaint_stage.json",
     )
     try:
-        for name in (*STAGED_DESIGN_ARTIFACTS, *optional_present):
+        for name in (*required_design_artifacts, *optional_present):
             shutil.copyfile(source_project / name, stage / name)
         shutil.copyfile(requested_plan, stage / "repaint_plan.json")
         shutil.copyfile(requested_plan, stage / "applied_repaint_plan.json")
