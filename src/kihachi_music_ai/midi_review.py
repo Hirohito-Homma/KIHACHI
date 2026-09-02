@@ -27,7 +27,7 @@ from .composer import swung_position
 from .density_diagnostic import density_diagnostics
 from .midi import MidiNote, read_midi
 from .models import CORE_TRACKS, SongSpec
-from .project_artifacts import require_managed_midi
+from .review_contract import collect_midi_review_evidence
 from .theory import NOTE_TO_PC, SCALES, chord_pitches, chord_root
 
 MIDI_REVIEW_VERSION = "0.1"
@@ -56,17 +56,13 @@ def review_project_midi(project_dir: Path) -> MidiReviewManifest:
     """Read a project's ``.mid`` files and compare them with its SongSpec."""
 
     project_dir = Path(project_dir)
-    spec_path = project_dir / "song_spec.json"
-    if not spec_path.is_file():
-        raise FileNotFoundError(f"SongSpec not found: {spec_path}")
-    spec = SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
-
-    files = require_managed_midi(project_dir, spec, context="MIDI review project")
+    evidence = collect_midi_review_evidence(project_dir)
+    assert evidence.midi_paths is not None
     tracks = {
         name: read_midi(path).notes
-        for name, path in zip(spec.parts(), files, strict=True)
+        for name, path in zip(evidence.spec.parts(), evidence.midi_paths, strict=True)
     }
-    return MidiReviewManifest(project_dir, files, review_midi_tracks(spec, tracks))
+    return MidiReviewManifest(project_dir, evidence.midi_paths, review_midi_tracks(evidence.spec, tracks))
 
 
 def groove_report(spec: SongSpec, tracks: Mapping[str, Sequence[MidiNote]]) -> dict[str, Any]:
