@@ -13,7 +13,9 @@ from .midi import read_midi
 from .midi_review import review_midi_tracks
 from .repaint_planner import build_repaint_plan
 from .review_contract import (
+    ReviewPhase,
     collect_generation_review_evidence,
+    collect_midi_review_evidence,
     load_material_defects,
     load_song_spec,
     require_audio_analysis,
@@ -171,6 +173,62 @@ def _midi_review_from_evidence(evidence) -> dict[str, Any] | None:
         for name, path in zip(evidence.spec.parts(), evidence.midi_paths, strict=True)
     }
     return review_midi_tracks(evidence.spec, tracks)
+
+
+def review_project_midi_only(
+    project_dir: Path,
+    *,
+    overwrite: bool = False,
+) -> GenerationReviewManifest:
+    """Run the local MIDI review and critic path without audio analysis."""
+
+    project_dir = Path(project_dir)
+    evidence = collect_midi_review_evidence(project_dir)
+    review_file = project_dir / "generation_review.json"
+    revision_prompt_file = project_dir / "revision_prompt.txt"
+    for path in (review_file, revision_prompt_file):
+        if path.exists() and not overwrite:
+            raise FileExistsError(f"refusing to overwrite generation review artifact: {path}")
+
+    midi_review = _midi_review_from_evidence(evidence)
+    assert midi_review is not None
+    critique = critique_evidence(
+        evidence.spec,
+        phase=ReviewPhase.MIDI_ONLY,
+        analysis=None,
+        audio_alignment=None,
+        midi_review=midi_review,
+        defects=None,
+        audio_analysis_status=evidence.audio_analysis_status,
+        midi_status=evidence.midi_status,
+        defects_status=evidence.defects_status,
+    )
+    review: dict[str, Any] = {
+        "review_version": REVIEW_VERSION,
+        "scope": "midi_only_local_slice_not_audio_quality",
+        "review_phase": evidence.phase.value,
+        "project": project_dir.name,
+        "midi_alignment": midi_review,
+        "critic": {
+            "critic_version": critique["critic_version"],
+            "evidence_status": critique["evidence_status"],
+        },
+        "findings": critique["findings"],
+        "revision_prompt": critique["revision_prompt"],
+    }
+
+    _atomic_write_text(review_file, json.dumps(review, ensure_ascii=False, indent=2) + "\n")
+    _atomic_write_text(
+        revision_prompt_file,
+        repaint_revision_prompt(critique["revision_prompt"]) + "\n",
+    )
+    return GenerationReviewManifest(
+        project_dir=project_dir,
+        review_file=review_file,
+        revision_prompt_file=revision_prompt_file,
+        repaint_plan_file=project_dir / "repaint_plan.json",
+        review=review,
+    )
 
 
 # Backward-compatible aliases for tests and internal callers.

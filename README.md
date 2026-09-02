@@ -56,6 +56,26 @@ python3 -m kihachi_music_ai compose '...' --output projects/my-song
 
 既存の対象ファイルは上書きしません。意図して再生成するときだけ `--overwrite` を付けます。
 
+### Minimum local Vertical Slice
+
+自然言語ブリーフから、SongSpec・managed MIDI・プロンプト・MIDI診断・密度診断・reviewer・criticまでを**ローカルだけ**で一括実行します。ACE-Step、GPU、Ableton、LLM/API、ネットワークは不要です。
+
+```bash
+python3 -m kihachi_music_ai local-slice \
+  'Mutation Funk、DUB、Tech House。110 BPM、D#m。ファンキーなスラップベース。シンコペーション。4つ打ちキック。タイトなスネア。ダブコード。Vocoder。前半はミニマル、後半はエネルギッシュ。' \
+  --output projects/my-song \
+  --seed 8
+```
+
+生成物（`compose` と同じ設計成果物に加えて）:
+
+```text
+generation_review.json   # MIDI alignment、密度診断、critic findings
+revision_prompt.txt      # critic が書いた改訂プロンプト
+```
+
+`generation_review.json` の `review_phase` は `midi_only` です。WAV や `audio_analysis.json` は不要で、将来の音声フェーズ未到達を失敗扱いしません。
+
 ## Lyrics（歌詞を「文章」ではなく「パート」として書く）
 
 設計書が立てている区別をそのまま実装しています。**文学的に良い歌詞**と**音楽的に使いやすい歌詞**は別物です。Vocoderは文章を欲しがりません。キャリアを通して4小節ごとに繰り返されても成立する2〜3語の命令形を欲しがります。
