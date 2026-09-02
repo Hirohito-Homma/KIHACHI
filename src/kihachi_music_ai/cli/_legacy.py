@@ -388,6 +388,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return song.serve(args)
         if args.command == "compose":
             return song.compose(args)
+        if args.command == "local-slice":
+            return song.local_slice(args)
 
         if args.command == "analyze":
             manifest = analyze_project(

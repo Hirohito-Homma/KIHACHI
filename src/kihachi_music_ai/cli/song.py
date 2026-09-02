@@ -17,7 +17,7 @@ from ..edit import apply_edit_to_project, build_spec_edit
 from ..lyrics import build_lyrics
 from ..models import TRACK_NAMES
 from ..brief import read_coverage
-from ..pipeline import compose_project
+from ..pipeline import compose_project, run_vertical_slice
 from ..preferences import compile_preferences, harvest, load as load_preferences
 from ..web import serve as serve_briefs
 
@@ -62,6 +62,57 @@ def compose(args: argparse.Namespace) -> int:
             f"{row['name']:<18} energy {row['energy']:.2f}"
             + (f"  (resting: {', '.join(resting)})" if resting else "")
         )
+    return 0
+
+
+def local_slice(args: argparse.Namespace) -> int:
+    manifest = run_vertical_slice(
+        args.prompt,
+        args.output,
+        seed=args.seed,
+        overwrite=args.overwrite,
+        preferences=load_preferences(args.preferences),
+    )
+    coverage = read_coverage(args.prompt)
+    if coverage["unread"]:
+        print(
+            f"- note: {len(coverage['unread'])} of {len(coverage['clauses'])} "
+            "statements in this brief went unread; "
+            "run `read-brief` to see which"
+        )
+    compose = manifest.compose
+    review = manifest.review
+    print(f"Local vertical slice: {compose.output_dir}")
+    for path in compose.files:
+        print(f"- {path.name}")
+    spec = compose.spec
+    print(
+        f"- arrangement: {len(spec.arrangement)} sections over "
+        f"{spec.song.total_bars} bars ({spec.song.target_duration_sec:.1f}s)"
+    )
+    for row in describe_arrangement(spec.arrangement):
+        resting = [
+            track for track in TRACK_NAMES if track not in row["active_tracks"]
+        ]
+        print(
+            f"    bar {row['start_bar']:>4} +{row['length_bars']:<3} "
+            f"{row['name']:<18} energy {row['energy']:.2f}"
+            + (f"  (resting: {', '.join(resting)})" if resting else "")
+        )
+    midi_alignment = review.review["midi_alignment"]
+    alignment = midi_alignment["alignment"]
+    print(f"- midi alignment score: {alignment['score']} ({alignment['grade']})")
+    density = midi_alignment["density"]
+    print(
+        f"- density diagnostic: {len(density['entries'])} section×part rows "
+        f"({density['scope']})"
+    )
+    critic = review.review["critic"]
+    print(f"- critic phase: {review.review['review_phase']}")
+    print(f"- critic evidence: {critic['evidence_status']}")
+    print(f"- findings: {len(review.review['findings'])}")
+    print(f"- review: {review.review_file.name}")
+    print(f"- revision prompt: {review.revision_prompt_file.name}")
     return 0
 
 

@@ -16,6 +16,7 @@ from .music_brain import MusicBrain
 from .preferences import Preferences
 from .project_artifacts import managed_midi_names
 from .prompt_compiler import compile_audio_prompt, render_brief
+from .reviewer import GenerationReviewManifest, review_project_midi_only
 
 ARTIFACT_NAMES = (
     "song_spec.json",
@@ -43,6 +44,12 @@ class ArtifactManifest:
     output_dir: Path
     spec: SongSpec
     files: tuple[Path, ...]
+
+
+@dataclass(frozen=True)
+class VerticalSliceManifest:
+    compose: ArtifactManifest
+    review: GenerationReviewManifest
 
 
 def slugify_title(title: str) -> str:
@@ -112,4 +119,25 @@ def compose_project(
 
     files = tuple(destination / name for name in names)
     return ArtifactManifest(destination, spec, files)
+
+
+def run_vertical_slice(
+    prompt: str,
+    output_dir: Path | None = None,
+    *,
+    seed: int = 8,
+    overwrite: bool = False,
+    preferences: Preferences | None = None,
+) -> VerticalSliceManifest:
+    """Compose from a brief and run the local MIDI review + critic path."""
+
+    compose = compose_project(
+        prompt,
+        output_dir,
+        seed=seed,
+        overwrite=overwrite,
+        preferences=preferences,
+    )
+    review = review_project_midi_only(compose.output_dir, overwrite=overwrite)
+    return VerticalSliceManifest(compose=compose, review=review)
 

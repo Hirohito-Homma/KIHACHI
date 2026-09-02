@@ -39,6 +39,30 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    local_slice = subparsers.add_parser(
+        "local-slice",
+        help=(
+            "compose from a brief and run the local MIDI review + critic path "
+            "(no ACE-Step, GPU, Ableton, or LLM required)"
+        ),
+    )
+    local_slice.add_argument("prompt", help="natural-language music brief")
+    local_slice.add_argument("--output", type=Path, help="output directory")
+    local_slice.add_argument("--seed", type=int, default=8, help="deterministic composition seed")
+    local_slice.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="replace existing compose and review artifacts",
+    )
+    local_slice.add_argument(
+        "--preferences",
+        type=Path,
+        help=(
+            "apply learned priors from a `learn` output. Off by default: the same "
+            "prompt and seed must keep producing the same song unless asked otherwise"
+        ),
+    )
+
     serve = subparsers.add_parser(
         "serve", help="open the brief screen in a local browser tab (writes nothing)"
     )
