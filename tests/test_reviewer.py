@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from kihachi_music_ai.cli import main
+from kihachi_music_ai.midi_review import review_project_midi
 from kihachi_music_ai.pipeline import compose_project
 from kihachi_music_ai.repaint_planner import stage_repaint_project
 from kihachi_music_ai.reviewer import review_project
@@ -306,7 +307,7 @@ class ReviewerTests(unittest.TestCase):
             root = Path(temp)
             source = root / "source"
             output = root / "repaint-output"
-            compose_project(EXAMPLE, source)
+            compose_project(EXAMPLE + "アルペジオ。", source)
             write_analysis(
                 source,
                 tempo_delta=-0.3,
@@ -344,6 +345,17 @@ class ReviewerTests(unittest.TestCase):
 
             self.assertEqual(status, 0)
             self.assertEqual((output / "song_spec.json").read_bytes(), source_spec_before)
+            for part in ("arp", "vocoder"):
+                self.assertEqual(
+                    (output / f"{part}.mid").read_bytes(),
+                    (source / f"{part}.mid").read_bytes(),
+                )
+            midi_review = review_project_midi(output)
+            self.assertIn(output / "arp.mid", midi_review.midi_files)
+            self.assertEqual(
+                set(midi_review.review["tracks"]),
+                {"bass", "drums", "chords", "arp", "vocoder"},
+            )
             self.assertTrue((output / "repaint_plan.json").is_file())
             self.assertEqual(
                 (output / "applied_repaint_plan.json").read_bytes(),
@@ -357,6 +369,13 @@ class ReviewerTests(unittest.TestCase):
             self.assertIn("verified, not copied", stdout.getvalue())
             with self.assertRaises(FileExistsError):
                 stage_repaint_project(source, output)
+
+            (source / "vocoder.mid").unlink()
+            with self.assertRaisesRegex(
+                FileNotFoundError,
+                r"repaint source project missing managed MIDI artifact\(s\): vocoder\.mid",
+            ):
+                stage_repaint_project(source, root / "incomplete-output")
 
     def test_review_requires_existing_analysis(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

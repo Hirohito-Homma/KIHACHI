@@ -8,9 +8,10 @@ from pathlib import Path
 from typing import Any
 
 from .midi import read_midi
-from .midi_review import TRACK_FILES, review_midi_tracks
+from .midi_review import review_midi_tracks
 from .spectrum import DULL_LOW_TO_HIGH, MASKING_BASS_SHARE
 from .models import SongSpec
+from .project_artifacts import managed_midi_paths, require_managed_midi
 from .repaint_planner import build_repaint_plan
 from .tail_guard import DEFAULT_TAIL_GUARD_BARS
 from .tail_trim import diagnose_tail_silence
@@ -222,11 +223,20 @@ def _alignment(analysis: dict[str, Any]) -> dict[str, Any]:
 def _midi_review(project_dir: Path, spec: SongSpec) -> dict[str, Any] | None:
     """Exact MIDI check, when the project actually carries MIDI."""
 
-    paths = {name: project_dir / f"{name}.mid" for name in TRACK_FILES}
-    if not all(path.is_file() for path in paths.values()):
+    declared_paths = managed_midi_paths(project_dir, spec)
+    if not any(path.is_file() for path in declared_paths):
         return None
+    paths = require_managed_midi(
+        project_dir,
+        spec,
+        context="generation review project",
+    )
     return review_midi_tracks(
-        spec, {name: read_midi(path).notes for name, path in paths.items()}
+        spec,
+        {
+            name: read_midi(path).notes
+            for name, path in zip(spec.parts(), paths, strict=True)
+        },
     )
 
 

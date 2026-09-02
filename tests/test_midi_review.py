@@ -13,6 +13,7 @@ from kihachi_music_ai.cli import main
 from kihachi_music_ai.composer import compose_tracks
 from kihachi_music_ai.midi import PPQ, MidiNote, build_midi_bytes, read_midi, write_midi
 from kihachi_music_ai.midi_review import review_midi_tracks, review_project_midi
+from kihachi_music_ai.models import SongSpec
 from kihachi_music_ai.music_brain import MusicBrain
 from kihachi_music_ai.pipeline import compose_project
 from kihachi_music_ai.reviewer import review_project
@@ -167,6 +168,18 @@ class MidiReviewTests(unittest.TestCase):
 
         self.assertEqual(manifest.review["harmony"]["bass_root_match_ratio"], 0.0)
 
+    def test_review_reports_a_missing_declared_extra_part_at_the_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            compose_project(EXAMPLE, project)
+            (project / "vocoder.mid").unlink()
+
+            with self.assertRaisesRegex(
+                FileNotFoundError,
+                r"MIDI review project missing managed MIDI artifact\(s\): vocoder\.mid",
+            ):
+                review_project_midi(project)
+
     def test_cli_reports_midi_alignment_without_any_audio(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp) / "project"
@@ -261,7 +274,10 @@ class DualChannelReviewTests(unittest.TestCase):
     def test_review_still_works_when_a_project_has_no_midi(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = self._project(Path(temp))
-            for name in ("bass", "drums", "chords"):
+            spec = SongSpec.from_json(
+                (project / "song_spec.json").read_text(encoding="utf-8")
+            )
+            for name in spec.parts():
                 (project / f"{name}.mid").unlink()
 
             manifest = review_project(project)

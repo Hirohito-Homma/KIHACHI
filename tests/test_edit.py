@@ -20,6 +20,7 @@ from kihachi_music_ai.edit import (
     summarise_regeneration,
 )
 from kihachi_music_ai.midi import read_midi
+from kihachi_music_ai.midi_review import review_project_midi
 from kihachi_music_ai.music_brain import MusicBrain
 from kihachi_music_ai.pipeline import compose_project
 from test_music_brain import EXAMPLE
@@ -398,7 +399,7 @@ class ApplyEditProjectTests(unittest.TestCase):
 
             manifest = apply_edit_to_project(source, root / "edited")
 
-            for track in ("drums", "chords"):
+            for track in ("drums", "chords", "vocoder"):
                 self.assertEqual(
                     (source / f"{track}.mid").read_bytes(),
                     (manifest.output_project / f"{track}.mid").read_bytes(),
@@ -409,6 +410,8 @@ class ApplyEditProjectTests(unittest.TestCase):
                 (manifest.output_project / "bass.mid").read_bytes(),
             )
             self.assertGreater(len(read_midi(manifest.output_project / "bass.mid").notes), 0)
+            review = review_project_midi(manifest.output_project)
+            self.assertIn("vocoder", review.review["tracks"])
 
     def test_apply_refuses_to_replace_an_existing_project(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -426,6 +429,18 @@ class ApplyEditProjectTests(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 apply_edit_to_project(source, source)
+
+    def test_apply_rejects_a_source_missing_declared_midi(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = self._source(root, "Dropのベースだけもっと変態的に")
+            (source / "vocoder.mid").unlink()
+
+            with self.assertRaisesRegex(
+                FileNotFoundError,
+                r"edit source project missing managed MIDI artifact\(s\): vocoder\.mid",
+            ):
+                apply_edit_to_project(source, root / "edited")
 
     def test_an_fx_edit_reaches_the_audio_prompt_even_though_no_note_moves(self) -> None:
         # dub_delay and fx_amount steer the render, not the notes. They used to

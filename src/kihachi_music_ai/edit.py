@@ -42,6 +42,7 @@ from .intent import (
 )
 from .midi import MidiNote, write_midi
 from .models import DENSITY_FIELDS, TRACK_NAMES, SectionSpec, SongSpec
+from .project_artifacts import managed_midi_names, require_managed_midi
 from .prompt_compiler import compile_audio_prompt, render_brief
 
 EDIT_VERSION = "0.1"
@@ -435,6 +436,7 @@ def apply_edit_to_project(
     if not spec_path.is_file():
         raise FileNotFoundError(f"SongSpec not found: {spec_path}")
     spec = SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
+    require_managed_midi(source_project, spec, context="edit source project")
 
     requested = Path(edit_path) if edit_path is not None else Path("spec_edit.json")
     if not requested.is_absolute():
@@ -461,9 +463,7 @@ def apply_edit_to_project(
     )
     names = (
         "song_spec.json",
-        "bass.mid",
-        "drums.mid",
-        "chords.mid",
+        *managed_midi_names(updated),
         "prompt.txt",
         "prompt.json",
         "applied_spec_edit.json",
