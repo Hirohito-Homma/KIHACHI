@@ -12,6 +12,9 @@ dev = ["build>=1.2", "pytest>=8"]
 # place that talks to a model, it lives in adapters/, and it imports this inside
 # the call -- so `pip install kihachi-music-ai` still pulls nothing.
 llm = ["anthropic>=0.69"]
+# The note publisher is the other place that talks to a model. Like intent_llm it
+# lives in adapters/ and imports its HTTP/UI stack only when invoked.
+publisher = ["httpx>=0.27", "nicegui>=2.0"]
 
 [project.scripts]
 kihachi = "kihachi_music_ai.cli:main"

@@ -20,10 +20,22 @@ from ..brief import read_coverage
 from ..pipeline import compose_project, run_vertical_slice
 from ..preferences import compile_preferences, harvest, load as load_preferences
 from ..web import serve as serve_briefs
+from ..publisher_web import serve as serve_note_publisher
 
 
 def serve(args: argparse.Namespace) -> int:
     serve_briefs(args.host, args.port)
+    return 0
+
+
+def note_publish(args: argparse.Namespace) -> int:
+    serve_note_publisher(
+        args.host,
+        args.port,
+        model=args.model,
+        ollama_url=args.ollama_url,
+        output_dir=args.output,
+    )
     return 0
 
 

@@ -13,6 +13,10 @@ from pathlib import Path
 
 from ..adapters.ace_step import AUDIO_FORMATS, DEFAULT_REQUEST_TIMEOUT
 from ..adapters.intent_llm import DEFAULT_MODEL as INTENT_DEFAULT_MODEL
+from ..adapters.note_publisher import (
+    DEFAULT_MODEL as PUBLISHER_DEFAULT_MODEL,
+    OLLAMA_API_URL,
+)
 from ..chunked import DEFAULT_CHUNK_BARS
 from ..revision import DEFAULT_ROUNDS
 from ..select import SHORTLIST_NAME
@@ -20,6 +24,10 @@ from ..stems import DEFAULT_MODEL as DEFAULT_STEM_MODEL
 from ..tail_guard import DEFAULT_TAIL_GUARD_BARS, MUSIC_END_THRESHOLD_DBFS
 from ..tail_trim import DEFAULT_TAIL_PAD_SEC
 from ..web import DEFAULT_HOST as WEB_DEFAULT_HOST, DEFAULT_PORT as WEB_DEFAULT_PORT
+from ..publisher_web import (
+    DEFAULT_HOST as PUBLISHER_DEFAULT_HOST,
+    DEFAULT_PORT as PUBLISHER_DEFAULT_PORT,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -68,6 +76,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.add_argument("--host", default=WEB_DEFAULT_HOST, help="interface to bind")
     serve.add_argument("--port", type=int, default=WEB_DEFAULT_PORT, help="port to bind")
+
+    note_publish = subparsers.add_parser(
+        "note-publish",
+        help=(
+            "open the Ollama note publisher screen "
+            "(requires the publisher optional extra)"
+        ),
+    )
+    note_publish.add_argument(
+        "--host", default=PUBLISHER_DEFAULT_HOST, help="interface to bind"
+    )
+    note_publish.add_argument(
+        "--port", type=int, default=PUBLISHER_DEFAULT_PORT, help="port to bind"
+    )
+    note_publish.add_argument(
+        "--model",
+        default=PUBLISHER_DEFAULT_MODEL,
+        help="Ollama model name (must already be pulled locally)",
+    )
+    note_publish.add_argument(
+        "--ollama-url",
+        default=OLLAMA_API_URL,
+        help="Ollama generate API URL",
+    )
+    note_publish.add_argument(
+        "--output",
+        type=Path,
+        default=Path("output"),
+        help="directory for generated markdown files",
+    )
 
     analyze = subparsers.add_parser("analyze", help="analyze generated WAV and compare it with SongSpec")
     analyze.add_argument("project", type=Path, help="directory containing song_spec.json")
