@@ -386,6 +386,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "serve":
             return song.serve(args)
+        if args.command == "note-publish":
+            return song.note_publish(args)
         if args.command == "compose":
             return song.compose(args)
         if args.command == "local-slice":
