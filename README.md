@@ -12,7 +12,7 @@ SongSpec
     └── Prompt Compiler → prompt.txt / prompt.json
 ```
 
-AbletonGPTとAbleton Liveには接続しません。コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。
+コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。Ableton Liveの操作はAbletonGPTが担当します。KIHACHIは `ableton-apply` でその外部実行境界を呼び出すだけで、Liveには直接接続しません。
 
 ## 導入
 
@@ -1471,10 +1471,37 @@ python3 -m kihachi_music_ai audit-transcription projects/my-song --all
 **これは失敗ではなく、この機能の限界そのものです** — 写しているのはモデルが弾いた音であって、
 設計ではありません。進行が守られないことは既知（一致率0.0）で、その事実がそのまま転写に現れます。
 
+## 採用テイクから Live へ（VS4–VS6）
+
+人間がテイクを選んだあと、KIHACHIは証明可能な handoff を書き、AbletonGPT が Live を操作します。
+
+```text
+revision
+    → human adoption      (kihachi adopt PROJECT --round N)
+    → ableton-handoff     (ableton_handoff.json — Live 副作用なし)
+    → ableton-apply       (明示的な Live 実行境界)
+    → AbletonGPT          (import-kihachi → run)
+    → Ableton Live
+```
+
+`ableton-handoff` は採用済みテイクの provenance を固めるだけで、Live には触れません。
+`ableton-apply` が AbletonGPT を外部プロセスとして呼び出す実行境界です。KIHACHIは Live Object Model もソケットも使いません。
+
+```bash
+python3 -m kihachi_music_ai adopt projects/my-song --round 1
+python3 -m kihachi_music_ai ableton-handoff projects/my-song
+python3 -m kihachi_music_ai ableton-apply projects/my-song --prepare-only
+python3 -m kihachi_music_ai ableton-apply projects/my-song --abletongpt-python /path/to/python-with-abletongpt
+```
+
+`--prepare-only` は handoff 検証と `import-kihachi`（ジョブプラン生成）までで止まり、Live ジョブは走らせません。GitHub CI はこの経路を使います。同じ handoff と arrangement plan を一度成功適用したあとは、黙ってもう一度 Live を走らせません。再実行は人間が `--rerun` を付けたときだけです。
+
+適用の監査は `ableton_handoff.json` を書き換えず、別ファイル `ableton_execution.json` に残します。
+
 ## Live展開（v0.2: 実機で通しました）
 
 `ableton-plan`が出す操作リストを、2026-08-16に**実際のLiveセットへ通しました**。
-経路はKIHACHIがMCPツールを直接叩くのではなく、AbletonGPT側の検証器です。
+経路はKIHACHIがMCPツールを直接叩くのではなく、AbletonGPT側の検証器です。人手の採用テイクから Live へ進む場合は、上の `ableton-handoff` → `ableton-apply` を使います。
 
 ```bash
 python3 -m kihachi_music_ai ableton-plan projects/my-song --first-track-index 1
@@ -1771,7 +1798,7 @@ uv run kihachi ace-step render  projects/my-song --from-brief prompt.json
 
   SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。`render` の場合、テールガードの切り戻し先はブリーフ自身の `total_bars`・`bpm`・`time_signature` から求めた長さです（SongSpec側のグリッドに切り戻すと、尺を書き換えたブリーフはまさにその部分を失います）。どのブリーフでレンダーしたかは `ace_step_result.json` の `render_brief`（パス・SHA-256・SongSpecとの一致）に残ります。
 - Audio-to-MIDI、Ableton Live展開、LLM接続は**v0.1では範囲外でした**。現在はv0.2として、
-  単音素材の`transcribe-sample`と`audit-transcription`、`ableton-plan`からAbletonGPT経由の実機適用、
+  単音素材の`transcribe-sample`と`audit-transcription`、`ableton-plan` / `ableton-handoff` / `ableton-apply`からAbletonGPT経由の実機適用、
   任意の`intent prepare/read`を実装済みです。KIHACHI自身はLiveを直接操作せず、LLMにも曲を書かせません。
   ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
 - stem分離はv0.2で取り込み済みです（ADR-0008）。複数候補については`shortlist`が順位と根拠を出しますが、**採用は自動化していません**（ADR-0009）。測れない次元が残る以上、最後は試聴です。

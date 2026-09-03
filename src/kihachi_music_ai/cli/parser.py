@@ -450,6 +450,42 @@ def build_parser() -> argparse.ArgumentParser:
         help="replace ableton_handoff.json / arrangement_plan.json when provenance differs",
     )
 
+    ableton_apply = subparsers.add_parser(
+        "ableton-apply",
+        help=(
+            "apply an existing Ableton handoff through AbletonGPT "
+            "(adopts nothing; KIHACHI does not talk to Live)"
+        ),
+    )
+    ableton_apply.add_argument(
+        "project",
+        type=Path,
+        help="source project that owns ableton_handoff.json",
+    )
+    ableton_apply.add_argument(
+        "--prepare-only",
+        action="store_true",
+        help="validate and run AbletonGPT import-kihachi only; do not run the Live job",
+    )
+    ableton_apply.add_argument(
+        "--rerun",
+        "--overwrite",
+        action="store_true",
+        dest="rerun",
+        help=(
+            "explicitly permit another Live execution of the same successful handoff "
+            "(without this, a successful identical apply is refused)"
+        ),
+    )
+    ableton_apply.add_argument(
+        "--abletongpt-python",
+        type=Path,
+        help=(
+            "Python interpreter that has AbletonGPT installed "
+            "(default: the interpreter running KIHACHI)"
+        ),
+    )
+
     report = subparsers.add_parser(
         "report",
         help="write a page for comparing takes by ear (renders nothing, adopts nothing)",
