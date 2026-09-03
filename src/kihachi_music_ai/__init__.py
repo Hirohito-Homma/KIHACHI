@@ -49,6 +49,13 @@ from .ableton_repair_execution import (
     execute_ableton_repair,
     load_validated_repair_selection,
 )
+from .ableton_repair_verification import (
+    AbletonRepairVerificationError,
+    AbletonRepairVerificationManifest,
+    ValidatedRepairExecutionReceipt,
+    load_validated_repair_execution_receipt,
+    verify_ableton_repair,
+)
 from .ableton_handoff import (
     AbletonHandoffError,
     AbletonHandoffManifest,
@@ -76,6 +83,8 @@ __all__ = [
     "AbletonRepairPlanManifest",
     "AbletonRepairExecutionError",
     "AbletonRepairExecutionManifest",
+    "AbletonRepairVerificationError",
+    "AbletonRepairVerificationManifest",
     "AbletonHandoffError",
     "AbletonHandoffManifest",
     "AdoptedTake",
@@ -93,6 +102,7 @@ __all__ = [
     "ValidatedHandoff",
     "ValidatedRepairPlan",
     "ValidatedRepairSelection",
+    "ValidatedRepairExecutionReceipt",
     "VerifiedExecution",
     "VerticalSliceManifest",
     "adopt_revision",
@@ -105,9 +115,11 @@ __all__ = [
     "load_validated_handoff",
     "load_validated_repair_plan",
     "load_validated_repair_selection",
+    "load_validated_repair_execution_receipt",
     "load_verified_execution",
     "prepare_ableton_execution",
     "verify_ableton_execution",
+    "verify_ableton_repair",
     "compose_project",
     "describe_comparison",
     "load_preference_memory",

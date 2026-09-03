@@ -12,7 +12,7 @@ SongSpec
     └── Prompt Compiler → prompt.txt / prompt.json
 ```
 
-コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。Ableton Liveの操作はAbletonGPTが担当します。KIHACHIは `ableton-apply` でその外部実行境界を呼び出すだけで、Liveには直接接続しません。`ableton-verify` は同じ AbletonGPT 境界を通じた **読み取り専用** の事後条件監査であり、適用の成功と Live 上の一致は別の主張です。`ableton-repair-plan` は検証失敗を人間が判断できる修復計画へ変換するだけで、Live を読まず、書かず、AbletonGPT も起動しません。`ableton-repair-apply` は人間が承認した `set_tempo` candidate、または証拠が足りるときの **1回の guarded device repair** だけを実行し、修復済みとは主張しません。
+コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。Ableton Liveの操作はAbletonGPTが担当します。KIHACHIは `ableton-apply` でその外部実行境界を呼び出すだけで、Liveには直接接続しません。`ableton-verify` は同じ AbletonGPT 境界を通じた **読み取り専用** の事後条件監査であり、適用の成功と Live 上の一致は別の主張です。`ableton-repair-plan` は検証失敗を人間が判断できる修復計画へ変換するだけで、Live を読まず、書かず、AbletonGPT も起動しません。`ableton-repair-apply` は人間が承認した `set_tempo` candidate、または証拠が足りるときの **1回の guarded device repair** だけを実行し、修復済みとは主張しません。`ableton-repair-verify` は領収書に対する **明示的な読み取り専用の再観測** であり、選んだ修復 check だけを閉じます。自動では呼ばれず、Live を変更せず、因果も主張しません。
 
 ## 導入
 
@@ -1471,16 +1471,16 @@ python3 -m kihachi_music_ai audit-transcription projects/my-song --all
 **これは失敗ではなく、この機能の限界そのものです** — 写しているのはモデルが弾いた音であって、
 設計ではありません。進行が守られないことは既知（一致率0.0）で、その事実がそのまま転写に現れます。
 
-## 採用テイクから Live へ（VS4–VS10）
+## 採用テイクから Live へ（VS4–VS11）
 
-人間がテイクを選んだあと、KIHACHIは証明可能な handoff を書き、AbletonGPT が Live を操作します。適用が通ったことと、Live Set が意図したアレンジになっていることは別の事実です。検証が失敗したあとも、VS8 は Live を直さず、人間が承認できる修復計画だけを残します。VS9 はその計画のうち `set_tempo` を、明示 SHA 承認と Live 直前照合のあとで AbletonGPT job として実行します。VS10 は同じ承認境界のまま、**1台のデバイスの power だけ**を AbletonGPT の `repair_live_device` に任せます。ジョブや device repair が成功しても Live 修復は未検証です。
+人間がテイクを選んだあと、KIHACHIは証明可能な handoff を書き、AbletonGPT が Live を操作します。適用が通ったことと、Live Set が意図したアレンジになっていることは別の事実です。検証が失敗したあとも、VS8 は Live を直さず、人間が承認できる修復計画だけを残します。VS9 はその計画のうち `set_tempo` を、明示 SHA 承認と Live 直前照合のあとで AbletonGPT job として実行します。VS10 は同じ承認境界のまま、**1台のデバイスの power だけ**を AbletonGPT の `repair_live_device` に任せます。ジョブや device repair が成功しても Live 修復は未検証です。VS11 は領収書に対して明示的な読み取り専用の再観測を行い、**選んだ修復 check だけ**を閉じます。
 
 ```text
 VS7 Live postcondition audit
     → VS8 human-gated repair plan
     → VS9 human-authorized tempo repair
     → VS10 human-authorized guarded device repair
-    → explicit human re-verification
+    → VS11 explicit post-repair verification closure
 ```
 
 ```text
@@ -1492,6 +1492,7 @@ revision
     → ableton-verify      (読み取り専用の Live 事後条件監査)
     → ableton-repair-plan (人間承認用の修復計画。Live 副作用なし)
     → ableton-repair-apply (人間承認付き tempo / guarded device。自動検証なし)
+    → ableton-repair-verify (明示的な読み取り専用の修復 check クロージャ。Live 変更なし)
 ```
 
 `ableton-handoff` は採用済みテイクの provenance を固めるだけで、Live には触れません。
@@ -1499,6 +1500,7 @@ revision
 `ableton-verify` がその残差を閉じます。AbletonGPT の既存の読み取り API（`get_live_state` / `get_track_devices` / `get_midi_clip_notes` / `get_arrangement_clips`）から証拠を集め、採用済み handoff の計画と比較します。KIHACHIは Live Object Model もソケットも使いません。不一致を直すことも、採用を付け替えることもありません。
 `ableton-repair-plan` は `ableton_verification.json` を読み、失敗した check を元の arrangement operation へ対応付けます。一意に対応できるものだけを `candidate_reapply` とし、track の削除・移動・改名、個数の追加、観測不能、未知の category/status、曖昧な対応はすべて人手確認へ送ります。`candidate_reapply` は「今すぐ安全に実行できる」という意味ではありません（`candidate_reapply != safe_to_execute`）。VS8 はその operation を実行しません。
 `ableton-repair-apply` は VS8 の candidate のうち `set_tempo` と、VS7 証拠で一意に証明できる **guarded device power repair** だけを実行します。device repair はデバイス再構築ではありません。欠落・誤デバイス・型違い・曖昧な identity は挿入や置換にせず手動のまま残します。AbletonGPT の guarded primitive は insert/replace/delete/reorder を意図的にできないからです。Session clip / Arrangement / track candidate は拒否します。実行入力は repair plan の縮約 payload ではなく、現行 `arrangement_plan.json` の full operation と VS7 の expected/observed 証拠です。
+`ableton-repair-apply` は承認付きの Live 変更であり、結果は未検証のまま残ります。`ableton-repair-verify` は自動では呼ばれません。人間が明示的に走らせる、読み取り専用の再観測です。選んだ check が pass でも、他の Live check が pass したことにはなりません。修復そのものが原因であることも主張しません。新しい `ableton_verification.json` によって古い repair plan は履歴になります。計画の作り直しは `ableton-repair-plan --overwrite` を人間が明示したときだけです。
 
 ```bash
 python3 -m kihachi_music_ai adopt projects/my-song --round 1
@@ -1519,23 +1521,25 @@ python3 -m kihachi_music_ai ableton-repair-apply projects/my-song \
 python3 -m kihachi_music_ai ableton-repair-apply projects/my-song \
   --check-id device:0 --approve-plan-sha <64-digit-sha256> \
   --abletongpt-python /path/to/python-with-abletongpt
-python3 -m kihachi_music_ai ableton-verify projects/my-song --abletongpt-python /path/to/python-with-abletongpt
+python3 -m kihachi_music_ai ableton-repair-verify projects/my-song \
+  --abletongpt-python /path/to/python-with-abletongpt
 ```
 
-prepare-only は repair plan の SHA-256 を表示します。同じ SHA を `--approve-plan-sha` に渡した実行だけが Live 変更を開始します。tempo は AbletonGPT JobPlan、device は `repair_live_device` 1回です。実行後も VS9/VS10 は `ableton-verify` を自動では呼びません。人間が明示的に再検証します。
+prepare-only は repair plan の SHA-256 を表示します。同じ SHA を `--approve-plan-sha` に渡した実行だけが Live 変更を開始します。tempo は AbletonGPT JobPlan、device は `repair_live_device` 1回です。実行後も VS9/VS10 は検証を自動では呼びません。人間が明示的に `ableton-repair-verify` を走らせます。このコマンドは `--check-id` を取りません。対象は現行 `ableton_repair_execution.json` の selection です。
 
 `--prepare-only` は handoff 検証と `import-kihachi`（ジョブプラン生成）までで止まり、Live ジョブは走らせません。GitHub CI はこの経路を使います。同じ handoff と arrangement plan を一度成功適用したあとは、黙ってもう一度 Live を走らせません。再実行は人間が `--rerun` を付けたときだけです。prepare-only の領収書は Live 適用ではないので、`ableton-verify` はそれを拒否します。
 
 適用の監査は `ableton_handoff.json` を書き換えず、別ファイル `ableton_execution.json` に残します。
 Live 読み戻しの監査はさらに別ファイル `ableton_verification.json` です。
 修復計画はそれらを書き換えず、さらに別ファイル `ableton_repair_plan.json` です。
-承認付き tempo 修復のジョブと領収書は `ableton_repair_job_plan.json` と `ableton_repair_execution.json` で、元の job / execution とは別名です。device repair は JobPlan を偽造せず、同じ `ableton_repair_execution.json` に guarded request と AbletonGPT の structured result を残します。
+承認付き tempo 修復のジョブと領収書は `ableton_repair_job_plan.json` と `ableton_repair_execution.json` で、元の job / execution とは別名です。device repair は JobPlan を偽造せず、同じ `ableton_repair_execution.json` に guarded request と AbletonGPT の structured result を残します。修復 check のクロージャはさらに別ファイル `ableton_repair_verification.json` です。実行領収書は書き換えません。
 
 ```text
 ableton-apply         = 外部実行が成功した（ableton_execution.json）
 ableton-verify        = 観測した Live 状態を計画と比較した（ableton_verification.json）
 ableton-repair-plan   = 失敗した検証を人間承認用の計画へ変換した（ableton_repair_plan.json）
 ableton-repair-apply  = 承認した tempo / guarded device repair を AbletonGPT が実行した（ableton_repair_execution.json）。Live 修復は未検証
+ableton-repair-verify = 現行領収書の選んだ check を、新しい読み取り専用観測で閉じた（ableton_repair_verification.json）。因果は主張しない
 ```
 
 検証の状態は次の4つです。AbletonGPT のジョブが exit 0 でも `verified` にはなりません。
@@ -1560,6 +1564,8 @@ ableton-repair-apply  = 承認した tempo / guarded device repair を AbletonGP
 
 `ableton-repair-apply` の実行成功は `repair_applied_unverified`（または device の `noop` なら `repair_satisfied_unverified`）です。AbletonGPT が local postcondition を確認したことと、Live Set 全体が検証済みであることは別の主張です。失敗・拒否は自動 retry しません。同じ plan/check の成功領収書がある再実行は `--rerun` と新しい SHA 承認が必要です。tempo は実行直前の読み取り専用 preflight、device は AbletonGPT `expected_*` ガードで古い Live 状態を拒否します。`--rerun` でもそのガードは外しません。
 
+`ableton-repair-verify` は VS7 の `verify_ableton_execution` を再利用する読み取り専用クロージャです。Live 変更は 0 です。選んだ check の pass は `repair_check_verified`（終了 0）であり、別の check が fail なら full verification は `failed` のままです。fail は `repair_check_failed`（終了 1）、観測不能は `repair_check_not_observable`（終了 2）、AbletonGPT / Live 不通は `repair_verification_not_run`（終了 2）です。自動 retry・自動再計画・自動採用はありません。`causality_claimed` は常に false です。繰り返し実行して構いません。新しい実行は新しい Live スナップショットであり、前回結果の再利用ではありません。
+
 preflight（読み取り専用の tempo / track 照合）と `run` は別プロセスです。その間に Set が変わる TOCTOU は残ります。device repair は AbletonGPT の同一 process guarded API（`get_track_devices` → 0 または 1 mutation → 読み返し）に委譲します。
 
 AbletonGPT 0.2 には一括 Live 読み取り専用の公開 CLI はまだありません。KIHACHI は `python -m abletongpt.cli.jobs` と同じく AbletonGPT の Python を外部起動し、既存の read コマンドだけを呼びます。第二の Live プロトコルは実装していません。VS8 の修復計画はその実行境界を呼びません。VS9 の Live 読み取りも同じ AbletonGPT プロセス境界を使い、KIHACHI はソケットへ接続しません。
@@ -1567,7 +1573,7 @@ AbletonGPT 0.2 には一括 Live 読み取り専用の公開 CLI はまだあり
 ## Live展開（v0.2: 実機で通しました）
 
 `ableton-plan`が出す操作リストを、2026-08-16に**実際のLiveセットへ通しました**。
-経路はKIHACHIがMCPツールを直接叩くのではなく、AbletonGPT側の検証器です。人手の採用テイクから Live へ進む場合は、上の `ableton-handoff` → `ableton-apply` → `ableton-verify` → `ableton-repair-plan` → `ableton-repair-apply` を使います。
+経路はKIHACHIがMCPツールを直接叩くのではなく、AbletonGPT側の検証器です。人手の採用テイクから Live へ進む場合は、上の `ableton-handoff` → `ableton-apply` → `ableton-verify` → `ableton-repair-plan` → `ableton-repair-apply` → `ableton-repair-verify` を使います。
 
 ```bash
 python3 -m kihachi_music_ai ableton-plan projects/my-song --first-track-index 1
@@ -1864,7 +1870,7 @@ uv run kihachi ace-step render  projects/my-song --from-brief prompt.json
 
   SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。`render` の場合、テールガードの切り戻し先はブリーフ自身の `total_bars`・`bpm`・`time_signature` から求めた長さです（SongSpec側のグリッドに切り戻すと、尺を書き換えたブリーフはまさにその部分を失います）。どのブリーフでレンダーしたかは `ace_step_result.json` の `render_brief`（パス・SHA-256・SongSpecとの一致）に残ります。
 - Audio-to-MIDI、Ableton Live展開、LLM接続は**v0.1では範囲外でした**。現在はv0.2として、
-  単音素材の`transcribe-sample`と`audit-transcription`、`ableton-plan` / `ableton-handoff` / `ableton-apply` / `ableton-verify` / `ableton-repair-plan` / `ableton-repair-apply`からAbletonGPT経由の実機適用・読み取り専用監査・人間承認用の修復計画と tempo / guarded device の承認付き再実行、
+  単音素材の`transcribe-sample`と`audit-transcription`、`ableton-plan` / `ableton-handoff` / `ableton-apply` / `ableton-verify` / `ableton-repair-plan` / `ableton-repair-apply` / `ableton-repair-verify`からAbletonGPT経由の実機適用・読み取り専用監査・人間承認用の修復計画と tempo / guarded device の承認付き再実行および明示的な修復 check クロージャ、
   任意の`intent prepare/read`を実装済みです。KIHACHI自身はLiveを直接操作せず、LLMにも曲を書かせません。
   ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
 - stem分離はv0.2で取り込み済みです（ADR-0008）。複数候補については`shortlist`が順位と根拠を出しますが、**採用は自動化していません**（ADR-0009）。測れない次元が残る以上、最後は試聴です。
