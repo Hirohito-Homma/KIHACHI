@@ -15,7 +15,8 @@ across a seed sweep the same settings moved it by 33 points.
 Nothing is overwritten. Each round writes a new project beside the last, and
 the source project keeps every input it arrived with -- the one thing written
 back into it is ``revision_log.json``, plus an optional Markdown mirror when
-the caller explicitly names one.
+the caller explicitly names one.  Human adoption is a separate metadata write:
+``adopt_revision`` records which candidate was chosen without replacing audio.
 """
 
 from __future__ import annotations
@@ -24,11 +25,13 @@ import hashlib
 import json
 import os
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Protocol, Sequence
 
 from .analyzer import analyze_project
+from .preference_memory import PreferenceEntry, record_preference
 from .repaint_planner import stage_repaint_project
 from .reviewer import review_project
 
@@ -40,6 +43,7 @@ MIN_GAIN = 1.0
 Not zero: re-rendering the same settings with a different seed moves this score
 by tens of points, so a fraction of a point is noise wearing a result's clothes.
 """
+SELECTION_MODE_HUMAN = "human"
 
 
 class Renderer(Protocol):
@@ -88,6 +92,32 @@ class Round:
 
 
 @dataclass(frozen=True)
+class Adoption:
+    """An explicit human selection of one measured revision take."""
+
+    round: int
+    project: str
+    selected_at: str
+    selection_mode: str = SELECTION_MODE_HUMAN
+    reason: str | None = None
+    tags: tuple[str, ...] = ()
+    audio_file: str | None = None
+    audio_sha256: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "round": self.round,
+            "project": self.project,
+            "audio_file": self.audio_file,
+            "audio_sha256": self.audio_sha256,
+            "selected_at": self.selected_at,
+            "selection_mode": self.selection_mode,
+            "reason": self.reason,
+            "tags": list(self.tags),
+        }
+
+
+@dataclass(frozen=True)
 class RevisionLog:
     rounds: tuple[Round, ...]
     stopped_because: str
@@ -96,7 +126,7 @@ class RevisionLog:
     #: middle still leaves an account of the takes that were measured -- each of
     #: which cost a render.
     execution_state: str = "complete"
-    adopted: None = field(default=None, init=False)
+    adopted: Adoption | None = None
 
     def ranked(self) -> tuple[Round, ...]:
         """Best first: usable takes above unusable ones, then by alignment.
@@ -109,19 +139,38 @@ class RevisionLog:
         return tuple(sorted(self.rounds, key=lambda r: (not r.usable, -r.alignment)))
 
     def to_dict(self) -> dict[str, Any]:
+        if self.adopted is None:
+            adoption_note = (
+                "Nothing was adopted. These are candidates: the alignment score "
+                "measures whether a take followed the SongSpec, not whether it "
+                "sounds good, and a seed change alone moves it by tens of points."
+            )
+            adopted_payload: dict[str, Any] | None = None
+        else:
+            adoption_note = (
+                f"Round {self.adopted.round} was adopted by an explicit human "
+                f"selection ({self.adopted.selection_mode})."
+            )
+            adopted_payload = self.adopted.to_dict()
         return {
             "revision_log_version": REVISION_LOG_VERSION,
             "execution_state": self.execution_state,
             "stopped_because": self.stopped_because,
             "rounds": [item.to_dict() for item in self.rounds],
             "ranking": [item.index for item in self.ranked()],
-            "adopted": None,
-            "adoption_note": (
-                "Nothing was adopted. These are candidates: the alignment score "
-                "measures whether a take followed the SongSpec, not whether it "
-                "sounds good, and a seed change alone moves it by tens of points."
-            ),
+            "adopted": adopted_payload,
+            "adoption_note": adoption_note,
         }
+
+
+@dataclass(frozen=True)
+class AdoptionManifest:
+    project_dir: Path
+    log_file: Path
+    log: RevisionLog
+    adoption: Adoption
+    unchanged: bool
+    preference_recorded: bool
 
 
 def _analysis_is_current(project_dir: Path) -> bool:
@@ -364,21 +413,36 @@ def describe_comparison(log: RevisionLog) -> list[str]:
         lines.append(f"Delta (round {before.index} -> {after.index}):")
         lines.append(f"  alignment: {delta['alignment']:+.1f}")
         lines.append(f"  blocking defects: {delta['blocking']:+d}")
-    lines.append("Nothing adopted -- these are candidates. Listen before choosing.")
+    if log.adopted is None:
+        lines.append("Nothing adopted -- these are candidates. Listen before choosing.")
+    else:
+        lines.append(
+            f"Adopted round {log.adopted.round} "
+            f"({log.adopted.selection_mode}) at {log.adopted.selected_at}."
+        )
     return lines
 
 
 def describe(log: RevisionLog) -> list[str]:
-    """The log as lines to print, ranked, with nothing adopted."""
+    """The log as lines to print, ranked, with adoption state explicit."""
 
     lines = [f"{len(log.rounds)} take(s); stopped because {log.stopped_because}"]
     for item in log.ranked():
         defects = ", ".join(item.defect_codes) or "clean"
+        marker = ""
+        if log.adopted is not None and log.adopted.round == item.index:
+            marker = " [adopted]"
         lines.append(
             f"  [{item.index}] {item.alignment:6.2f} {item.grade:<14} "
-            f"{defects:<28} {item.project_dir.name}"
+            f"{defects:<28} {item.project_dir.name}{marker}"
         )
-    lines.append("Nothing adopted -- these are candidates. Listen before choosing.")
+    if log.adopted is None:
+        lines.append("Nothing adopted -- these are candidates. Listen before choosing.")
+    else:
+        lines.append(
+            f"Adopted round {log.adopted.round} "
+            f"({log.adopted.selection_mode})."
+        )
     return lines
 
 
@@ -404,6 +468,457 @@ def export_markdown(log: RevisionLog, path: Path) -> None:
     """Write the revision log as markdown to ``path``."""
 
     _atomic_write_text(path, render_markdown(log))
+
+
+def revision_log_path(project_dir: Path) -> Path:
+    return Path(project_dir) / "revision_log.json"
+
+
+def load_revision_log(project_dir: Path, *, log_file: Path | None = None) -> RevisionLog:
+    """Load a durable revision log; missing or invalid files raise."""
+
+    path = Path(log_file) if log_file is not None else revision_log_path(project_dir)
+    if not path.is_file():
+        raise FileNotFoundError(f"revision log not found: {path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as error:
+        raise ValueError(f"invalid revision log: {path}") from error
+    return revision_log_from_dict(payload, base_dir=Path(project_dir))
+
+
+def revision_log_from_dict(
+    payload: dict[str, Any],
+    *,
+    base_dir: Path | None = None,
+) -> RevisionLog:
+    """Rehydrate a RevisionLog, including legacy logs where adopted is null."""
+
+    if not isinstance(payload, dict):
+        raise ValueError("revision log must be an object")
+    if payload.get("revision_log_version") != REVISION_LOG_VERSION:
+        raise ValueError(
+            "unsupported revision log version: "
+            f"{payload.get('revision_log_version')!r}"
+        )
+    rounds_payload = payload.get("rounds")
+    if not isinstance(rounds_payload, list):
+        raise ValueError("revision log rounds must be a list")
+    rounds = tuple(
+        _round_from_dict(item, base_dir=base_dir) for item in rounds_payload
+    )
+    adopted = _adoption_from_dict(payload.get("adopted"))
+    return RevisionLog(
+        rounds=rounds,
+        stopped_because=str(payload.get("stopped_because", "")),
+        execution_state=str(payload.get("execution_state", "complete")),
+        adopted=adopted,
+    )
+
+
+def adopt_revision(
+    project_dir: Path,
+    round_number: int,
+    *,
+    reason: str | None = None,
+    tags: Sequence[str] | None = None,
+    log_file: Path | None = None,
+    selected_at: str | None = None,
+) -> AdoptionManifest:
+    """Record an explicit human selection of one existing revision take.
+
+    Selection is metadata only: source audio, SongSpec, managed MIDI, and every
+    revision WAV stay byte-identical.  Scores never populate ``adopted``.
+    """
+
+    project_dir = Path(project_dir)
+    destination = Path(log_file) if log_file is not None else revision_log_path(project_dir)
+    log = load_revision_log(project_dir, log_file=destination)
+    selected = _round_by_index(log, round_number)
+    tag_values = _normalize_tags(tags)
+    reason_value = None if reason is None else str(reason).strip() or None
+
+    verified = _verify_candidate_for_adoption(project_dir, selected)
+    audio_sha = verified["audio_sha256"]
+
+    if (
+        log.adopted is not None
+        and log.adopted.round == round_number
+        and log.adopted.selection_mode == SELECTION_MODE_HUMAN
+        and _same_annotations(log.adopted, reason_value, tag_values)
+    ):
+        return AdoptionManifest(
+            project_dir=project_dir,
+            log_file=destination,
+            log=log,
+            adoption=log.adopted,
+            unchanged=True,
+            preference_recorded=False,
+        )
+
+    timestamp = selected_at or _utc_now()
+    adoption = Adoption(
+        round=selected.index,
+        project=selected.project_dir.name,
+        selected_at=timestamp,
+        selection_mode=SELECTION_MODE_HUMAN,
+        reason=reason_value,
+        tags=tag_values,
+        audio_file=str(selected.audio_file),
+        audio_sha256=audio_sha,
+    )
+    updated = RevisionLog(
+        rounds=log.rounds,
+        stopped_because=log.stopped_because,
+        execution_state=log.execution_state,
+        adopted=adoption,
+    )
+    _atomic_write_text(
+        destination,
+        json.dumps(updated.to_dict(), ensure_ascii=False, indent=2) + "\n",
+    )
+
+    comparison = _preference_comparison(log, selected)
+    entry = PreferenceEntry(
+        source_project=project_dir.name,
+        selected_round=selected.index,
+        candidate_rounds=tuple(item.index for item in log.rounds),
+        rejected_rounds=tuple(
+            item.index for item in log.rounds if item.index != selected.index
+        ),
+        reason=reason_value,
+        tags=tag_values,
+        comparison=comparison,
+        selected_at=timestamp,
+        selection_mode=SELECTION_MODE_HUMAN,
+        selected_project=selected.project_dir.name,
+        audio_sha256=audio_sha,
+    )
+    record_preference(project_dir, entry)
+    return AdoptionManifest(
+        project_dir=project_dir,
+        log_file=destination,
+        log=updated,
+        adoption=adoption,
+        unchanged=False,
+        preference_recorded=True,
+    )
+
+
+def describe_revisions(log: RevisionLog) -> list[str]:
+    """Inspection lines for every candidate before a human chooses."""
+
+    if not log.rounds:
+        return ["No revision rounds recorded."]
+    lines = [
+        f"{len(log.rounds)} revision take(s); stopped because {log.stopped_because}",
+        f"execution state: {log.execution_state}",
+    ]
+    if log.adopted is None:
+        lines.append("adopted: null")
+    else:
+        lines.append(
+            f"adopted: round {log.adopted.round} "
+            f"({log.adopted.project}, {log.adopted.selection_mode})"
+        )
+        if log.adopted.reason:
+            lines.append(f"  reason: {log.adopted.reason}")
+        if log.adopted.tags:
+            lines.append(f"  tags: {', '.join(log.adopted.tags)}")
+    for round_ in log.rounds:
+        action = round_.planned_action or "(none)"
+        marker = (
+            " [adopted]"
+            if log.adopted is not None and log.adopted.round == round_.index
+            else ""
+        )
+        lines.append(f"Round {round_.index}{marker}:")
+        lines.append(f"  project: {round_.project_dir}")
+        lines.append(f"  audio: {round_.audio_file}")
+        lines.append(f"  alignment: {round_.alignment:.2f} ({round_.grade})")
+        lines.append(f"  blocking: {round_.blocking}")
+        lines.append(f"  planned action: {action}")
+    for before, after in zip(log.rounds, log.rounds[1:]):
+        delta = compare_rounds(before, after)
+        lines.append(f"Delta (round {before.index} -> {after.index}):")
+        lines.append(f"  alignment: {delta['alignment']:+.2f}")
+        lines.append(f"  blocking: {delta['blocking']:+d}")
+    return lines
+
+
+def _round_from_dict(
+    payload: dict[str, Any],
+    *,
+    base_dir: Path | None = None,
+) -> Round:
+    if not isinstance(payload, dict):
+        raise ValueError("revision round must be an object")
+    project = _resolve_stored_path(str(payload["project"]), base_dir=base_dir)
+    audio = _resolve_stored_path(
+        str(payload["audio_file"]),
+        base_dir=base_dir,
+        sibling_of=project,
+    )
+    defects = payload.get("defects") or ()
+    return Round(
+        index=int(payload["index"]),
+        project_dir=project,
+        alignment=float(payload["alignment"]),
+        grade=str(payload["grade"]),
+        blocking=int(payload["blocking"]),
+        warnings=int(payload.get("warnings", 0)),
+        defect_codes=tuple(str(item) for item in defects),
+        planned_action=(
+            None
+            if payload.get("planned_action") is None
+            else str(payload["planned_action"])
+        ),
+        audio_file=audio,
+        tail_silence_only=bool(payload.get("tail_silence_only", False)),
+    )
+
+
+def _resolve_stored_path(
+    stored: str,
+    *,
+    base_dir: Path | None = None,
+    sibling_of: Path | None = None,
+) -> Path:
+    path = Path(stored)
+    if path.exists():
+        return path
+    if sibling_of is not None:
+        under_sibling = sibling_of / path.name
+        if "audio/" in stored.replace("\\", "/"):
+            relative = stored.replace("\\", "/").split("audio/", 1)[-1]
+            under_sibling = sibling_of / "audio" / relative
+        if under_sibling.exists():
+            return under_sibling
+    if base_dir is not None:
+        by_name = base_dir.parent / path.name
+        if by_name.exists():
+            return by_name
+        under_base = base_dir / path.name
+        if under_base.exists():
+            return under_base
+    return path
+
+
+def _adoption_from_dict(payload: Any) -> Adoption | None:
+    if payload is None:
+        return None
+    if not isinstance(payload, dict):
+        raise ValueError("revision adoption must be an object or null")
+    mode = str(payload.get("selection_mode", SELECTION_MODE_HUMAN))
+    if mode != SELECTION_MODE_HUMAN:
+        raise ValueError(f"unsupported selection_mode: {mode!r}")
+    tags = payload.get("tags") or ()
+    return Adoption(
+        round=int(payload["round"]),
+        project=str(payload["project"]),
+        selected_at=str(payload["selected_at"]),
+        selection_mode=mode,
+        reason=None if payload.get("reason") is None else str(payload["reason"]),
+        tags=tuple(str(item) for item in tags),
+        audio_file=(
+            None if payload.get("audio_file") is None else str(payload["audio_file"])
+        ),
+        audio_sha256=(
+            None
+            if payload.get("audio_sha256") is None
+            else str(payload["audio_sha256"])
+        ),
+    )
+
+
+def _round_by_index(log: RevisionLog, round_number: int) -> Round:
+    for round_ in log.rounds:
+        if round_.index == round_number:
+            return round_
+    available = ", ".join(str(item.index) for item in log.rounds) or "(none)"
+    raise ValueError(
+        f"revision round {round_number} does not exist; available: {available}"
+    )
+
+
+def _normalize_tags(tags: Sequence[str] | None) -> tuple[str, ...]:
+    if not tags:
+        return ()
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for item in tags:
+        value = str(item).strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        cleaned.append(value)
+    return tuple(cleaned)
+
+
+def _same_annotations(
+    adoption: Adoption,
+    reason: str | None,
+    tags: tuple[str, ...],
+) -> bool:
+    existing_reason = adoption.reason
+    existing_tags = tuple(adoption.tags)
+    if reason is None and not tags:
+        return True
+    return existing_reason == reason and existing_tags == tags
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace(
+        "+00:00", "Z"
+    )
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _resolve_round_project(project_dir: Path, round_: Round) -> Path:
+    """Locate the on-disk project directory for a recorded round."""
+
+    recorded = Path(round_.project_dir)
+    if recorded.is_dir():
+        return recorded.resolve()
+    by_name = project_dir.parent / recorded.name
+    if by_name.is_dir():
+        return by_name.resolve()
+    if round_.index == 0 and project_dir.is_dir():
+        return project_dir.resolve()
+    expected = (
+        project_dir
+        if round_.index == 0
+        else project_dir.parent / f"{project_dir.name}-rev{round_.index:02d}"
+    )
+    if expected.is_dir():
+        return expected.resolve()
+    raise FileNotFoundError(f"revision project not found: {recorded}")
+
+
+def _verify_candidate_for_adoption(
+    project_dir: Path,
+    round_: Round,
+) -> dict[str, str]:
+    """Refuse candidates that are missing, unmeasured, or outside the lineage."""
+
+    project_dir = project_dir.resolve()
+    candidate = _resolve_round_project(project_dir, round_)
+    expected_name = (
+        project_dir.name
+        if round_.index == 0
+        else f"{project_dir.name}-rev{round_.index:02d}"
+    )
+    if candidate.name != expected_name:
+        raise ValueError(
+            f"revision round {round_.index} points at foreign project "
+            f"{candidate.name!r}; expected {expected_name!r}"
+        )
+    if round_.index == 0:
+        if candidate != project_dir:
+            raise ValueError("round 0 must be the source project itself")
+    else:
+        stage_path = candidate / "repaint_stage.json"
+        if not stage_path.is_file():
+            raise ValueError(
+                f"revision round {round_.index} is missing repaint provenance: "
+                f"{stage_path}"
+            )
+        try:
+            stage = json.loads(stage_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError) as error:
+            raise ValueError(
+                f"revision round {round_.index} has invalid provenance: {stage_path}"
+            ) from error
+        source_name = stage.get("source_project")
+        if not isinstance(source_name, str) or not source_name:
+            raise ValueError(
+                f"revision round {round_.index} provenance lacks source_project"
+            )
+        # Lineage must chain back toward the source project name.
+        allowed = {project_dir.name}
+        for index in range(1, round_.index):
+            allowed.add(f"{project_dir.name}-rev{index:02d}")
+        if source_name not in allowed:
+            raise ValueError(
+                f"revision round {round_.index} provenance source "
+                f"{source_name!r} is outside the revision lineage"
+            )
+        source_sha = stage.get("source_song_spec_sha256")
+        spec_path = candidate / "song_spec.json"
+        if isinstance(source_sha, str) and spec_path.is_file():
+            from .models import SongSpec
+            from .repaint_planner import song_spec_sha256
+
+            actual_spec_sha = song_spec_sha256(
+                SongSpec.from_json(spec_path.read_text(encoding="utf-8"))
+            )
+            if actual_spec_sha != source_sha:
+                raise ValueError(
+                    f"revision round {round_.index} SongSpec SHA does not match "
+                    "repaint provenance"
+                )
+
+    if not _has_audio(candidate):
+        raise FileNotFoundError(
+            f"revision round {round_.index} has no audio "
+            f"(missing or half-staged): {candidate / 'audio'}"
+        )
+
+    audio = Path(round_.audio_file)
+    if not audio.is_file():
+        analysis_path = candidate / "audio_analysis.json"
+        if analysis_path.is_file():
+            try:
+                analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+                audio = candidate / analysis["audio_file"]
+            except (OSError, ValueError, KeyError, TypeError):
+                audio = Path()
+        if not audio.is_file():
+            # Fall back to the first WAV under audio/.
+            audio_dir = candidate / "audio"
+            wavs = sorted(audio_dir.glob("*.wav")) if audio_dir.is_dir() else []
+            if not wavs:
+                raise FileNotFoundError(
+                    f"revision round {round_.index} audio not found: "
+                    f"{round_.audio_file}"
+                )
+            audio = wavs[0]
+
+    if not _analysis_is_current(candidate):
+        raise ValueError(
+            f"revision round {round_.index} is unmeasured or its analysis SHA "
+            "does not match the audio on disk"
+        )
+
+    return {"audio_sha256": _file_sha256(audio), "audio_file": str(audio)}
+
+
+def _preference_comparison(log: RevisionLog, selected: Round) -> dict[str, Any]:
+    baseline = next((item for item in log.rounds if item.index == 0), None)
+    if baseline is None or baseline.index == selected.index:
+        alternatives = [item for item in log.ranked() if item.index != selected.index]
+        baseline = alternatives[0] if alternatives else None
+    if baseline is None:
+        return {
+            "baseline_round": None,
+            "alignment_delta": 0.0,
+            "blocking_delta": 0,
+            "warnings_delta": 0,
+        }
+    delta = compare_rounds(baseline, selected)
+    return {
+        "baseline_round": baseline.index,
+        "alignment_delta": delta["alignment"],
+        "blocking_delta": delta["blocking"],
+        "warnings_delta": delta["warnings"],
+    }
 
 
 def _validate_json_destination(path: Path, *, resume: bool) -> None:

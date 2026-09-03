@@ -52,8 +52,11 @@ from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_ren
 from ..report import build_report, load_candidate, rank as rank_candidates
 from ..pipeline import make_ace_step_repaint_renderer
 from ..revision import (
-    describe as describe_revisions,
+    adopt_revision,
+    describe as describe_revision_ranking,
     describe_comparison,
+    describe_revisions,
+    load_revision_log,
     run_revision_loop,
 )
 from ..adapters.intent_llm import (
@@ -527,7 +530,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 log_file=log_file,
                 markdown_log_file=args.revision_log_markdown,
             )
-            for line in describe_revisions(log):
+            for line in describe_revision_ranking(log):
                 print(line)
             print("")
             for line in describe_comparison(log):
@@ -535,6 +538,45 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- log: {log_file}")
             if args.revision_log_markdown is not None:
                 print(f"- markdown log: {args.revision_log_markdown}")
+            return 0
+
+        if args.command == "revisions":
+            log = load_revision_log(args.project)
+            for line in describe_revisions(log):
+                print(line)
+            print(f"- log: {args.project / 'revision_log.json'}")
+            return 0
+
+        if args.command == "adopt":
+            manifest = adopt_revision(
+                args.project,
+                args.round_number,
+                reason=args.reason,
+                tags=args.tags,
+            )
+            adoption = manifest.adoption
+            if manifest.unchanged:
+                print(
+                    f"Round {adoption.round} already adopted "
+                    f"({adoption.project}); left unchanged"
+                )
+            else:
+                print(
+                    f"Adopted revision round {adoption.round} "
+                    f"({adoption.project})"
+                )
+            print(f"- selection mode: {adoption.selection_mode}")
+            print(f"- selected at: {adoption.selected_at}")
+            if adoption.reason:
+                print(f"- reason: {adoption.reason}")
+            if adoption.tags:
+                print(f"- tags: {', '.join(adoption.tags)}")
+            print(f"- log: {manifest.log_file}")
+            if manifest.preference_recorded:
+                print(f"- preference memory: {args.project / 'preference_memory.json'}")
+            else:
+                print("- preference memory: unchanged (identical adoption)")
+            print("- audio copied/overwritten/deleted: no/no/no")
             return 0
 
         if args.command == "report":

@@ -368,6 +368,36 @@ def build_parser() -> argparse.ArgumentParser:
         help="write a markdown summary of the revision log to this path",
     )
 
+    revisions = subparsers.add_parser(
+        "revisions",
+        help="inspect revision candidates and adoption state (adopts nothing)",
+    )
+    revisions.add_argument("project", type=Path, help="a project with revision_log.json")
+
+    adopt = subparsers.add_parser(
+        "adopt",
+        help="explicitly adopt one existing revision take (human selection only)",
+    )
+    adopt.add_argument("project", type=Path, help="source project that owns revision_log.json")
+    adopt.add_argument(
+        "--round",
+        type=int,
+        required=True,
+        dest="round_number",
+        help="revision round index to adopt (from revision_log.json)",
+    )
+    adopt.add_argument(
+        "--reason",
+        help="optional human reason; stored as preference evidence only",
+    )
+    adopt.add_argument(
+        "--tag",
+        action="append",
+        default=[],
+        dest="tags",
+        help="optional descriptive tag (repeatable); evidence only, never scoring",
+    )
+
     report = subparsers.add_parser(
         "report",
         help="write a page for comparing takes by ear (renders nothing, adopts nothing)",
