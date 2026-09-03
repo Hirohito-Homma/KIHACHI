@@ -38,7 +38,16 @@ from .ableton_verification import (
 from .ableton_repair import (
     AbletonRepairPlanError,
     AbletonRepairPlanManifest,
+    ValidatedRepairPlan,
     build_ableton_repair_plan,
+    load_validated_repair_plan,
+)
+from .ableton_repair_execution import (
+    AbletonRepairExecutionError,
+    AbletonRepairExecutionManifest,
+    ValidatedRepairSelection,
+    execute_ableton_repair,
+    load_validated_repair_selection,
 )
 from .ableton_handoff import (
     AbletonHandoffError,
@@ -65,6 +74,8 @@ __all__ = [
     "AbletonVerificationManifest",
     "AbletonRepairPlanError",
     "AbletonRepairPlanManifest",
+    "AbletonRepairExecutionError",
+    "AbletonRepairExecutionManifest",
     "AbletonHandoffError",
     "AbletonHandoffManifest",
     "AdoptedTake",
@@ -80,6 +91,8 @@ __all__ = [
     "RevisionLog",
     "SongSpec",
     "ValidatedHandoff",
+    "ValidatedRepairPlan",
+    "ValidatedRepairSelection",
     "VerifiedExecution",
     "VerticalSliceManifest",
     "adopt_revision",
@@ -88,7 +101,10 @@ __all__ = [
     "build_ableton_repair_plan",
     "compare_rounds",
     "execute_ableton_handoff",
+    "execute_ableton_repair",
     "load_validated_handoff",
+    "load_validated_repair_plan",
+    "load_validated_repair_selection",
     "load_verified_execution",
     "prepare_ableton_execution",
     "verify_ableton_execution",

@@ -22,6 +22,7 @@ from kihachi_music_ai.ableton_repair import (
     STATE_MANUAL_REQUIRED,
     AbletonRepairPlanError,
     build_ableton_repair_plan,
+    load_validated_repair_plan,
 )
 from kihachi_music_ai.ableton_verification import (
     ABLETON_VERIFICATION_NAME,
@@ -881,6 +882,53 @@ class AbletonRepairPlanTests(unittest.TestCase):
             self.assertEqual(status, 0)
             self.assertIn("MANUAL ACTION REQUIRED", buffer.getvalue())
             self.assertEqual(_forbidden_repair_claims(buffer.getvalue()), [])
+
+    def test_load_validated_repair_plan_rereads_without_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            self._failed_tempo(project)
+            first = build_ableton_repair_plan(project)
+            digest = _sha256(first.repair_plan_file)
+            loaded = load_validated_repair_plan(project)
+            self.assertEqual(loaded.repair_plan_sha256, digest)
+            self.assertEqual(_sha256(first.repair_plan_file), digest)
+            self.assertEqual(loaded.repair_plan["repair_state"], STATE_CANDIDATES_READY)
+            self.assertTrue(loaded.arrangement_plan_file.is_file())
+            self.assertEqual(loaded.arrangement_plan.get("arrangement_plan_version"), "0.1")
+
+    def test_load_validated_repair_plan_missing_file_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            self._failed_tempo(project)
+            with self.assertRaisesRegex(AbletonRepairPlanError, "No Ableton repair plan"):
+                load_validated_repair_plan(project)
+
+    def test_load_validated_repair_plan_stale_file_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            self._failed_tempo(project)
+            build_ableton_repair_plan(project)
+            payload = _read_json(project / ABLETON_REPAIR_PLAN_NAME)
+            payload["candidate_actions"] = []
+            payload["repair_state"] = STATE_MANUAL_REQUIRED
+            _write_json(project / ABLETON_REPAIR_PLAN_NAME, payload)
+            with self.assertRaisesRegex(AbletonRepairPlanError, "stale"):
+                load_validated_repair_plan(project)
+
+    def test_load_validated_repair_plan_does_not_call_live_or_abletongpt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            self._failed_tempo(project)
+            build_ableton_repair_plan(project)
+            with patch("subprocess.run") as run, patch(
+                "kihachi_music_ai.ableton_verification.collect_live_evidence"
+            ) as collect, patch(
+                "kihachi_music_ai.ableton_execution.run_command"
+            ) as command:
+                load_validated_repair_plan(project)
+            run.assert_not_called()
+            collect.assert_not_called()
+            command.assert_not_called()
 
 
 if __name__ == "__main__":

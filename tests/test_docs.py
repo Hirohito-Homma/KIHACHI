@@ -37,7 +37,7 @@ class CopilotSpecificationTests(unittest.TestCase):
         ):
             with self.subTest(path=relative):
                 self.assertTrue((repo / relative).is_file())
-        for number in range(1, 16):
+        for number in range(1, 17):
             matches = list((repo / "docs" / "adr").glob(f"{number:04d}-*.md"))
             with self.subTest(adr=number):
                 self.assertEqual(len(matches), 1)
