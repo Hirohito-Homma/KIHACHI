@@ -531,8 +531,9 @@ def build_parser() -> argparse.ArgumentParser:
     ableton_repair_apply = subparsers.add_parser(
         "ableton-repair-apply",
         help=(
-            "apply one human-authorized set_tempo repair candidate through "
-            "AbletonGPT (does not auto-verify; Live repair remains unverified)"
+            "apply one human-authorized tempo or guarded device repair "
+            "through AbletonGPT (does not auto-verify; Live repair remains "
+            "unverified)"
         ),
     )
     ableton_repair_apply.add_argument(
@@ -543,14 +544,14 @@ def build_parser() -> argparse.ArgumentParser:
     ableton_repair_apply.add_argument(
         "--check-id",
         required=True,
-        help="candidate check to execute (VS9 supports only tempo / set_tempo)",
+        help="candidate check to execute (tempo, or a supported device:N power repair)",
     )
     ableton_repair_apply.add_argument(
         "--prepare-only",
         action="store_true",
         help=(
-            "validate and run AbletonGPT import-kihachi only; do not read Live "
-            "or run the repair job"
+            "validate provenance and derive the authorized repair; do not "
+            "read Live or mutate a Set"
         ),
     )
     ableton_repair_apply.add_argument(

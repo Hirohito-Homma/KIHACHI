@@ -980,6 +980,29 @@ def _check_device(
             f"(role {role!r}) but none was observed. "
             "Inspect the track in Live; VS7 will not load a kit or instrument.",
         )
+    rows = [item for item in payload if isinstance(item, Mapping)]
+    if len(payload) == 1 and len(rows) == 1 and rows[0].get("is_active") is False:
+        observed_device = rows[0]
+        name = names[0] if names else ""
+        device_index = observed_device.get("index")
+        return _check(
+            check_id,
+            "devices",
+            expected,
+            {
+                "count": 1,
+                "names": names[:MAX_DEVICE_EVIDENCE],
+                "index": device_index,
+                "name": observed_device.get("name") or name,
+                "class_name": observed_device.get("class_name"),
+                "type": observed_device.get("type"),
+                "is_active": False,
+            },
+            CHECK_FAIL,
+            f"Expected an active device on track {index} ({kind} role {role!r}) "
+            f"but {name!r} at index {device_index} is inactive. "
+            "VS7 will not insert a replacement or invent a parameter repair.",
+        )
     return _check(
         check_id,
         "devices",

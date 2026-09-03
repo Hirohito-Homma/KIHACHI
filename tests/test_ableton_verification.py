@@ -408,7 +408,25 @@ class AbletonVerificationTests(unittest.TestCase):
             )
             self.assertEqual(failed["status"], CHECK_FAIL)
 
-    def test_midi_clip_match_passes(self) -> None:
+    def test_unique_inactive_device_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            expected = self._expected(project)
+            evidence = matching_evidence(expected)
+            target = str(int(expected["devices"][0]["track_index"]))
+            evidence["devices"][target][0]["is_active"] = False
+            manifest = verify_ableton_execution(
+                project, provider=self._provider(evidence)
+            )
+            self.assertEqual(manifest.verification_state, STATE_FAILED)
+            failed = next(
+                check
+                for check in manifest.checks
+                if check["id"] == f"device:{target}"
+            )
+            self.assertEqual(failed["status"], CHECK_FAIL)
+            self.assertEqual(failed["observed"]["is_active"], False)
+            self.assertIn("inactive", failed["message"])
         with tempfile.TemporaryDirectory() as temp:
             project = self._applied(Path(temp))
             expected = self._expected(project)
