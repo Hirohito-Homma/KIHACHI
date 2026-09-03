@@ -22,7 +22,7 @@ from kihachi_music_ai.ableton_execution import (
 from kihachi_music_ai.ableton_handoff import build_ableton_handoff
 from kihachi_music_ai.ableton_repair import (
     ABLETON_REPAIR_PLAN_NAME,
-    STATE_MANUAL_REQUIRED,
+    STATE_CANDIDATES_READY,
     build_ableton_repair_plan,
     load_validated_repair_plan,
     source_operation_view,
@@ -424,11 +424,13 @@ class AbletonRepairExecutionTests(unittest.TestCase):
             project = self._applied(Path(temp))
             expected = self._expected(project)
             evidence = matching_evidence(expected)
+            evidence["live_state"]["tempo"] = 90.0
             del evidence["arrangement_clips"]
             evidence["arrangement_observable"] = False
             self._verify(project, evidence)
             build_ableton_repair_plan(project)
             plan = load_validated_repair_plan(project)
+            self.assertEqual(plan.repair_plan["repair_state"], STATE_CANDIDATES_READY)
             manual_id = plan.repair_plan["manual_actions"][0]["check_id"]
             with self.assertRaisesRegex(AbletonRepairExecutionError, "manual_inspection"):
                 execute_ableton_repair(project, check_id=manual_id, runner=fake)
