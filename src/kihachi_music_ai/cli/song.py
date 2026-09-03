@@ -17,7 +17,8 @@ from ..edit import apply_edit_to_project, build_spec_edit
 from ..lyrics import build_lyrics
 from ..models import TRACK_NAMES
 from ..brief import read_coverage
-from ..pipeline import compose_project, run_audio_vertical_slice, run_vertical_slice
+from ..pipeline import compose_project, run_audio_vertical_slice, run_generate_and_revise, run_vertical_slice
+from ..revision import describe_comparison
 from ..preferences import compile_preferences, harvest, load as load_preferences
 from ..web import serve as serve_briefs
 from .connection import ace_client
@@ -173,6 +174,51 @@ def audio_slice(args: argparse.Namespace) -> int:
     print(f"- review: {review.review_file.name}")
     print(f"- revision prompt: {review.revision_prompt_file.name}")
     print("- no take adopted, no repaint launched")
+    return 0
+
+
+def generate_and_revise(args: argparse.Namespace) -> int:
+    def announce(round_) -> None:
+        defects = ", ".join(round_.defect_codes) or "clean"
+        print(
+            f"  [{round_.index}] {round_.alignment:6.2f} {round_.grade:<14} "
+            f"{defects:<26} {round_.project_dir.name}"
+        )
+
+    manifest = run_generate_and_revise(
+        args.prompt,
+        args.output,
+        client=ace_client(args),
+        seed=args.seed,
+        overwrite=args.overwrite,
+        preferences=load_preferences(args.preferences),
+        no_lyrics=args.no_lyrics,
+        tail_guard_bars=args.tail_guard_bars,
+        rounds=args.rounds,
+        resume=args.resume,
+        markdown_log_file=args.revision_log_markdown,
+        poll_interval=args.poll_interval,
+        wait_timeout=args.wait_timeout,
+        on_round=announce,
+    )
+    initial = manifest.initial
+    assert initial is not None
+    compose = initial.compose
+    review = initial.review
+    log = manifest.revision_log
+    print(f"Generate and revise: {compose.output_dir}")
+    print(f"- ACE-Step task: {initial.render.task_id}")
+    alignment = review.review["alignment"]
+    print(f"- round 0 alignment: {alignment['score']} ({alignment['grade']})")
+    print(f"- revision rounds recorded: {len(log.rounds)}")
+    print(f"- stopped because: {log.stopped_because}")
+    print("")
+    for line in describe_comparison(log):
+        print(line)
+    print(f"- log: {compose.output_dir / 'revision_log.json'}")
+    if args.revision_log_markdown is not None:
+        print(f"- markdown log: {args.revision_log_markdown}")
+    print("- no take adopted")
     return 0
 
 

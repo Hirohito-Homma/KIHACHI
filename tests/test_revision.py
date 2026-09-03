@@ -325,7 +325,7 @@ class LoopTests(unittest.TestCase):
                     side_effect=fake_loop,
                 ),
                 patch(
-                    "kihachi_music_ai.cli._legacy.render_with_ace_step",
+                    "kihachi_music_ai.pipeline.render_with_ace_step",
                     side_effect=fake_render,
                 ),
                 contextlib.redirect_stdout(io.StringIO()),

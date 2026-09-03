@@ -104,6 +104,63 @@ def build_parser() -> argparse.ArgumentParser:
     audio_slice.add_argument("--wait-timeout", type=float, default=600.0)
     audio_slice.add_argument("--poll-interval", type=float, default=2.0)
 
+    generate_and_revise = subparsers.add_parser(
+        "generate-and-revise",
+        help=(
+            "compose, render through ACE-Step, analyze, review, then run the "
+            "audio revision loop on the same project"
+        ),
+    )
+    generate_and_revise.add_argument("prompt", help="natural-language music brief")
+    generate_and_revise.add_argument("--output", type=Path, help="output directory")
+    generate_and_revise.add_argument("--seed", type=int, default=8, help="deterministic composition seed")
+    generate_and_revise.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="replace existing compose, render, analysis, and review artifacts",
+    )
+    generate_and_revise.add_argument(
+        "--preferences",
+        type=Path,
+        help=(
+            "apply learned priors from a `learn` output. Off by default: the same "
+            "prompt and seed must keep producing the same song unless asked otherwise"
+        ),
+    )
+    generate_and_revise.add_argument(
+        "--no-lyrics",
+        action="store_true",
+        help="render instrumental, ignoring the project's lyrics.txt",
+    )
+    generate_and_revise.add_argument(
+        "--tail-guard-bars",
+        type=float,
+        default=None,
+        help=(
+            "extra bars of render buffer past the song grid; defaults to "
+            f"{DEFAULT_TAIL_GUARD_BARS} for text2music. Pass 0 to disable"
+        ),
+    )
+    generate_and_revise.add_argument(
+        "--rounds", type=int, default=DEFAULT_ROUNDS, help="maximum repaint rounds"
+    )
+    generate_and_revise.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "continue a revision run that stopped part-way: a -revNN project that "
+            "already has audio is measured rather than rendered again"
+        ),
+    )
+    add_ace_connection_arguments(generate_and_revise)
+    generate_and_revise.add_argument("--wait-timeout", type=float, default=1800.0)
+    generate_and_revise.add_argument("--poll-interval", type=float, default=5.0)
+    generate_and_revise.add_argument(
+        "--revision-log-markdown",
+        type=Path,
+        help="write a markdown summary of the revision log to this path",
+    )
+
     serve = subparsers.add_parser(
         "serve", help="open the brief screen in a local browser tab (writes nothing)"
     )

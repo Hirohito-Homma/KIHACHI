@@ -50,7 +50,12 @@ from ..midi_review import review_project_midi
 from ..models import SongSpec
 from ..prompt_compiler import brief_matches_spec, compile_audio_prompt, load_render_brief
 from ..report import build_report, load_candidate, rank as rank_candidates
-from ..revision import describe as describe_revisions, run_revision_loop
+from ..pipeline import make_ace_step_repaint_renderer
+from ..revision import (
+    describe as describe_revisions,
+    describe_comparison,
+    run_revision_loop,
+)
 from ..adapters.intent_llm import (
     INTENT_READING_NAME,
     build_request as build_intent_request,
@@ -472,6 +477,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "lyrics":
             return song.lyrics(args)
 
+        if args.command == "generate-and-revise":
+            return song.generate_and_revise(args)
+
         if args.command == "revise":
             if args.dry_run:
                 if args.revision_log_markdown is not None:
@@ -493,55 +501,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
             client = ace_client(args)
 
-            def render(project: Path, source_audio: Path) -> None:
-                spec = load_project_spec(project)
-                plan = load_repaint_plan(project / "repaint_plan.json")
-                selection = plan["selection"]
-                settings = plan["ace_step_options"]
-                guard = float(settings.get("tail_guard_bars", 0.0))
-                if selection.get("section_name"):
-                    window = resolve_repaint_window(
-                        spec,
-                        section_name=str(selection["section_name"]),
-                        tail_guard_bars=guard,
-                    )
-                else:
-                    window = resolve_repaint_window(
-                        spec,
-                        bar_range=f"{int(selection['start_bar'])}:{int(selection['end_bar'])}",
-                        tail_guard_bars=guard,
-                    )
-                render_with_ace_step(
-                    project,
-                    client,
-                    AceStepOptions(
-                        audio_format="wav",
-                        revision=str(plan["revision_prompt"]),
-                        task_type="repaint",
-                        audio_cover_strength=float(
-                            settings.get("audio_cover_strength", 1.0)
-                        ),
-                        cover_noise_strength=float(
-                            settings.get("cover_noise_strength", 0.0)
-                        ),
-                        repainting_start=window.start_sec,
-                        repainting_end=window.end_sec,
-                        repaint_mode=str(settings.get("repaint_mode", "balanced")),
-                        repaint_strength=float(settings.get("repaint_strength", 0.65)),
-                        repaint_latent_crossfade_frames=int(
-                            settings.get("repaint_latent_crossfade_frames", 10)
-                        ),
-                        repaint_wav_crossfade_sec=float(
-                            settings.get("repaint_wav_crossfade_sec", 0.25)
-                        ),
-                        chunk_mask_mode=str(settings.get("chunk_mask_mode", "explicit")),
-                        tail_guard_bars=guard,
-                    ),
-                    source_audio=source_audio,
-                    repaint_selection=window,
-                    poll_interval=args.poll_interval,
-                    wait_timeout=args.wait_timeout,
-                )
+            render = make_ace_step_repaint_renderer(
+                client,
+                poll_interval=args.poll_interval,
+                wait_timeout=args.wait_timeout,
+            )
 
             def announce(round_) -> None:
                 defects = ", ".join(round_.defect_codes) or "clean"
@@ -564,6 +528,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 markdown_log_file=args.revision_log_markdown,
             )
             for line in describe_revisions(log):
+                print(line)
+            print("")
+            for line in describe_comparison(log):
                 print(line)
             print(f"- log: {log_file}")
             if args.revision_log_markdown is not None:

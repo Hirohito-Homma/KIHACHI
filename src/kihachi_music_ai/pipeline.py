@@ -15,8 +15,12 @@ from .adapters.ace_step import (
     AceStepOptions,
     AceStepRenderManifest,
     AceStepTaskResult,
+    load_project_spec,
     render_with_ace_step,
+    resolve_repaint_window,
 )
+from .repaint_planner import load_repaint_plan
+from .revision import DEFAULT_ROUNDS, Renderer, RevisionLog, Round, run_revision_loop
 from .analyzer import AudioAnalysisManifest, analyze_project
 from .composer import compose_tracks
 from .lyrics import compile_lyrics
@@ -69,6 +73,12 @@ class AudioVerticalSliceManifest:
     render: AceStepRenderManifest
     analysis: AudioAnalysisManifest
     review: GenerationReviewManifest
+
+
+@dataclass(frozen=True)
+class AudioRevisionLoopManifest:
+    initial: AudioVerticalSliceManifest | None
+    revision_log: RevisionLog
 
 
 def slugify_title(title: str) -> str:
@@ -232,4 +242,141 @@ def run_audio_vertical_slice(
         analysis=analysis,
         review=review,
     )
+
+
+def make_ace_step_repaint_renderer(
+    client: AceStepClient,
+    *,
+    poll_interval: float = 2.0,
+    wait_timeout: float = 600.0,
+) -> Renderer:
+    """Build a :class:`~kihachi_music_ai.revision.Renderer` from a staged repaint plan.
+
+    The staged project's ``repaint_plan.json`` is the machine-readable authority for
+    task type, selection window, and ACE-Step options. ``source_audio`` is the take
+    being repainted relative to, validated by staging rather than copied into the
+    revision project.
+    """
+
+    def render(project_dir: Path, source_audio: Path) -> None:
+        spec = load_project_spec(project_dir)
+        plan = load_repaint_plan(project_dir / "repaint_plan.json")
+        selection = plan["selection"]
+        settings = plan["ace_step_options"]
+        guard = float(settings.get("tail_guard_bars", 0.0))
+        if selection.get("section_name"):
+            window = resolve_repaint_window(
+                spec,
+                section_name=str(selection["section_name"]),
+                tail_guard_bars=guard,
+            )
+        else:
+            window = resolve_repaint_window(
+                spec,
+                bar_range=f"{int(selection['start_bar'])}:{int(selection['end_bar'])}",
+                tail_guard_bars=guard,
+            )
+        render_with_ace_step(
+            project_dir,
+            client,
+            AceStepOptions(
+                audio_format="wav",
+                revision=str(plan["revision_prompt"]),
+                task_type="repaint",
+                audio_cover_strength=float(settings.get("audio_cover_strength", 1.0)),
+                cover_noise_strength=float(settings.get("cover_noise_strength", 0.0)),
+                repainting_start=window.start_sec,
+                repainting_end=window.end_sec,
+                repaint_mode=str(settings.get("repaint_mode", "balanced")),
+                repaint_strength=float(settings.get("repaint_strength", 0.65)),
+                repaint_latent_crossfade_frames=int(
+                    settings.get("repaint_latent_crossfade_frames", 10)
+                ),
+                repaint_wav_crossfade_sec=float(settings.get("repaint_wav_crossfade_sec", 0.25)),
+                chunk_mask_mode=str(settings.get("chunk_mask_mode", "explicit")),
+                tail_guard_bars=guard,
+            ),
+            source_audio=source_audio,
+            repaint_selection=window,
+            overwrite=True,
+            poll_interval=poll_interval,
+            wait_timeout=wait_timeout,
+        )
+
+    return render
+
+
+def run_audio_revision_loop(
+    project_dir: Path,
+    client: AceStepClient,
+    *,
+    rounds: int = DEFAULT_ROUNDS,
+    resume: bool = False,
+    log_file: Path | None = None,
+    markdown_log_file: Path | None = None,
+    poll_interval: float = 2.0,
+    wait_timeout: float = 600.0,
+    on_round: Callable[[Round], None] | None = None,
+) -> RevisionLog:
+    """Run the existing revision loop with a real ACE-Step repaint renderer."""
+
+    return run_revision_loop(
+        project_dir,
+        make_ace_step_repaint_renderer(
+            client,
+            poll_interval=poll_interval,
+            wait_timeout=wait_timeout,
+        ),
+        rounds=rounds,
+        resume=resume,
+        log_file=log_file,
+        markdown_log_file=markdown_log_file,
+        on_round=on_round,
+    )
+
+
+def run_generate_and_revise(
+    prompt: str,
+    output_dir: Path | None = None,
+    *,
+    client: AceStepClient,
+    seed: int = 8,
+    overwrite: bool = False,
+    preferences: Preferences | None = None,
+    no_lyrics: bool = False,
+    tail_guard_bars: float | None = None,
+    rounds: int = DEFAULT_ROUNDS,
+    resume: bool = False,
+    log_file: Path | None = None,
+    markdown_log_file: Path | None = None,
+    poll_interval: float = 2.0,
+    wait_timeout: float = 600.0,
+    on_round: Callable[[Round], None] | None = None,
+) -> AudioRevisionLoopManifest:
+    """Compose and render once, then run the audio revision loop on that project."""
+
+    initial = run_audio_vertical_slice(
+        prompt,
+        output_dir,
+        client=client,
+        seed=seed,
+        overwrite=overwrite,
+        preferences=preferences,
+        no_lyrics=no_lyrics,
+        tail_guard_bars=tail_guard_bars,
+        poll_interval=poll_interval,
+        wait_timeout=wait_timeout,
+    )
+    revision_log = run_audio_revision_loop(
+        initial.compose.output_dir,
+        client,
+        rounds=rounds,
+        resume=resume,
+        log_file=log_file,
+        markdown_log_file=markdown_log_file,
+        poll_interval=poll_interval,
+        wait_timeout=wait_timeout,
+        on_round=on_round,
+    )
+    return AudioRevisionLoopManifest(initial=initial, revision_log=revision_log)
 
