@@ -579,6 +579,27 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    ableton_repair_verify = subparsers.add_parser(
+        "ableton-repair-verify",
+        help=(
+            "explicit read-only Live observation that closes only the selected "
+            "repair check (does not mutate Live, retry, replan, or adopt)"
+        ),
+    )
+    ableton_repair_verify.add_argument(
+        "project",
+        type=Path,
+        help="source project that owns ableton_repair_execution.json",
+    )
+    ableton_repair_verify.add_argument(
+        "--abletongpt-python",
+        type=Path,
+        help=(
+            "Python interpreter that has AbletonGPT installed "
+            "(default: the interpreter running KIHACHI)"
+        ),
+    )
+
     report = subparsers.add_parser(
         "report",
         help="write a page for comparing takes by ear (renders nothing, adopts nothing)",
