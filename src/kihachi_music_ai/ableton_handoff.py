@@ -577,8 +577,16 @@ def _resolve_path_candidate(stored: str, *, root: Path, project: Path) -> Path:
 def _relpath(path: Path, base_dir: Path | None) -> str:
     if base_dir is None:
         return str(path)
+    resolved = Path(path).resolve()
+    root = Path(base_dir).resolve()
     try:
-        return path.resolve().relative_to(base_dir.resolve()).as_posix()
+        return resolved.relative_to(root).as_posix()
+    except ValueError:
+        pass
+    # Adopted revision projects live beside the root (song-rev01/...), so prefer
+    # a path relative to the shared parent when the file is outside the root.
+    try:
+        return resolved.relative_to(root.parent).as_posix()
     except ValueError:
         return str(path)
 

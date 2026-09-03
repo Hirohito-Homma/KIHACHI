@@ -197,6 +197,11 @@ class AbletonHandoffTests(unittest.TestCase):
                 manifest.adopted_take.audio_sha256,
             )
             self.assertFalse(doc["audio"]["authoritative_for_structure"])
+            self.assertTrue(doc["audio"]["path"].startswith("song-rev01/"))
+            self.assertTrue(doc["song_spec"]["path"].startswith("song-rev01/"))
+            self.assertTrue(
+                all(row["path"].startswith("song-rev01/") for row in doc["midi"])
+            )
             self.assertEqual(
                 doc["song_spec"]["sha256"],
                 song_spec_sha256(
