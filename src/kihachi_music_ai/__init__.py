@@ -15,24 +15,44 @@ from .pipeline import (
     run_generate_and_revise,
     run_vertical_slice,
 )
-from .revision import RevisionLog, compare_rounds, describe_comparison
+from .preference_memory import (
+    PreferenceMemory,
+    load_preference_memory,
+    record_preference,
+)
+from .revision import (
+    Adoption,
+    AdoptionManifest,
+    RevisionLog,
+    adopt_revision,
+    compare_rounds,
+    describe_comparison,
+    load_revision_log,
+)
 from .reviewer import GenerationReviewManifest, review_project, review_project_midi_only
 
 __all__ = [
+    "Adoption",
+    "AdoptionManifest",
     "ArtifactManifest",
     "AudioAnalysisManifest",
     "AudioRevisionLoopManifest",
     "AudioVerticalSliceManifest",
     "MusicBrain",
     "GenerationReviewManifest",
+    "PreferenceMemory",
     "RevisionLog",
     "SongSpec",
     "VerticalSliceManifest",
+    "adopt_revision",
     "analyze_project",
     "compare_rounds",
     "compose_project",
     "describe_comparison",
+    "load_preference_memory",
+    "load_revision_log",
     "make_ace_step_repaint_renderer",
+    "record_preference",
     "review_project",
     "review_project_midi_only",
     "run_audio_revision_loop",
