@@ -39,6 +39,11 @@ from ..ableton import (
     parse_send_binding,
     plan_project_arrangement,
 )
+from ..ableton_execution import (
+    AbletonExecutionError,
+    describe_ableton_execution,
+    execute_ableton_handoff,
+)
 from ..ableton_handoff import (
     AbletonHandoffError,
     build_ableton_handoff,
@@ -571,6 +576,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("- Live connection: not required")
             print("- adoption unchanged: yes")
             print("- preference memory appended: no")
+            return 0
+
+        if args.command == "ableton-apply":
+            try:
+                manifest = execute_ableton_handoff(
+                    args.project,
+                    prepare_only=args.prepare_only,
+                    rerun=args.rerun,
+                    abletongpt_python=args.abletongpt_python,
+                )
+            except AbletonExecutionError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 2
+            for line in describe_ableton_execution(manifest):
+                print(line)
             return 0
 
         if args.command == "adopt":

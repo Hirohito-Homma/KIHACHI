@@ -20,6 +20,14 @@ from .preference_memory import (
     load_preference_memory,
     record_preference,
 )
+from .ableton_execution import (
+    AbletonExecutionError,
+    AbletonExecutionManifest,
+    ValidatedHandoff,
+    execute_ableton_handoff,
+    load_validated_handoff,
+    prepare_ableton_execution,
+)
 from .ableton_handoff import (
     AbletonHandoffError,
     AbletonHandoffManifest,
@@ -39,6 +47,8 @@ from .revision import (
 from .reviewer import GenerationReviewManifest, review_project, review_project_midi_only
 
 __all__ = [
+    "AbletonExecutionError",
+    "AbletonExecutionManifest",
     "AbletonHandoffError",
     "AbletonHandoffManifest",
     "AdoptedTake",
@@ -53,11 +63,15 @@ __all__ = [
     "PreferenceMemory",
     "RevisionLog",
     "SongSpec",
+    "ValidatedHandoff",
     "VerticalSliceManifest",
     "adopt_revision",
     "analyze_project",
     "build_ableton_handoff",
     "compare_rounds",
+    "execute_ableton_handoff",
+    "load_validated_handoff",
+    "prepare_ableton_execution",
     "compose_project",
     "describe_comparison",
     "load_preference_memory",
