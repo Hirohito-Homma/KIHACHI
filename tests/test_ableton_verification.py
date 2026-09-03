@@ -440,7 +440,7 @@ class AbletonVerificationTests(unittest.TestCase):
                 check for check in manifest.checks if check["id"] == f"session_clip:{key}"
             )
             self.assertEqual(failed["status"], CHECK_FAIL)
-            self.assertIn("pitch", failed["message"])
+            self.assertIn("mismatch", failed["message"])
 
     def test_float_timing_uses_explicit_tolerance(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
