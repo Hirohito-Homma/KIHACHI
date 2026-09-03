@@ -486,6 +486,27 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    ableton_verify = subparsers.add_parser(
+        "ableton-verify",
+        help=(
+            "read-only Live postcondition audit through AbletonGPT "
+            "(compares the applied plan with observed Live state; repairs nothing)"
+        ),
+    )
+    ableton_verify.add_argument(
+        "project",
+        type=Path,
+        help="source project that owns ableton_handoff.json and ableton_execution.json",
+    )
+    ableton_verify.add_argument(
+        "--abletongpt-python",
+        type=Path,
+        help=(
+            "Python interpreter that has AbletonGPT installed "
+            "(default: the interpreter running KIHACHI)"
+        ),
+    )
+
     report = subparsers.add_parser(
         "report",
         help="write a page for comparing takes by ear (renders nothing, adopts nothing)",
