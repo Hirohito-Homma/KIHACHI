@@ -229,7 +229,7 @@ class AbletonVerificationTests(unittest.TestCase):
             project = self._project_with_revisions(Path(temp))
             adopt_revision(project, 1, reason="adopt")
             build_ableton_handoff(project)
-            with self.assertRaisesRegex(Exception, "run failed"):
+            with self.assertRaisesRegex(Exception, "records a failure"):
                 execute_ableton_handoff(project, runner=fake)
             with self.assertRaisesRegex(AbletonVerificationError, "successful runner"):
                 verify_ableton_execution(project, provider=self._provider({}))
