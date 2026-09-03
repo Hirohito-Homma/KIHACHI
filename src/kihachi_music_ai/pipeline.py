@@ -5,9 +5,19 @@ import os
 import re
 import shutil
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from .adapters.ace_step import (
+    AceStepClient,
+    AceStepError,
+    AceStepOptions,
+    AceStepRenderManifest,
+    AceStepTaskResult,
+    render_with_ace_step,
+)
+from .analyzer import AudioAnalysisManifest, analyze_project
 from .composer import compose_tracks
 from .lyrics import compile_lyrics
 from .midi import write_midi
@@ -16,7 +26,8 @@ from .music_brain import MusicBrain
 from .preferences import Preferences
 from .project_artifacts import managed_midi_names
 from .prompt_compiler import compile_audio_prompt, render_brief
-from .reviewer import GenerationReviewManifest, review_project_midi_only
+from .reviewer import GenerationReviewManifest, review_project, review_project_midi_only
+from .tail_guard import DEFAULT_TAIL_GUARD_BARS
 
 ARTIFACT_NAMES = (
     "song_spec.json",
@@ -49,6 +60,14 @@ class ArtifactManifest:
 @dataclass(frozen=True)
 class VerticalSliceManifest:
     compose: ArtifactManifest
+    review: GenerationReviewManifest
+
+
+@dataclass(frozen=True)
+class AudioVerticalSliceManifest:
+    compose: ArtifactManifest
+    render: AceStepRenderManifest
+    analysis: AudioAnalysisManifest
     review: GenerationReviewManifest
 
 
@@ -140,4 +159,77 @@ def run_vertical_slice(
     )
     review = review_project_midi_only(compose.output_dir, overwrite=overwrite)
     return VerticalSliceManifest(compose=compose, review=review)
+
+
+def _project_lyrics(project_dir: Path, *, use_lyrics: bool) -> str:
+    """Lyrics for ACE-Step: the project's own sheet when present."""
+
+    if not use_lyrics:
+        return ""
+    lyrics_path = project_dir / "lyrics.txt"
+    return lyrics_path.read_text(encoding="utf-8") if lyrics_path.is_file() else ""
+
+
+def _require_generated_audio(audio_files: tuple[Path, ...]) -> Path:
+    """Fail at the audio artifact boundary before analysis or review."""
+
+    if not audio_files:
+        raise AceStepError("ACE-Step render completed without audio files")
+    canonical = audio_files[0]
+    if not canonical.is_file():
+        raise AceStepError(f"generated audio artifact is missing: {canonical}")
+    if canonical.stat().st_size <= 0:
+        raise AceStepError(f"generated audio artifact is empty: {canonical}")
+    return canonical
+
+
+def run_audio_vertical_slice(
+    prompt: str,
+    output_dir: Path | None = None,
+    *,
+    client: AceStepClient,
+    seed: int = 8,
+    overwrite: bool = False,
+    preferences: Preferences | None = None,
+    no_lyrics: bool = False,
+    tail_guard_bars: float | None = None,
+    poll_interval: float = 2.0,
+    wait_timeout: float = 600.0,
+    on_poll: Callable[[AceStepTaskResult, float], None] | None = None,
+) -> AudioVerticalSliceManifest:
+    """Compose, render through ACE-Step, analyze, and run the audio-aware review path."""
+
+    guard = DEFAULT_TAIL_GUARD_BARS if tail_guard_bars is None else tail_guard_bars
+    compose = compose_project(
+        prompt,
+        output_dir,
+        seed=seed,
+        overwrite=overwrite,
+        preferences=preferences,
+    )
+    project_dir = compose.output_dir
+    options = AceStepOptions(
+        audio_format="wav",
+        task_type="text2music",
+        tail_guard_bars=guard,
+        lyrics=_project_lyrics(project_dir, use_lyrics=not no_lyrics),
+    )
+    render = render_with_ace_step(
+        project_dir,
+        client,
+        options,
+        overwrite=overwrite,
+        poll_interval=poll_interval,
+        wait_timeout=wait_timeout,
+        on_poll=on_poll,
+    )
+    _require_generated_audio(render.audio_files)
+    analysis = analyze_project(project_dir, overwrite=overwrite)
+    review = review_project(project_dir, overwrite=overwrite)
+    return AudioVerticalSliceManifest(
+        compose=compose,
+        render=render,
+        analysis=analysis,
+        review=review,
+    )
 

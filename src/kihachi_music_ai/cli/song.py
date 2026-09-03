@@ -17,9 +17,10 @@ from ..edit import apply_edit_to_project, build_spec_edit
 from ..lyrics import build_lyrics
 from ..models import TRACK_NAMES
 from ..brief import read_coverage
-from ..pipeline import compose_project, run_vertical_slice
+from ..pipeline import compose_project, run_audio_vertical_slice, run_vertical_slice
 from ..preferences import compile_preferences, harvest, load as load_preferences
 from ..web import serve as serve_briefs
+from .connection import ace_client
 
 
 def serve(args: argparse.Namespace) -> int:
@@ -113,6 +114,65 @@ def local_slice(args: argparse.Namespace) -> int:
     print(f"- findings: {len(review.review['findings'])}")
     print(f"- review: {review.review_file.name}")
     print(f"- revision prompt: {review.revision_prompt_file.name}")
+    return 0
+
+
+def audio_slice(args: argparse.Namespace) -> int:
+    manifest = run_audio_vertical_slice(
+        args.prompt,
+        args.output,
+        client=ace_client(args),
+        seed=args.seed,
+        overwrite=args.overwrite,
+        preferences=load_preferences(args.preferences),
+        no_lyrics=args.no_lyrics,
+        tail_guard_bars=args.tail_guard_bars,
+        poll_interval=args.poll_interval,
+        wait_timeout=args.wait_timeout,
+    )
+    coverage = read_coverage(args.prompt)
+    if coverage["unread"]:
+        print(
+            f"- note: {len(coverage['unread'])} of {len(coverage['clauses'])} "
+            "statements in this brief went unread; "
+            "run `read-brief` to see which"
+        )
+    compose = manifest.compose
+    review = manifest.review
+    analysis = manifest.analysis
+    render = manifest.render
+    print(f"Audio vertical slice: {compose.output_dir}")
+    for path in compose.files:
+        print(f"- {path.name}")
+    spec = compose.spec
+    print(
+        f"- arrangement: {len(spec.arrangement)} sections over "
+        f"{spec.song.total_bars} bars ({spec.song.target_duration_sec:.1f}s)"
+    )
+    print(f"- ACE-Step task: {render.task_id}")
+    for path in render.audio_files:
+        print(f"- {path.relative_to(compose.output_dir)}")
+    tempo = analysis.analysis["tempo"]
+    print(
+        f"- analyzed audio: {analysis.audio_file.name} "
+        f"(estimated BPM {tempo['estimated_bpm']}, confidence {tempo['confidence']})"
+    )
+    print(f"- audio analysis: {analysis.analysis_file.name}")
+    alignment = review.review["alignment"]
+    print(f"- audio alignment score: {alignment['score']} ({alignment['grade']})")
+    midi_alignment = review.review["midi_alignment"]
+    density = midi_alignment["density"]
+    print(
+        f"- density diagnostic: {len(density['entries'])} section×part rows "
+        f"({density['scope']})"
+    )
+    critic = review.review["critic"]
+    print(f"- review phase: {review.review['review_phase']}")
+    print(f"- critic evidence: {critic['evidence_status']}")
+    print(f"- findings: {len(review.review['findings'])}")
+    print(f"- review: {review.review_file.name}")
+    print(f"- revision prompt: {review.revision_prompt_file.name}")
+    print("- no take adopted, no repaint launched")
     return 0
 
 

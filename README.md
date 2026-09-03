@@ -76,6 +76,42 @@ revision_prompt.txt      # critic が書いた改訂プロンプト
 
 `generation_review.json` の `review_phase` は `midi_only` です。WAV や `audio_analysis.json` は不要で、将来の音声フェーズ未到達を失敗扱いしません。
 
+### Audio Vertical Slice
+
+自然言語ブリーフから、SongSpec・managed MIDI・プロンプト・歌詞を生成し、**ACE-Step で音声をレンダリング**してから、Analyzer・audio-aware reviewer・critic までを一括実行します。**稼働中の ACE-Step エンドポイントが必要**です（GPU/ネットワーク）。
+
+```bash
+python3 -m kihachi_music_ai audio-slice \
+  'Mutation Funk、DUB、Tech House。110 BPM、D#m。ファンキーなスラップベース。Vocoder。' \
+  --output projects/my-song \
+  --seed 8 \
+  --base-url http://127.0.0.1:8001
+```
+
+`local-slice` との違い:
+
+| コマンド | ネットワーク | 音声生成 | review phase |
+|----------|-------------|----------|--------------|
+| `local-slice` | 不要 | なし | `midi_only` |
+| `audio-slice` | ACE-Step 必須 | あり | `generation_review` |
+
+生成物（`local-slice` の成果物に加えて）:
+
+```text
+ace_step_request.json
+ace_step_result.json
+audio/ace-step-01.wav
+audio_analysis.json
+material_defects.json
+generation_review.json
+revision_prompt.txt
+repaint_plan.json
+```
+
+音声が生成・分析・レビューされますが、**テイクの採用・repaint・自動再生成は行いません**。人間の判断は `decide` など別コマンドに残します。
+
+同一 `brief` / `seed` / バージョンでは、SongSpec・MIDI・prompt・lyrics・ACE-Step リクエスト（揮発メタデータを除く）は決定的です。生成 WAV のバイト列は外部生成系のため決定的であるとは仮定しません。
+
 ## Lyrics（歌詞を「文章」ではなく「パート」として書く）
 
 設計書が立てている区別をそのまま実装しています。**文学的に良い歌詞**と**音楽的に使いやすい歌詞**は別物です。Vocoderは文章を欲しがりません。キャリアを通して4小節ごとに繰り返されても成立する2〜3語の命令形を欲しがります。
