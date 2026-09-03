@@ -35,6 +35,11 @@ from .ableton_verification import (
     load_verified_execution,
     verify_ableton_execution,
 )
+from .ableton_repair import (
+    AbletonRepairPlanError,
+    AbletonRepairPlanManifest,
+    build_ableton_repair_plan,
+)
 from .ableton_handoff import (
     AbletonHandoffError,
     AbletonHandoffManifest,
@@ -58,6 +63,8 @@ __all__ = [
     "AbletonExecutionManifest",
     "AbletonVerificationError",
     "AbletonVerificationManifest",
+    "AbletonRepairPlanError",
+    "AbletonRepairPlanManifest",
     "AbletonHandoffError",
     "AbletonHandoffManifest",
     "AdoptedTake",
@@ -78,6 +85,7 @@ __all__ = [
     "adopt_revision",
     "analyze_project",
     "build_ableton_handoff",
+    "build_ableton_repair_plan",
     "compare_rounds",
     "execute_ableton_handoff",
     "load_validated_handoff",
