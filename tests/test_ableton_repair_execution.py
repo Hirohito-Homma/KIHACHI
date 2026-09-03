@@ -1,4 +1,4 @@
-"""VS9 — Human-authorized Ableton repair execution (tempo only)."""
+"""VS9/VS10 — Human-authorized Ableton repair execution."""
 
 from __future__ import annotations
 
@@ -95,11 +95,12 @@ def _artifact_fingerprints(project: Path) -> dict[str, str]:
 
 
 class RepairFakeAbletonGPT:
-    """Injected AbletonGPT runner for VS9: import-kihachi + optional run."""
+    """Injected AbletonGPT runner for VS9/VS10: import-kihachi, run, device repair."""
 
     def __init__(self) -> None:
         self.calls: list[list[str]] = []
         self.arrangement_requests: list[dict] = []
+        self.device_requests: list[dict] = []
         self.import_returncode = 0
         self.run_returncode = 0
         self.import_stdout = "imported KIHACHI plan with 1 step(s)\n"
@@ -109,10 +110,25 @@ class RepairFakeAbletonGPT:
         self.write_job_plan = True
         self.fail_if_run = False
         self.job_plan_override: dict | None = None
+        self.abletongpt_available = True
+        self.device_repair_available = True
+        self.device_returncode = 0
+        self.device_stderr = ""
+        self.device_result: dict = {
+            "status": "repaired",
+            "operation": "set_device_power",
+            "target": {"track_index": 0, "device_index": 0},
+            "before": {"is_active": False, "power_on": False, "device": "Operator"},
+            "after": {"is_active": True, "power_on": True, "device": "Operator"},
+            "mutation_performed": True,
+        }
+        self.mutate_repair_plan: Path | None = None
 
     def __call__(self, argv: list[str] | tuple[str, ...]) -> CommandResult:
         argv_list = [str(part) for part in argv]
         self.calls.append(argv_list)
+        if len(argv_list) >= 3 and argv_list[1] == "-c":
+            return self._handle_python_c(argv_list)
         if "import-kihachi" in argv_list:
             plan_path = Path(argv_list[argv_list.index("--arrangement-plan") + 1])
             self.arrangement_requests.append(
@@ -162,17 +178,68 @@ class RepairFakeAbletonGPT:
             )
         raise AssertionError(f"unexpected AbletonGPT argv: {argv_list}")
 
+    def _handle_python_c(self, argv_list: list[str]) -> CommandResult:
+        script = argv_list[2]
+        if "repair_live_device" not in script:
+            raise AssertionError(f"unexpected python -c script: {script[:200]}")
+        if not self.abletongpt_available:
+            return CommandResult(
+                tuple(argv_list),
+                1,
+                "",
+                "No module named abletongpt\n",
+            )
+        is_runner = "AbletonBridge()" in script
+        if is_runner and self.fail_if_run:
+            raise AssertionError("AbletonGPT device repair must not be invoked")
+        if not self.device_repair_available:
+            return CommandResult(
+                tuple(argv_list),
+                2,
+                "",
+                "AbletonGPT device_repair is unavailable: No module named 'abletongpt.device_repair'\n",
+            )
+        if self.mutate_repair_plan is not None and self.mutate_repair_plan.is_file():
+            payload = json.loads(self.mutate_repair_plan.read_text(encoding="utf-8"))
+            payload["_mutated_after_approval"] = True
+            self.mutate_repair_plan.write_text(
+                json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+            )
+            self.mutate_repair_plan = None
+        if is_runner:
+            request_path = Path(argv_list[3])
+            self.device_requests.append(
+                json.loads(request_path.read_text(encoding="utf-8"))
+            )
+            return CommandResult(
+                tuple(argv_list),
+                self.device_returncode,
+                json.dumps(self.device_result) + "\n",
+                self.device_stderr,
+            )
+        return CommandResult(
+            tuple(argv_list),
+            0,
+            json.dumps({"capability": "repair_live_device", "status": "available"})
+            + "\n",
+            "",
+        )
+
     def commands(self) -> list[str]:
         names: list[str] = []
         for argv in self.calls:
-            if "import-kihachi" in argv:
+            if len(argv) >= 3 and argv[1] == "-c" and "repair_live_device" in argv[2]:
+                names.append(
+                    "device-repair" if "AbletonBridge()" in argv[2] else "device-repair-probe"
+                )
+            elif "import-kihachi" in argv:
                 names.append("import-kihachi")
             elif "run" in argv:
                 names.append("run")
         return names
 
 
-class AbletonRepairExecutionTests(unittest.TestCase):
+class _AbletonRepairFixtures(unittest.TestCase):
     def _project_with_revisions(self, root: Path, *, rounds: int = 1) -> Path:
         project = root / "song"
         compose_project(EXAMPLE, project)
@@ -235,6 +302,28 @@ class AbletonRepairExecutionTests(unittest.TestCase):
     def _plan_sha(self, project: Path) -> str:
         return _sha256(project / ABLETON_REPAIR_PLAN_NAME)
 
+    def _device_track_index(self, project: Path) -> int:
+        return int(self._expected(project)["devices"][0]["track_index"])
+
+    def _device_check_id(self, project: Path) -> str:
+        return f"device:{self._device_track_index(project)}"
+
+    def _inactive_device_evidence(self, project: Path) -> dict:
+        expected = self._expected(project)
+        evidence = matching_evidence(expected)
+        evidence["live_state"]["tempo"] = 90.0
+        target = str(self._device_track_index(project))
+        evidence["devices"][target][0]["is_active"] = False
+        return evidence
+
+    def _device_ready(self, root: Path) -> Path:
+        project = self._applied(root)
+        self._verify(project, self._inactive_device_evidence(project))
+        build_ableton_repair_plan(project)
+        return project
+
+
+class AbletonRepairExecutionTests(_AbletonRepairFixtures):
     def test_valid_tempo_candidate_resolves_to_full_arrangement_operation(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = self._tempo_ready(Path(temp))
@@ -453,7 +542,6 @@ class AbletonRepairExecutionTests(unittest.TestCase):
             self._verify(project, evidence)
             build_ableton_repair_plan(project)
             for check_id in (
-                f"device:{int(device['track_index'])}",
                 f"session_clip:{key}",
                 f"arrangement:{int(target['track_index'])}",
             ):
@@ -461,6 +549,9 @@ class AbletonRepairExecutionTests(unittest.TestCase):
                     AbletonRepairExecutionError, "unsupported_for_execution"
                 ):
                     execute_ableton_repair(project, check_id=check_id, runner=fake)
+            device_id = f"device:{int(device['track_index'])}"
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "will not insert"):
+                execute_ableton_repair(project, check_id=device_id, runner=fake)
             self.assertEqual(fake.calls, [])
 
     def test_source_operation_index_bool_negative_and_oob_refuse(self) -> None:
@@ -723,11 +814,20 @@ class AbletonRepairExecutionTests(unittest.TestCase):
             self.assertNotIn("run", fake.commands())
 
     def test_kihachi_does_not_import_live_bridge(self) -> None:
+        import ast
+
         from kihachi_music_ai import ableton_repair_execution as module
 
         source = inspect.getsource(module)
-        self.assertNotIn("AbletonBridge", source)
-        self.assertNotIn("abletongpt.bridge", source)
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    self.assertNotIn("abletongpt", alias.name)
+            if isinstance(node, ast.ImportFrom) and node.module:
+                self.assertFalse(node.module.startswith("abletongpt"))
+        self.assertIn("ABLETONGPT_DEVICE_REPAIR_RUNNER", source)
+        self.assertIn("repair_live_device", source)
         self.assertIn("collect_live_evidence", source)
         self.assertIn("shell=False", inspect.getsource(run_command))
 
@@ -1074,6 +1174,453 @@ class AbletonRepairExecutionTests(unittest.TestCase):
             self.assertEqual(load_preference_memory(project).entries, memory_before.entries)
             self.assertTrue((project / ABLETON_REPAIR_EXECUTION_NAME).is_file())
             self.assertTrue((project / ABLETON_REPAIR_JOB_PLAN_NAME).is_file())
+
+
+class AbletonDeviceRepairExecutionTests(_AbletonRepairFixtures):
+    """VS10: human-authorized guarded device repair (power only)."""
+
+    def test_unique_inactive_device_candidate_resolves_guarded_request(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            selected = load_validated_repair_selection(project, check_id=check_id)
+            request = selected.guarded_request
+            self.assertEqual(selected.repair_kind, "device")
+            self.assertIsNotNone(request)
+            assert request is not None
+            self.assertEqual(request["operation"], "set_device_power")
+            self.assertEqual(request["enabled"], True)
+            self.assertEqual(request["track_index"], self._device_track_index(project))
+            self.assertEqual(request["device_index"], 0)
+            self.assertEqual(request["expected_device_name"], "Operator")
+            self.assertIn("expected_track_name", request)
+            self.assertTrue(request["expected_track_name"])
+            self.assertIs(request["expected_power_state"], False)
+            self.assertNotIn("parameter_index", request)
+            self.assertNotIn("value", request)
+            full = selected.source_operation
+            self.assertIn(
+                full["op"],
+                {"apply_live_instrument_selection", "apply_live_drum_kit"},
+            )
+
+    def test_device_prepare_only_derives_request_without_live_or_jobplan(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        fake.fail_if_run = True
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            original_job = (project / ABLETON_JOB_PLAN_NAME).read_bytes()
+            before = _artifact_fingerprints(project)
+            manifest = execute_ableton_repair(
+                project, check_id=check_id, prepare_only=True, runner=fake
+            )
+            self.assertEqual(fake.commands(), ["device-repair-probe"])
+            self.assertEqual(fake.device_requests, [])
+            self.assertFalse((project / ABLETON_REPAIR_JOB_PLAN_NAME).exists())
+            self.assertEqual((project / ABLETON_JOB_PLAN_NAME).read_bytes(), original_job)
+            self.assertEqual(_artifact_fingerprints(project), before)
+            self.assertEqual(manifest.receipt["repair_kind"], "device")
+            self.assertEqual(manifest.receipt["execution_state"], "repair_prepared_not_applied")
+            self.assertFalse(manifest.receipt["boundary"]["live_mutation_attempted"])
+            self.assertFalse(manifest.receipt.get("mutation_performed"))
+            request = manifest.receipt["guarded_request"]
+            self.assertEqual(request["operation"], "set_device_power")
+            self.assertEqual(request["expected_device_name"], "Operator")
+            self.assertIs(request["expected_power_state"], False)
+
+    def test_device_repaired_records_mutation_and_does_not_verify(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            before = _artifact_fingerprints(project)
+            adoption_before = load_revision_log(project).adopted
+            memory_before = load_preference_memory(project)
+            manifest = execute_ableton_repair(
+                project,
+                check_id=check_id,
+                approved_plan_sha256=self._plan_sha(project),
+                runner=fake,
+            )
+            self.assertEqual(fake.commands(), ["device-repair-probe", "device-repair"])
+            self.assertEqual(len(fake.device_requests), 1)
+            request = fake.device_requests[0]
+            self.assertEqual(request["operation"], "set_device_power")
+            self.assertEqual(request["expected_device_name"], "Operator")
+            self.assertIn("expected_track_name", request)
+            self.assertIs(request["expected_power_state"], False)
+            self.assertNotIn("import-kihachi", fake.commands())
+            self.assertNotIn("run", fake.commands())
+            self.assertEqual(manifest.receipt["status"], "success")
+            self.assertEqual(manifest.receipt["execution_state"], "repair_applied_unverified")
+            self.assertTrue(manifest.receipt["mutation_performed"])
+            self.assertTrue(manifest.receipt["abletongpt_result"]["mutation_performed"])
+            self.assertEqual(manifest.receipt["abletongpt_result"]["status"], "repaired")
+            self.assertFalse(manifest.receipt["boundary"]["live_repair_verified"])
+            self.assertFalse(manifest.receipt["boundary"]["auto_verify"])
+            self.assertIn("ableton-verify", manifest.receipt["next_action"])
+            self.assertEqual(_artifact_fingerprints(project), before)
+            self.assertEqual(load_revision_log(project).adopted, adoption_before)
+            self.assertEqual(load_preference_memory(project).entries, memory_before.entries)
+            self.assertFalse((project / ABLETON_REPAIR_JOB_PLAN_NAME).exists())
+
+    def test_device_noop_is_satisfied_without_mutation(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        fake.device_result = {
+            "status": "noop",
+            "operation": "set_device_power",
+            "target": {"track_index": 0, "device_index": 0},
+            "before": {"is_active": True, "power_on": True, "device": "Operator"},
+            "after": {"is_active": True, "power_on": True, "device": "Operator"},
+            "mutation_performed": False,
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            manifest = execute_ableton_repair(
+                project,
+                check_id=check_id,
+                approved_plan_sha256=self._plan_sha(project),
+                runner=fake,
+            )
+            self.assertEqual(len(fake.device_requests), 1)
+            self.assertEqual(manifest.receipt["status"], "success")
+            self.assertEqual(manifest.receipt["execution_state"], "repair_satisfied_unverified")
+            self.assertFalse(manifest.receipt["mutation_performed"])
+            self.assertFalse(manifest.receipt["boundary"]["live_mutation_attempted"])
+            self.assertIn("ableton-verify", manifest.receipt["next_action"])
+
+    def test_device_refused_persists_without_retry(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        fake.device_result = {
+            "status": "refused",
+            "operation": "set_device_power",
+            "target": {"track_index": 0, "device_index": 0},
+            "before": {"device": "Operator", "power_on": True},
+            "after": {"device": "Operator", "power_on": True},
+            "mutation_performed": False,
+            "reason": "device_identity_mismatch",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "refused"):
+                execute_ableton_repair(
+                    project,
+                    check_id=check_id,
+                    approved_plan_sha256=self._plan_sha(project),
+                    runner=fake,
+                )
+            self.assertEqual(fake.commands(), ["device-repair-probe", "device-repair"])
+            receipt = _read_json(project / ABLETON_REPAIR_EXECUTION_NAME)
+            self.assertEqual(receipt["status"], "failed")
+            self.assertEqual(receipt["abletongpt_result"]["status"], "refused")
+            self.assertFalse(receipt["mutation_performed"])
+            self.assertEqual(receipt["error"], "device_identity_mismatch")
+
+    def test_device_failed_postcondition_does_not_retry(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        fake.device_result = {
+            "status": "failed",
+            "operation": "set_device_power",
+            "target": {"track_index": 0, "device_index": 0},
+            "before": {"power_on": False},
+            "after": {"power_on": False},
+            "mutation_performed": True,
+            "reason": "postcondition_failed",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "failed"):
+                execute_ableton_repair(
+                    project,
+                    check_id=check_id,
+                    approved_plan_sha256=self._plan_sha(project),
+                    runner=fake,
+                )
+            self.assertEqual(fake.commands().count("device-repair"), 1)
+            receipt = _read_json(project / ABLETON_REPAIR_EXECUTION_NAME)
+            self.assertEqual(receipt["status"], "failed")
+            self.assertEqual(receipt["error"], "postcondition_failed")
+            self.assertTrue(receipt["boundary"]["live_mutation_attempted"])
+            self.assertIn("ableton-verify", receipt["next_action"])
+
+    def test_missing_device_is_never_inserted(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            expected = self._expected(project)
+            evidence = matching_evidence(expected)
+            evidence["live_state"]["tempo"] = 90.0
+            target = str(self._device_track_index(project))
+            evidence["devices"][target] = []
+            self._verify(project, evidence)
+            build_ableton_repair_plan(project)
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "will not insert"):
+                execute_ableton_repair(
+                    project,
+                    check_id=self._device_check_id(project),
+                    prepare_only=True,
+                    runner=fake,
+                )
+            self.assertEqual(fake.calls, [])
+
+    def test_wrong_device_type_is_refused(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            evidence = self._inactive_device_evidence(project)
+            target = str(self._device_track_index(project))
+            evidence["devices"][target][0]["type"] = 2
+            evidence["devices"][target][0]["class_name"] = "AutoFilter"
+            self._verify(project, evidence)
+            build_ableton_repair_plan(project)
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "Wrong device type"):
+                load_validated_repair_selection(
+                    project, check_id=self._device_check_id(project)
+                )
+            self.assertEqual(fake.calls, [])
+
+    def test_ambiguous_device_identity_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            loaded = load_validated_repair_plan(project)
+            verification = copy.deepcopy(loaded.verification)
+            target = str(self._device_track_index(project))
+            first = dict(verification["observed"]["devices"][target][0])
+            second = dict(first)
+            second["index"] = 1
+            second["name"] = "Echo"
+            verification["observed"]["devices"][target] = [first, second]
+            with patch(
+                "kihachi_music_ai.ableton_repair_execution.load_validated_repair_plan",
+                return_value=type(loaded)(
+                    **{**loaded.__dict__, "verification": verification}
+                ),
+            ):
+                with self.assertRaisesRegex(AbletonRepairExecutionError, "ambiguous"):
+                    load_validated_repair_selection(
+                        project, check_id=self._device_check_id(project)
+                    )
+
+    def test_active_device_does_not_invent_parameter_repair(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            loaded = load_validated_repair_plan(project)
+            verification = copy.deepcopy(loaded.verification)
+            target = str(self._device_track_index(project))
+            verification["observed"]["devices"][target][0]["is_active"] = True
+            with patch(
+                "kihachi_music_ai.ableton_repair_execution.load_validated_repair_plan",
+                return_value=type(loaded)(**{**loaded.__dict__, "verification": verification}),
+            ):
+                with self.assertRaisesRegex(
+                    AbletonRepairExecutionError, "Insufficient device evidence"
+                ):
+                    load_validated_repair_selection(
+                        project, check_id=self._device_check_id(project)
+                    )
+
+    def test_wrong_source_operation_index_refuses_device(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            loaded = load_validated_repair_plan(project)
+            check_id = self._device_check_id(project)
+            mutated = copy.deepcopy(loaded.repair_plan)
+            for item in mutated["candidate_actions"]:
+                if item.get("check_id") == check_id:
+                    item["source_operation_index"] = 10_000
+            with patch(
+                "kihachi_music_ai.ableton_repair_execution.load_validated_repair_plan",
+                return_value=type(loaded)(**{**loaded.__dict__, "repair_plan": mutated}),
+            ):
+                with self.assertRaises(AbletonRepairExecutionError):
+                    load_validated_repair_selection(project, check_id=check_id)
+
+    def test_device_source_operation_mismatch_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            loaded = load_validated_repair_plan(project)
+            check_id = self._device_check_id(project)
+            mutated = copy.deepcopy(loaded.repair_plan)
+            for item in mutated["candidate_actions"]:
+                if item.get("check_id") == check_id:
+                    item["source_operation"]["params"]["role"] = "not-the-role"
+            with patch(
+                "kihachi_music_ai.ableton_repair_execution.load_validated_repair_plan",
+                return_value=type(loaded)(**{**loaded.__dict__, "repair_plan": mutated}),
+            ):
+                with self.assertRaisesRegex(AbletonRepairExecutionError, "does not match"):
+                    load_validated_repair_selection(project, check_id=check_id)
+
+    def test_device_execute_requires_plan_sha(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "approve-plan-sha"):
+                execute_ableton_repair(
+                    project, check_id=self._device_check_id(project), runner=fake
+                )
+            self.assertEqual(fake.calls, [])
+
+    def test_device_malformed_and_wrong_sha_refuse(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            sha = self._plan_sha(project)
+            for bad in ("abcd", sha.upper(), "a" * 64):
+                with self.assertRaises(AbletonRepairExecutionError):
+                    execute_ableton_repair(
+                        project,
+                        check_id=check_id,
+                        approved_plan_sha256=bad,
+                        runner=fake,
+                    )
+            self.assertEqual(fake.calls, [])
+
+    def test_device_plan_changed_after_approval_refuses_before_mutation(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            fake.mutate_repair_plan = project / ABLETON_REPAIR_PLAN_NAME
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "changed"):
+                execute_ableton_repair(
+                    project,
+                    check_id=self._device_check_id(project),
+                    approved_plan_sha256=self._plan_sha(project),
+                    runner=fake,
+                )
+            self.assertEqual(fake.device_requests, [])
+            self.assertNotIn("device-repair", fake.commands())
+
+    def test_device_prepare_only_plus_approve_sha_refuses(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "cannot be combined"):
+                execute_ableton_repair(
+                    project,
+                    check_id=self._device_check_id(project),
+                    prepare_only=True,
+                    approved_plan_sha256=self._plan_sha(project),
+                    runner=fake,
+                )
+            self.assertEqual(fake.calls, [])
+
+    def test_device_duplicate_success_requires_rerun(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            sha = self._plan_sha(project)
+            execute_ableton_repair(
+                project,
+                check_id=check_id,
+                approved_plan_sha256=sha,
+                runner=RepairFakeAbletonGPT(),
+            )
+            second = RepairFakeAbletonGPT()
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "already executed"):
+                execute_ableton_repair(
+                    project,
+                    check_id=check_id,
+                    approved_plan_sha256=sha,
+                    runner=second,
+                )
+            self.assertEqual(second.calls, [])
+            third = RepairFakeAbletonGPT()
+            execute_ableton_repair(
+                project,
+                check_id=check_id,
+                approved_plan_sha256=sha,
+                rerun=True,
+                runner=third,
+            )
+            self.assertEqual(third.commands(), ["device-repair-probe", "device-repair"])
+            self.assertEqual(len(third.device_requests), 1)
+            self.assertIs(third.device_requests[0]["expected_power_state"], False)
+
+    def test_abletongpt_unavailable_fails_before_mutation(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        fake.abletongpt_available = False
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "not available"):
+                execute_ableton_repair(
+                    project,
+                    check_id=self._device_check_id(project),
+                    approved_plan_sha256=self._plan_sha(project),
+                    runner=fake,
+                )
+            self.assertEqual(fake.device_requests, [])
+            self.assertNotIn("device-repair", fake.commands())
+
+    def test_old_abletongpt_without_device_repair_fails_clearly(self) -> None:
+        fake = RepairFakeAbletonGPT()
+        fake.device_repair_available = False
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            with self.assertRaisesRegex(AbletonRepairExecutionError, "device_repair"):
+                execute_ableton_repair(
+                    project,
+                    check_id=self._device_check_id(project),
+                    approved_plan_sha256=self._plan_sha(project),
+                    runner=fake,
+                )
+            self.assertEqual(fake.device_requests, [])
+            self.assertNotIn("import-kihachi", fake.commands())
+
+    def test_cli_device_prepare_and_execute(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._device_ready(Path(temp))
+            check_id = self._device_check_id(project)
+            sha = self._plan_sha(project)
+            fake = RepairFakeAbletonGPT()
+            fake.fail_if_run = True
+            buffer = io.StringIO()
+            with patch(
+                "kihachi_music_ai.ableton_repair_execution.run_command", fake
+            ), contextlib.redirect_stdout(buffer):
+                status = main(
+                    [
+                        "ableton-repair-apply",
+                        str(project),
+                        "--check-id",
+                        check_id,
+                        "--prepare-only",
+                    ]
+                )
+            self.assertEqual(status, 0)
+            text = buffer.getvalue()
+            self.assertIn("Prepared Ableton repair execution (no Live job)", text)
+            self.assertIn(f"Repair plan SHA-256: {sha}", text)
+            self.assertIn("repair_live_device", text)
+            heading = text.splitlines()[0].lower()
+            self.assertNotIn("fixed", heading)
+            self.assertNotIn("verified", heading)
+
+            fake = RepairFakeAbletonGPT()
+            buffer = io.StringIO()
+            with patch(
+                "kihachi_music_ai.ableton_repair_execution.run_command", fake
+            ), contextlib.redirect_stdout(buffer):
+                status = main(
+                    [
+                        "ableton-repair-apply",
+                        str(project),
+                        "--check-id",
+                        check_id,
+                        "--approve-plan-sha",
+                        sha,
+                    ]
+                )
+            self.assertEqual(status, 0)
+            text = buffer.getvalue()
+            self.assertIn("Next: run kihachi ableton-verify PROJECT explicitly", text)
+            self.assertIn("Live repair verified: no", text)
+            self.assertEqual(fake.commands().count("device-repair"), 1)
 
 
 if __name__ == "__main__":
