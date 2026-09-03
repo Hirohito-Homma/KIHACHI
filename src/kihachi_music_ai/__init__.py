@@ -28,6 +28,13 @@ from .ableton_execution import (
     load_validated_handoff,
     prepare_ableton_execution,
 )
+from .ableton_verification import (
+    AbletonVerificationError,
+    AbletonVerificationManifest,
+    VerifiedExecution,
+    load_verified_execution,
+    verify_ableton_execution,
+)
 from .ableton_handoff import (
     AbletonHandoffError,
     AbletonHandoffManifest,
@@ -49,6 +56,8 @@ from .reviewer import GenerationReviewManifest, review_project, review_project_m
 __all__ = [
     "AbletonExecutionError",
     "AbletonExecutionManifest",
+    "AbletonVerificationError",
+    "AbletonVerificationManifest",
     "AbletonHandoffError",
     "AbletonHandoffManifest",
     "AdoptedTake",
@@ -64,6 +73,7 @@ __all__ = [
     "RevisionLog",
     "SongSpec",
     "ValidatedHandoff",
+    "VerifiedExecution",
     "VerticalSliceManifest",
     "adopt_revision",
     "analyze_project",
@@ -71,7 +81,9 @@ __all__ = [
     "compare_rounds",
     "execute_ableton_handoff",
     "load_validated_handoff",
+    "load_verified_execution",
     "prepare_ableton_execution",
+    "verify_ableton_execution",
     "compose_project",
     "describe_comparison",
     "load_preference_memory",
