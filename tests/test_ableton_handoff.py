@@ -197,11 +197,18 @@ class AbletonHandoffTests(unittest.TestCase):
                 manifest.adopted_take.audio_sha256,
             )
             self.assertFalse(doc["audio"]["authoritative_for_structure"])
-            self.assertTrue(doc["audio"]["path"].startswith("song-rev01/"))
-            self.assertTrue(doc["song_spec"]["path"].startswith("song-rev01/"))
+            self.assertEqual(doc["path_base"], ".")
+            self.assertTrue(doc["audio"]["path"].startswith("../song-rev01/"))
+            self.assertTrue(doc["song_spec"]["path"].startswith("../song-rev01/"))
             self.assertTrue(
-                all(row["path"].startswith("song-rev01/") for row in doc["midi"])
+                all(row["path"].startswith("../song-rev01/") for row in doc["midi"])
             )
+            # Paths must resolve from the handoff directory to the real artifacts.
+            handoff_dir = manifest.handoff_file.parent
+            self.assertTrue((handoff_dir / doc["audio"]["path"]).resolve().is_file())
+            self.assertTrue((handoff_dir / doc["song_spec"]["path"]).resolve().is_file())
+            for row in doc["midi"]:
+                self.assertTrue((handoff_dir / row["path"]).resolve().is_file())
             self.assertEqual(
                 doc["song_spec"]["sha256"],
                 song_spec_sha256(
@@ -317,6 +324,37 @@ class AbletonHandoffTests(unittest.TestCase):
         self.assertEqual(args.command, "ableton-handoff")
         self.assertTrue(args.overwrite)
         self.assertTrue(args.split_drums)
+
+    def test_round0_paths_resolve_from_handoff_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._adopted(Path(temp), 0)
+            doc = build_ableton_handoff(project).handoff
+            handoff_dir = project
+            self.assertFalse(doc["audio"]["path"].startswith("../"))
+            self.assertTrue((handoff_dir / doc["audio"]["path"]).resolve().is_file())
+            self.assertTrue((handoff_dir / doc["song_spec"]["path"]).resolve().is_file())
+
+    def test_non_object_repaint_provenance_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._adopted(Path(temp), 1)
+            rev01 = project.parent / "song-rev01"
+            (rev01 / "repaint_stage.json").write_text("[]\n", encoding="utf-8")
+            with self.assertRaisesRegex(AbletonHandoffError, "JSON object|provenance"):
+                resolve_adopted_take(project)
+
+    def test_missing_source_song_spec_digest_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._adopted(Path(temp), 1)
+            rev01 = project.parent / "song-rev01"
+            stage = json.loads((rev01 / "repaint_stage.json").read_text(encoding="utf-8"))
+            del stage["source_song_spec_sha256"]
+            (rev01 / "repaint_stage.json").write_text(
+                json.dumps(stage, indent=2) + "\n", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(
+                AbletonHandoffError, "source_song_spec_sha256"
+            ):
+                resolve_adopted_take(project)
 
 
 if __name__ == "__main__":

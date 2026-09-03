@@ -351,6 +351,10 @@ def _resolve_and_verify_song_spec(
         raise AbletonHandoffError(
             f"Adopted revision has invalid provenance: {stage_path}"
         ) from error
+    if not isinstance(stage, dict):
+        raise AbletonHandoffError(
+            f"Adopted revision provenance must be a JSON object: {stage_path}"
+        )
 
     source_name = stage.get("source_project")
     if not isinstance(source_name, str) or not source_name:
@@ -367,7 +371,12 @@ def _resolve_and_verify_song_spec(
         )
 
     source_sha = stage.get("source_song_spec_sha256")
-    if isinstance(source_sha, str) and source_sha and source_sha != actual_sha:
+    if not isinstance(source_sha, str) or not source_sha.strip():
+        raise AbletonHandoffError(
+            f"Adopted revision provenance lacks source_song_spec_sha256: "
+            f"{stage_path}"
+        )
+    if source_sha != actual_sha:
         raise AbletonHandoffError(
             "Adopted SongSpec SHA does not match repaint provenance "
             "(SongSpec lineage mismatch)."
@@ -484,6 +493,7 @@ def _build_handoff_document(
         "source_project": root.name,
         "adopted_round": take.adopted_round,
         "adopted_project": take.adopted_project.name,
+        "path_base": ".",
         "adoption": {
             "round": take.adoption.round,
             "project": take.adoption.project,
@@ -575,18 +585,18 @@ def _resolve_path_candidate(stored: str, *, root: Path, project: Path) -> Path:
 
 
 def _relpath(path: Path, base_dir: Path | None) -> str:
+    """Return a path relative to the handoff directory (``ableton_handoff.json``).
+
+    Sibling revision projects therefore appear as ``../song-rev01/...`` so a
+    consumer resolving against the manifest location reaches the real file.
+    """
+
     if base_dir is None:
         return str(path)
     resolved = Path(path).resolve()
     root = Path(base_dir).resolve()
     try:
-        return resolved.relative_to(root).as_posix()
-    except ValueError:
-        pass
-    # Adopted revision projects live beside the root (song-rev01/...), so prefer
-    # a path relative to the shared parent when the file is outside the root.
-    try:
-        return resolved.relative_to(root.parent).as_posix()
+        return Path(os.path.relpath(resolved, start=root)).as_posix()
     except ValueError:
         return str(path)
 
