@@ -59,6 +59,11 @@ from ..ableton_repair import (
     build_ableton_repair_plan,
     describe_ableton_repair_plan,
 )
+from ..ableton_repair_execution import (
+    AbletonRepairExecutionError,
+    describe_ableton_repair_execution,
+    execute_ableton_repair,
+)
 from ..chunked import load_chunk_plan, render_chunk_plan
 from ..decision import (
     current_decision,
@@ -629,6 +634,26 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"error: {error}", file=sys.stderr)
                 return 2
             for line in describe_ableton_repair_plan(manifest):
+                print(line)
+            return 0
+
+        if args.command == "ableton-repair-apply":
+            try:
+                manifest = execute_ableton_repair(
+                    args.project,
+                    check_id=args.check_id,
+                    prepare_only=args.prepare_only,
+                    approved_plan_sha256=args.approve_plan_sha,
+                    rerun=args.rerun,
+                    abletongpt_python=args.abletongpt_python,
+                )
+            except AbletonRepairExecutionError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return error.exit_code
+            except FileNotFoundError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 2
+            for line in describe_ableton_repair_execution(manifest):
                 print(line)
             return 0
 

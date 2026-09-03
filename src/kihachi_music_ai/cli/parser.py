@@ -528,6 +528,56 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    ableton_repair_apply = subparsers.add_parser(
+        "ableton-repair-apply",
+        help=(
+            "apply one human-authorized set_tempo repair candidate through "
+            "AbletonGPT (does not auto-verify; Live repair remains unverified)"
+        ),
+    )
+    ableton_repair_apply.add_argument(
+        "project",
+        type=Path,
+        help="source project that owns ableton_repair_plan.json",
+    )
+    ableton_repair_apply.add_argument(
+        "--check-id",
+        required=True,
+        help="candidate check to execute (VS9 supports only tempo / set_tempo)",
+    )
+    ableton_repair_apply.add_argument(
+        "--prepare-only",
+        action="store_true",
+        help=(
+            "validate and run AbletonGPT import-kihachi only; do not read Live "
+            "or run the repair job"
+        ),
+    )
+    ableton_repair_apply.add_argument(
+        "--approve-plan-sha",
+        dest="approve_plan_sha",
+        help=(
+            "full 64-character lowercase SHA-256 of the current "
+            "ableton_repair_plan.json; required to run the Live job"
+        ),
+    )
+    ableton_repair_apply.add_argument(
+        "--rerun",
+        action="store_true",
+        help=(
+            "explicitly permit another execute of the same successful repair "
+            "plan and check (still requires --approve-plan-sha and Live preflight)"
+        ),
+    )
+    ableton_repair_apply.add_argument(
+        "--abletongpt-python",
+        type=Path,
+        help=(
+            "Python interpreter that has AbletonGPT installed "
+            "(default: the interpreter running KIHACHI)"
+        ),
+    )
+
     report = subparsers.add_parser(
         "report",
         help="write a page for comparing takes by ear (renders nothing, adopts nothing)",

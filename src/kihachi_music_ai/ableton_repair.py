@@ -92,8 +92,70 @@ class AbletonRepairPlanManifest:
         return str(self.document.get("repair_state", ""))
 
 
+@dataclass(frozen=True)
+class ValidatedRepairPlan:
+    """Existing ``ableton_repair_plan.json`` re-checked against current sources."""
+
+    project_dir: Path
+    repair_plan_file: Path
+    repair_plan: dict[str, Any]
+    repair_plan_sha256: str
+    verification_file: Path
+    verification: dict[str, Any]
+    arrangement_plan_file: Path
+    arrangement_plan: dict[str, Any]
+
+
 def ableton_repair_plan_path(project_dir: Path) -> Path:
     return Path(project_dir) / ABLETON_REPAIR_PLAN_NAME
+
+
+def source_operation_view(operation: Mapping[str, Any]) -> dict[str, Any]:
+    """Canonical identifying view of an arrangement operation (VS8 contract)."""
+
+    return _source_operation_view(operation)
+
+
+def load_validated_repair_plan(project_dir: Path) -> ValidatedRepairPlan:
+    """Load an existing repair plan and re-verify it.  Writes nothing.
+
+    Rebuilds the semantic plan from the current verification using the same
+    classification as ``build_ableton_repair_plan``.  Does not talk to Live
+    or AbletonGPT.
+    """
+
+    root = _require_project_dir(project_dir)
+    destination = ableton_repair_plan_path(root)
+    if not destination.is_file():
+        raise AbletonRepairPlanError(
+            f"No Ableton repair plan found: {destination}. "
+            "Run `kihachi ableton-repair-plan PROJECT` first. VS9 does not "
+            "invent a repair plan or execute from a missing one."
+        )
+    existing = _read_repair_plan_file(destination)
+    composed = _compose_repair_plan(root)
+    if not _repair_plan_equivalent(
+        existing,
+        composed.document,
+        current_verification_sha256=composed.document["source"]["verification"]["sha256"],
+    ):
+        raise AbletonRepairPlanError(
+            "Ableton repair plan is stale or does not match the plan rebuilt "
+            "from the current verification, source SHA digests, adopted round, "
+            "expected Live state, and candidate/manual classification. "
+            "Re-run `kihachi ableton-repair-plan PROJECT` (with --overwrite "
+            "if the plan must be replaced). Refusing execution."
+        )
+    return ValidatedRepairPlan(
+        project_dir=root,
+        repair_plan_file=destination.resolve(),
+        repair_plan=existing,
+        repair_plan_sha256=_file_sha256(destination),
+        verification_file=composed.verification_file,
+        verification=composed.verification,
+        arrangement_plan_file=composed.loaded.arrangement_plan_file,
+        arrangement_plan=composed.loaded.arrangement_plan,
+    )
 
 
 def build_ableton_repair_plan(
@@ -108,10 +170,7 @@ def build_ableton_repair_plan(
     permission to execute.
     """
 
-    root = Path(project_dir).resolve()
-    if not root.is_dir():
-        raise AbletonRepairPlanError(f"project not found: {root}")
-
+    root = _require_project_dir(project_dir)
     verification_file = ableton_verification_path(root)
     if not verification_file.is_file():
         raise AbletonRepairPlanError(
@@ -121,51 +180,8 @@ def build_ableton_repair_plan(
         )
 
     fingerprints = _source_fingerprints(root, verification_file)
-    verification = _load_verification_document(verification_file)
-    _require_repairable_verification(verification, verification_file)
-
-    try:
-        validated = load_validated_handoff(root)
-    except AbletonExecutionError as error:
-        raise AbletonRepairPlanError(
-            f"{error} Refusing repair planning until the VS5 handoff is valid."
-        ) from error
-
-    try:
-        loaded = load_verified_execution(root)
-    except AbletonVerificationError as error:
-        raise AbletonRepairPlanError(
-            f"{error} Refusing repair planning until the VS6 execution "
-            "receipt is valid."
-        ) from error
-    except FileNotFoundError as error:
-        raise AbletonRepairPlanError(str(error)) from error
-
-    source_files = _validate_verification_sources(
-        verification,
-        project_dir=root,
-        validated=validated,
-        loaded=loaded,
-    )
-    expected = build_expected_live_state(
-        loaded.arrangement_plan, job_plan=loaded.job_plan
-    )
-    _assert_expected_current(verification, expected)
-    checks = _require_checks(verification)
-    operations = _arrangement_operations(loaded.arrangement_plan)
-    passed, candidates, manuals = _classify_checks(checks, operations)
-    document = _build_repair_document(
-        root,
-        verification=verification,
-        verification_file=verification_file,
-        verification_sha256=_file_sha256(verification_file),
-        source_files=source_files,
-        loaded=loaded,
-        passed=passed,
-        candidates=candidates,
-        manuals=manuals,
-    )
-
+    composed = _compose_repair_plan(root)
+    document = composed.document
     destination = ableton_repair_plan_path(root)
     unchanged = False
     _assert_unchanged(fingerprints)
@@ -232,6 +248,118 @@ def describe_ableton_repair_plan(manifest: AbletonRepairPlanManifest) -> list[st
     lines.append("- adoption unchanged: yes")
     lines.append("- preference memory appended: no")
     return lines
+
+
+@dataclass(frozen=True)
+class _ComposedRepairPlan:
+    document: dict[str, Any]
+    verification_file: Path
+    verification: dict[str, Any]
+    loaded: Any
+
+
+def _require_project_dir(project_dir: Path) -> Path:
+    root = Path(project_dir).resolve()
+    if not root.is_dir():
+        raise AbletonRepairPlanError(f"project not found: {root}")
+    return root
+
+
+def _compose_repair_plan(project_dir: Path) -> _ComposedRepairPlan:
+    """Rebuild the semantic repair plan from current verification.  Writes nothing."""
+
+    root = Path(project_dir).resolve()
+    verification_file = ableton_verification_path(root)
+    if not verification_file.is_file():
+        raise AbletonRepairPlanError(
+            f"No Ableton verification found: {verification_file}. "
+            "Run `kihachi ableton-verify PROJECT` first. VS8 does not invent "
+            "Live postconditions or repair a Set."
+        )
+    verification = _load_verification_document(verification_file)
+    _require_repairable_verification(verification, verification_file)
+
+    try:
+        validated = load_validated_handoff(root)
+    except AbletonExecutionError as error:
+        raise AbletonRepairPlanError(
+            f"{error} Refusing repair planning until the VS5 handoff is valid."
+        ) from error
+
+    try:
+        loaded = load_verified_execution(root)
+    except AbletonVerificationError as error:
+        raise AbletonRepairPlanError(
+            f"{error} Refusing repair planning until the VS6 execution "
+            "receipt is valid."
+        ) from error
+    except FileNotFoundError as error:
+        raise AbletonRepairPlanError(str(error)) from error
+
+    source_files = _validate_verification_sources(
+        verification,
+        project_dir=root,
+        validated=validated,
+        loaded=loaded,
+    )
+    expected = build_expected_live_state(
+        loaded.arrangement_plan, job_plan=loaded.job_plan
+    )
+    _assert_expected_current(verification, expected)
+    checks = _require_checks(verification)
+    operations = _arrangement_operations(loaded.arrangement_plan)
+    passed, candidates, manuals = _classify_checks(checks, operations)
+    document = _build_repair_document(
+        root,
+        verification=verification,
+        verification_file=verification_file,
+        verification_sha256=_file_sha256(verification_file),
+        source_files=source_files,
+        loaded=loaded,
+        passed=passed,
+        candidates=candidates,
+        manuals=manuals,
+    )
+    return _ComposedRepairPlan(
+        document=document,
+        verification_file=verification_file.resolve(),
+        verification=verification,
+        loaded=loaded,
+    )
+
+
+def _read_repair_plan_file(path: Path) -> dict[str, Any]:
+    try:
+        raw = path.read_text(encoding="utf-8")
+        payload = json.loads(raw)
+    except (OSError, UnicodeError) as error:
+        raise AbletonRepairPlanError(
+            f"Unable to read Ableton repair plan: {path}"
+        ) from error
+    except json.JSONDecodeError as error:
+        raise AbletonRepairPlanError(
+            f"Ableton repair plan is not valid JSON: {path} ({error.msg}). "
+            "Expected a VS8 ableton_repair_plan.json object."
+        ) from error
+    if not isinstance(payload, dict):
+        raise AbletonRepairPlanError(
+            f"Ableton repair plan must be a JSON object: {path}"
+        )
+    version = payload.get("ableton_repair_plan_version")
+    if not isinstance(version, str) or version not in SUPPORTED_REPAIR_PLAN_VERSIONS:
+        raise AbletonRepairPlanError(
+            f"Unsupported ableton_repair_plan_version {version!r} in {path} "
+            f"(supported: {', '.join(sorted(SUPPORTED_REPAIR_PLAN_VERSIONS))}). "
+            "Refusing to load a repair plan."
+        )
+    state = payload.get("repair_state")
+    if state not in {STATE_CANDIDATES_READY, STATE_MANUAL_REQUIRED}:
+        raise AbletonRepairPlanError(
+            f"Ableton repair_state is {state!r}; expected "
+            f"{STATE_CANDIDATES_READY} or {STATE_MANUAL_REQUIRED}. "
+            "Refusing to load a repair plan."
+        )
+    return payload
 
 
 def _load_verification_document(path: Path) -> dict[str, Any]:
