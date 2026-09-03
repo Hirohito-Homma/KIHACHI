@@ -12,7 +12,7 @@ SongSpec
     └── Prompt Compiler → prompt.txt / prompt.json
 ```
 
-コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。Ableton Liveの操作はAbletonGPTが担当します。KIHACHIは `ableton-apply` でその外部実行境界を呼び出すだけで、Liveには直接接続しません。`ableton-verify` は同じ AbletonGPT 境界を通じた **読み取り専用** の事後条件監査であり、適用の成功と Live 上の一致は別の主張です。
+コアは標準ライブラリだけで動き、ACE-Step接続は任意のRESTアダプターへ分離しています。Ableton Liveの操作はAbletonGPTが担当します。KIHACHIは `ableton-apply` でその外部実行境界を呼び出すだけで、Liveには直接接続しません。`ableton-verify` は同じ AbletonGPT 境界を通じた **読み取り専用** の事後条件監査であり、適用の成功と Live 上の一致は別の主張です。`ableton-repair-plan` は検証失敗を人間が判断できる修復計画へ変換するだけで、Live を読まず、書かず、AbletonGPT も起動しません。
 
 ## 導入
 
@@ -1471,9 +1471,9 @@ python3 -m kihachi_music_ai audit-transcription projects/my-song --all
 **これは失敗ではなく、この機能の限界そのものです** — 写しているのはモデルが弾いた音であって、
 設計ではありません。進行が守られないことは既知（一致率0.0）で、その事実がそのまま転写に現れます。
 
-## 採用テイクから Live へ（VS4–VS7）
+## 採用テイクから Live へ（VS4–VS8）
 
-人間がテイクを選んだあと、KIHACHIは証明可能な handoff を書き、AbletonGPT が Live を操作します。適用が通ったことと、Live Set が意図したアレンジになっていることは別の事実です。
+人間がテイクを選んだあと、KIHACHIは証明可能な handoff を書き、AbletonGPT が Live を操作します。適用が通ったことと、Live Set が意図したアレンジになっていることは別の事実です。検証が失敗したあとも、VS8 は Live を直さず、人間が承認できる修復計画だけを残します。
 
 ```text
 revision
@@ -1482,12 +1482,13 @@ revision
     → ableton-apply       (明示的な Live 実行境界)
     → AbletonGPT          (import-kihachi → run)
     → ableton-verify      (読み取り専用の Live 事後条件監査)
-    → Ableton Live readback through AbletonGPT
+    → ableton-repair-plan (人間承認用の修復計画。Live 副作用なし)
 ```
 
 `ableton-handoff` は採用済みテイクの provenance を固めるだけで、Live には触れません。
 `ableton-apply` が AbletonGPT を外部プロセスとして呼び出す **実行** 境界です。ジョブが exit 0 を返したことは「AbletonGPT の実行が成功した」という証拠であり、「Live Set が KIHACHI のアレンジと一致する」という主張ではありません。
 `ableton-verify` がその残差を閉じます。AbletonGPT の既存の読み取り API（`get_live_state` / `get_track_devices` / `get_midi_clip_notes` / `get_arrangement_clips`）から証拠を集め、採用済み handoff の計画と比較します。KIHACHIは Live Object Model もソケットも使いません。不一致を直すことも、採用を付け替えることもありません。
+`ableton-repair-plan` は `ableton_verification.json` を読み、失敗した check を元の arrangement operation へ対応付けます。一意に対応できるものだけを `candidate_reapply` とし、track の削除・移動・改名、個数の追加、観測不能、未知の category/status、曖昧な対応はすべて人手確認へ送ります。`candidate_reapply` は「今すぐ安全に実行できる」という意味ではありません。VS8 はその operation を実行しません。
 
 ```bash
 python3 -m kihachi_music_ai adopt projects/my-song --round 1
@@ -1495,16 +1496,19 @@ python3 -m kihachi_music_ai ableton-handoff projects/my-song
 python3 -m kihachi_music_ai ableton-apply projects/my-song --prepare-only
 python3 -m kihachi_music_ai ableton-apply projects/my-song --abletongpt-python /path/to/python-with-abletongpt
 python3 -m kihachi_music_ai ableton-verify projects/my-song --abletongpt-python /path/to/python-with-abletongpt
+python3 -m kihachi_music_ai ableton-repair-plan projects/my-song
 ```
 
 `--prepare-only` は handoff 検証と `import-kihachi`（ジョブプラン生成）までで止まり、Live ジョブは走らせません。GitHub CI はこの経路を使います。同じ handoff と arrangement plan を一度成功適用したあとは、黙ってもう一度 Live を走らせません。再実行は人間が `--rerun` を付けたときだけです。prepare-only の領収書は Live 適用ではないので、`ableton-verify` はそれを拒否します。
 
 適用の監査は `ableton_handoff.json` を書き換えず、別ファイル `ableton_execution.json` に残します。
 Live 読み戻しの監査はさらに別ファイル `ableton_verification.json` です。
+修復計画はそれらを書き換えず、さらに別ファイル `ableton_repair_plan.json` です。
 
 ```text
-ableton-apply   = 外部実行が成功した（ableton_execution.json）
-ableton-verify  = 観測した Live 状態を計画と比較した（ableton_verification.json）
+ableton-apply        = 外部実行が成功した（ableton_execution.json）
+ableton-verify       = 観測した Live 状態を計画と比較した（ableton_verification.json）
+ableton-repair-plan  = 失敗した検証を人間承認用の計画へ変換した（ableton_repair_plan.json）
 ```
 
 検証の状態は次の4つです。AbletonGPT のジョブが exit 0 でも `verified` にはなりません。
@@ -1518,12 +1522,21 @@ ableton-verify  = 観測した Live 状態を計画と比較した（ableton_ver
 
 `ableton-verify` は読み取り専用なので、同じ実行領収書に対して繰り返して構いません。Live Set が変わっていればスナップショットは更新されます。修復・再実行・自動採用は行いません。
 
-AbletonGPT 0.2 には一括 Live 読み取り専用の公開 CLI はまだありません。KIHACHI は `python -m abletongpt.cli.jobs` と同じく AbletonGPT の Python を外部起動し、既存の read コマンドだけを呼びます。第二の Live プロトコルは実装していません。
+検証が `failed` または `partially_verified` のときだけ `ableton-repair-plan` を書けます。`verified` は修復不要として拒否し、`not_run` は検証証拠がないとして拒否します。計画生成は AbletonGPT を起動せず、同一内容なら idempotent に成功し、内容が違う既存計画の置換だけ `--overwrite` を要求します。人手確認項目があっても終了コードは 0 です。拒否は 2 です。
+
+修復計画の状態は次の2つです。どちらも Live を変更したことにはなりません。
+
+| 状態 | 意味 |
+|---|---|
+| `repair_candidates_ready` | 元の arrangement operation に一意に対応した candidate が1件以上ある（manual item が混在していてもこの状態） |
+| `manual_action_required` | candidate が0件で、人手確認項目が1件以上ある |
+
+AbletonGPT 0.2 には一括 Live 読み取り専用の公開 CLI はまだありません。KIHACHI は `python -m abletongpt.cli.jobs` と同じく AbletonGPT の Python を外部起動し、既存の read コマンドだけを呼びます。第二の Live プロトコルは実装していません。VS8 の修復計画はその実行境界を呼びません。
 
 ## Live展開（v0.2: 実機で通しました）
 
 `ableton-plan`が出す操作リストを、2026-08-16に**実際のLiveセットへ通しました**。
-経路はKIHACHIがMCPツールを直接叩くのではなく、AbletonGPT側の検証器です。人手の採用テイクから Live へ進む場合は、上の `ableton-handoff` → `ableton-apply` → `ableton-verify` を使います。
+経路はKIHACHIがMCPツールを直接叩くのではなく、AbletonGPT側の検証器です。人手の採用テイクから Live へ進む場合は、上の `ableton-handoff` → `ableton-apply` → `ableton-verify` → `ableton-repair-plan` を使います。
 
 ```bash
 python3 -m kihachi_music_ai ableton-plan projects/my-song --first-track-index 1
@@ -1820,7 +1833,7 @@ uv run kihachi ace-step render  projects/my-song --from-brief prompt.json
 
   SongSpecと食い違うブリーフ（プロンプト・尺・シードのいずれか）を渡すと、どこが違うかを表示したうえでブリーフ側を採用します。`render` の場合、テールガードの切り戻し先はブリーフ自身の `total_bars`・`bpm`・`time_signature` から求めた長さです（SongSpec側のグリッドに切り戻すと、尺を書き換えたブリーフはまさにその部分を失います）。どのブリーフでレンダーしたかは `ace_step_result.json` の `render_brief`（パス・SHA-256・SongSpecとの一致）に残ります。
 - Audio-to-MIDI、Ableton Live展開、LLM接続は**v0.1では範囲外でした**。現在はv0.2として、
-  単音素材の`transcribe-sample`と`audit-transcription`、`ableton-plan` / `ableton-handoff` / `ableton-apply` / `ableton-verify`からAbletonGPT経由の実機適用と読み取り専用監査、
+  単音素材の`transcribe-sample`と`audit-transcription`、`ableton-plan` / `ableton-handoff` / `ableton-apply` / `ableton-verify` / `ableton-repair-plan`からAbletonGPT経由の実機適用・読み取り専用監査・人間承認用の修復計画、
   任意の`intent prepare/read`を実装済みです。KIHACHI自身はLiveを直接操作せず、LLMにも曲を書かせません。
   ACE-StepのAudio-to-Audioは構造保持用の`cover`と範囲再生成用の`repaint`に対応しています。
 - stem分離はv0.2で取り込み済みです（ADR-0008）。複数候補については`shortlist`が順位と根拠を出しますが、**採用は自動化していません**（ADR-0009）。測れない次元が残る以上、最後は試聴です。

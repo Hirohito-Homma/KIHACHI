@@ -507,6 +507,27 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    ableton_repair_plan = subparsers.add_parser(
+        "ableton-repair-plan",
+        help=(
+            "turn a Live verification failure into a human-gated repair plan "
+            "(does not talk to Live, does not invoke AbletonGPT, repairs nothing)"
+        ),
+    )
+    ableton_repair_plan.add_argument(
+        "project",
+        type=Path,
+        help="source project that owns ableton_verification.json",
+    )
+    ableton_repair_plan.add_argument(
+        "--overwrite",
+        action="store_true",
+        help=(
+            "replace ableton_repair_plan.json when the existing plan differs "
+            "(source artifacts stay unchanged)"
+        ),
+    )
+
     report = subparsers.add_parser(
         "report",
         help="write a page for comparing takes by ear (renders nothing, adopts nothing)",

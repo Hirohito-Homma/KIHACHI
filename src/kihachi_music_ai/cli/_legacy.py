@@ -54,6 +54,11 @@ from ..ableton_verification import (
     describe_ableton_verification,
     verify_ableton_execution,
 )
+from ..ableton_repair import (
+    AbletonRepairPlanError,
+    build_ableton_repair_plan,
+    describe_ableton_repair_plan,
+)
 from ..chunked import load_chunk_plan, render_chunk_plan
 from ..decision import (
     current_decision,
@@ -610,6 +615,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             for line in describe_ableton_verification(manifest):
                 print(line)
             return manifest.exit_code
+
+        if args.command == "ableton-repair-plan":
+            try:
+                manifest = build_ableton_repair_plan(
+                    args.project,
+                    overwrite=args.overwrite,
+                )
+            except AbletonRepairPlanError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return error.exit_code
+            except FileNotFoundError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 2
+            for line in describe_ableton_repair_plan(manifest):
+                print(line)
+            return 0
 
         if args.command == "adopt":
             manifest = adopt_revision(
