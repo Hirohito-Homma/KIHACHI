@@ -459,10 +459,8 @@ def _assert_expected_current(
 
 def _expected_identity(expected: Mapping[str, Any]) -> dict[str, Any]:
     clips = []
-    for clip in expected.get("clips") or []:
-        if not isinstance(clip, Mapping):
-            continue
-        notes = list(clip.get("notes") or [])
+    for clip in _expected_object_list(expected.get("clips"), "clips"):
+        notes = _expected_notes(clip)
         clips.append(
             {
                 "track_index": clip.get("track_index"),
@@ -478,11 +476,34 @@ def _expected_identity(expected: Mapping[str, Any]) -> dict[str, Any]:
         "first_track_index": expected.get("first_track_index"),
         "created_track_count": expected.get("created_track_count"),
         "expected_track_count": expected.get("expected_track_count"),
-        "tracks": expected.get("tracks"),
-        "devices": expected.get("devices"),
+        "tracks": _expected_object_list(expected.get("tracks"), "tracks"),
+        "devices": _expected_object_list(expected.get("devices"), "devices"),
         "clips": clips,
-        "arrangement": expected.get("arrangement"),
+        "arrangement": _expected_object_list(expected.get("arrangement"), "arrangement"),
     }
+
+
+def _expected_object_list(value: Any, label: str) -> list[Mapping[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise AbletonRepairPlanError(
+            f"Ableton verification expected.{label} must be a list of objects. "
+            "Refusing repair planning."
+        )
+    return [item for item in value if isinstance(item, Mapping)]
+
+
+def _expected_notes(clip: Mapping[str, Any]) -> list[Any]:
+    notes = clip.get("notes")
+    if notes is None:
+        return []
+    if not isinstance(notes, list):
+        raise AbletonRepairPlanError(
+            "Ableton verification expected clip notes must be a list. "
+            "Refusing repair planning."
+        )
+    return notes
 
 
 def _require_checks(verification: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -535,6 +556,10 @@ def _classify_checks(
     manuals: list[dict[str, Any]] = []
     for check in checks:
         status = str(check["status"])
+        category = str(check["category"])
+        if status not in KNOWN_CHECK_STATUSES or category not in KNOWN_CHECK_CATEGORIES:
+            manuals.append(_manual_action(check, operations))
+            continue
         if status == CHECK_PASS:
             passed.append(dict(check))
             continue

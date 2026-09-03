@@ -475,6 +475,36 @@ class AbletonRepairPlanTests(unittest.TestCase):
             with self.assertRaisesRegex(AbletonRepairPlanError, "stale"):
                 build_ableton_repair_plan(project)
 
+    def test_non_list_expected_clips_refuses_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            self._failed_tempo(project)
+            payload = _read_json(project / ABLETON_VERIFICATION_NAME)
+            payload["expected"]["clips"] = 1
+            _write_json(project / ABLETON_VERIFICATION_NAME, payload)
+            with self.assertRaisesRegex(AbletonRepairPlanError, "expected.clips"):
+                build_ableton_repair_plan(project)
+            self.assertFalse((project / ABLETON_REPAIR_PLAN_NAME).exists())
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                status = main(["ableton-repair-plan", str(project)])
+            self.assertEqual(status, 2)
+            self.assertIn("expected.clips", stderr.getvalue())
+            self.assertNotIn("Traceback", stderr.getvalue())
+
+    def test_non_list_expected_clip_notes_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            self._failed_tempo(project)
+            payload = _read_json(project / ABLETON_VERIFICATION_NAME)
+            clips = payload["expected"]["clips"]
+            self.assertTrue(clips)
+            clips[0]["notes"] = 4
+            _write_json(project / ABLETON_VERIFICATION_NAME, payload)
+            with self.assertRaisesRegex(AbletonRepairPlanError, "clip notes"):
+                build_ableton_repair_plan(project)
+            self.assertFalse((project / ABLETON_REPAIR_PLAN_NAME).exists())
+
     def test_checks_must_be_a_list(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = self._applied(Path(temp))
@@ -521,6 +551,42 @@ class AbletonRepairPlanTests(unittest.TestCase):
             self.assertFalse(
                 any(item["check_id"] == "mystery" for item in manifest.document["candidate_actions"])
             )
+
+    def test_passed_unknown_category_is_manual_not_passed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._applied(Path(temp))
+            self._failed_tempo(project)
+            payload = _read_json(project / ABLETON_VERIFICATION_NAME)
+            payload["checks"].append(
+                {
+                    "id": "passed-unknown",
+                    "category": "gossip",
+                    "status": "pass",
+                    "message": "set_tempo succeeded according to this unknown category",
+                    "expected": None,
+                    "observed": None,
+                }
+            )
+            _write_json(project / ABLETON_VERIFICATION_NAME, payload)
+            manifest = build_ableton_repair_plan(project)
+            unknown = next(
+                item
+                for item in manifest.document["manual_actions"]
+                if item["check_id"] == "passed-unknown"
+            )
+            self.assertEqual(unknown["disposition"], DISPOSITION_MANUAL)
+            self.assertFalse(
+                any(
+                    item["check_id"] == "passed-unknown"
+                    for item in manifest.document["candidate_actions"]
+                )
+            )
+            original_passed = sum(
+                1
+                for check in payload["checks"]
+                if check.get("status") == "pass" and check.get("id") != "passed-unknown"
+            )
+            self.assertEqual(manifest.document["summary"]["passed"], original_passed)
 
     def test_track_and_count_failures_are_always_manual(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
