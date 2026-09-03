@@ -20,6 +20,13 @@ from .preference_memory import (
     load_preference_memory,
     record_preference,
 )
+from .ableton_handoff import (
+    AbletonHandoffError,
+    AbletonHandoffManifest,
+    AdoptedTake,
+    build_ableton_handoff,
+    resolve_adopted_take,
+)
 from .revision import (
     Adoption,
     AdoptionManifest,
@@ -32,6 +39,9 @@ from .revision import (
 from .reviewer import GenerationReviewManifest, review_project, review_project_midi_only
 
 __all__ = [
+    "AbletonHandoffError",
+    "AbletonHandoffManifest",
+    "AdoptedTake",
     "Adoption",
     "AdoptionManifest",
     "ArtifactManifest",
@@ -46,6 +56,7 @@ __all__ = [
     "VerticalSliceManifest",
     "adopt_revision",
     "analyze_project",
+    "build_ableton_handoff",
     "compare_rounds",
     "compose_project",
     "describe_comparison",
@@ -53,6 +64,7 @@ __all__ = [
     "load_revision_log",
     "make_ace_step_repaint_renderer",
     "record_preference",
+    "resolve_adopted_take",
     "review_project",
     "review_project_midi_only",
     "run_audio_revision_loop",
