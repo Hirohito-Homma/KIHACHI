@@ -317,6 +317,57 @@ def run_revision_loop(
     return log
 
 
+def round_summary(round_: Round) -> dict[str, Any]:
+    """One round as a stable, machine-readable summary."""
+
+    return {
+        "index": round_.index,
+        "alignment": round_.alignment,
+        "grade": round_.grade,
+        "blocking": round_.blocking,
+        "warnings": round_.warnings,
+        "defect_codes": list(round_.defect_codes),
+        "planned_action": round_.planned_action,
+        "project": str(round_.project_dir),
+        "audio_file": str(round_.audio_file),
+        "usable": round_.usable,
+    }
+
+
+def compare_rounds(before: Round, after: Round) -> dict[str, Any]:
+    """Before/after deltas between two measured rounds."""
+
+    return {
+        "from_index": before.index,
+        "to_index": after.index,
+        "alignment": round(after.alignment - before.alignment, 2),
+        "blocking": after.blocking - before.blocking,
+        "warnings": after.warnings - before.warnings,
+    }
+
+
+def describe_comparison(log: RevisionLog) -> list[str]:
+    """Round-by-round evidence with deltas between consecutive rounds."""
+
+    if not log.rounds:
+        return ["No rounds recorded."]
+
+    lines = [f"{len(log.rounds)} take(s); stopped because {log.stopped_because}"]
+    for round_ in log.rounds:
+        action = round_.planned_action or "(none)"
+        lines.append(f"Round {round_.index}:")
+        lines.append(f"  alignment: {round_.alignment:.1f}")
+        lines.append(f"  blocking defects: {round_.blocking}")
+        lines.append(f"  planned action: {action}")
+    for before, after in zip(log.rounds, log.rounds[1:]):
+        delta = compare_rounds(before, after)
+        lines.append(f"Delta (round {before.index} -> {after.index}):")
+        lines.append(f"  alignment: {delta['alignment']:+.1f}")
+        lines.append(f"  blocking defects: {delta['blocking']:+d}")
+    lines.append("Nothing adopted -- these are candidates. Listen before choosing.")
+    return lines
+
+
 def describe(log: RevisionLog) -> list[str]:
     """The log as lines to print, ranked, with nothing adopted."""
 
