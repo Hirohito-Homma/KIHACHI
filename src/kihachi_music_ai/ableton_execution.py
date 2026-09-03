@@ -325,6 +325,7 @@ def execute_ableton_handoff(
         ) from error
 
     job_plan_sha = _file_sha256(job_plan_file)
+    step_count = len(job_plan["steps"])
     if prepare_only:
         receipt = _build_receipt(
             validated,
@@ -335,8 +336,9 @@ def execute_ableton_handoff(
             job_plan_sha256=job_plan_sha,
             import_result=import_result,
             run_result=None,
-            completed=len(job_plan["steps"]),
+            completed=0,
             failed=0,
+            pending=step_count,
             live_applied=live_applied,
         )
         _atomic_write_json(receipt_file, receipt)
@@ -353,11 +355,14 @@ def execute_ableton_handoff(
     run_argv = _run_argv(python, job_plan_file)
     run_result = run(run_argv)
     completed, failed, pending = _execution_counts(run_result, job_plan_file)
-    success = (
-        run_result.returncode == 0
-        and (failed is None or failed == 0)
-    )
-    if not success:
+    if not _run_succeeded(
+        returncode=run_result.returncode,
+        completed=completed,
+        failed=failed,
+        pending=pending,
+        step_count=step_count,
+    ):
+        error_code = "run_pending" if pending else "run_failed"
         _write_failed_receipt(
             receipt_file,
             validated,
@@ -366,15 +371,16 @@ def execute_ableton_handoff(
             import_result=import_result,
             run_result=run_result,
             live_applied=live_applied,
-            error="run_failed",
+            error=error_code,
             completed=completed,
             failed=failed,
             pending=pending,
         )
         counts = _format_counts(completed, failed, pending)
         raise AbletonExecutionError(
-            "AbletonGPT run failed "
-            f"(exit {run_result.returncode}{f', {counts}' if counts else ''}). "
+            "AbletonGPT run did not complete every Live step "
+            f"(exit {run_result.returncode}{f', {counts}' if counts else ''}, "
+            f"job plan steps={step_count}). "
             "The execution receipt records a failure, not success. "
             "The Live set may contain a partial arrangement; inspect "
             f"{job_plan_file.name} before retrying. "
@@ -390,9 +396,9 @@ def execute_ableton_handoff(
         job_plan_sha256=_file_sha256(job_plan_file),
         import_result=import_result,
         run_result=run_result,
-        completed=completed if completed is not None else len(job_plan["steps"]),
+        completed=completed if completed is not None else step_count,
         failed=failed if failed is not None else 0,
-        pending=pending,
+        pending=pending if pending is not None else 0,
         live_applied=True,
     )
     _atomic_write_json(receipt_file, receipt)
@@ -670,9 +676,26 @@ def _load_receipt(path: Path) -> dict[str, Any] | None:
         return None
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return None
-    return payload if isinstance(payload, dict) else None
+    except (OSError, UnicodeError) as error:
+        raise AbletonExecutionError(
+            f"Existing Ableton execution receipt is unreadable: {path}. "
+            "Refusing to invoke AbletonGPT because a prior apply cannot be "
+            "verified. Inspect or replace the file before retrying."
+        ) from error
+    except json.JSONDecodeError as error:
+        raise AbletonExecutionError(
+            f"Existing Ableton execution receipt is not valid JSON: {path} "
+            f"({error.msg}). Refusing to invoke AbletonGPT; a truncated or "
+            "corrupt receipt must not bypass the duplicate-apply guard. "
+            "Inspect or replace the file before retrying."
+        ) from error
+    if not isinstance(payload, dict):
+        raise AbletonExecutionError(
+            f"Existing Ableton execution receipt must be a JSON object: {path}. "
+            "Refusing to invoke AbletonGPT because prior execution evidence "
+            "cannot be trusted."
+        )
+    return payload
 
 
 def _live_applied_for_identity(
@@ -805,6 +828,29 @@ def _write_failed_receipt(
         error=error,
     )
     _atomic_write_json(receipt_file, receipt)
+
+
+def _run_succeeded(
+    *,
+    returncode: int,
+    completed: int | None,
+    failed: int | None,
+    pending: int | None,
+    step_count: int,
+) -> bool:
+    """Success requires a clean exit and a fully finished job plan."""
+
+    if returncode != 0:
+        return False
+    if failed is not None and failed != 0:
+        return False
+    if pending is not None and pending != 0:
+        return False
+    if completed is not None and completed != step_count:
+        return False
+    if completed is None and failed is None and pending is None:
+        return False
+    return True
 
 
 def _execution_counts(

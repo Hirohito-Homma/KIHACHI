@@ -156,6 +156,9 @@ class AbletonExecutionTests(unittest.TestCase):
             self.assertEqual(manifest.receipt["execution_state"], "prepared_not_applied")
             self.assertFalse(manifest.receipt["live_applied"])
             self.assertIsNone(manifest.receipt["run"])
+            self.assertEqual(manifest.receipt["completed"], 0)
+            self.assertEqual(manifest.receipt["failed"], 0)
+            self.assertEqual(manifest.receipt["pending"], 2)
 
     def test_execute_calls_import_then_run(self) -> None:
         fake = FakeAbletonGPT()
@@ -304,7 +307,7 @@ class AbletonExecutionTests(unittest.TestCase):
         fake.run_stdout = "completed=1 failed=1 pending=0\n"
         with tempfile.TemporaryDirectory() as temp:
             project = self._handoff(Path(temp), 1)
-            with self.assertRaisesRegex(AbletonExecutionError, "run failed"):
+            with self.assertRaisesRegex(AbletonExecutionError, "did not complete every Live step"):
                 execute_ableton_handoff(project, runner=fake)
             receipt = json.loads((project / ABLETON_EXECUTION_NAME).read_text())
             self.assertEqual(receipt["status"], "failed")
@@ -312,6 +315,35 @@ class AbletonExecutionTests(unittest.TestCase):
             self.assertNotEqual(receipt["status"], "success")
             self.assertFalse(receipt["live_applied"])
             self.assertEqual(receipt["failed"], 1)
+
+    def test_pending_steps_are_not_success(self) -> None:
+        fake = FakeAbletonGPT()
+        fake.run_returncode = 0
+        fake.run_stdout = "completed=1 failed=0 pending=1\n"
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._handoff(Path(temp), 1)
+            with self.assertRaisesRegex(AbletonExecutionError, "pending=1"):
+                execute_ableton_handoff(project, runner=fake)
+            receipt = json.loads((project / ABLETON_EXECUTION_NAME).read_text())
+            self.assertEqual(receipt["status"], "failed")
+            self.assertFalse(receipt["live_applied"])
+            self.assertEqual(receipt["pending"], 1)
+            fake.calls.clear()
+            fake.run_stdout = "completed=2 failed=0 pending=0\n"
+            execute_ableton_handoff(project, runner=fake)
+            self.assertEqual(fake.commands(), ["import-kihachi", "run"])
+
+    def test_completed_count_must_match_job_plan(self) -> None:
+        fake = FakeAbletonGPT()
+        fake.run_returncode = 0
+        fake.run_stdout = "completed=1 failed=0 pending=0\n"
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._handoff(Path(temp), 1)
+            with self.assertRaisesRegex(AbletonExecutionError, "job plan steps=2"):
+                execute_ableton_handoff(project, runner=fake)
+            receipt = json.loads((project / ABLETON_EXECUTION_NAME).read_text())
+            self.assertEqual(receipt["status"], "failed")
+            self.assertFalse(receipt["live_applied"])
 
     def test_successful_run_records_handoff_and_plan_identity(self) -> None:
         fake = FakeAbletonGPT()
@@ -464,6 +496,24 @@ class AbletonExecutionTests(unittest.TestCase):
             fake.fail_if_run = False
             fake.calls.clear()
             with self.assertRaisesRegex(AbletonExecutionError, "already applied"):
+                execute_ableton_handoff(project, runner=fake)
+            self.assertEqual(fake.calls, [])
+
+    def test_malformed_receipt_refuses_before_subprocess(self) -> None:
+        fake = FakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._handoff(Path(temp), 1)
+            (project / ABLETON_EXECUTION_NAME).write_text("{truncated\n", encoding="utf-8")
+            with self.assertRaisesRegex(AbletonExecutionError, "not valid JSON"):
+                execute_ableton_handoff(project, runner=fake)
+            self.assertEqual(fake.calls, [])
+
+    def test_non_object_receipt_refuses_before_subprocess(self) -> None:
+        fake = FakeAbletonGPT()
+        with tempfile.TemporaryDirectory() as temp:
+            project = self._handoff(Path(temp), 1)
+            (project / ABLETON_EXECUTION_NAME).write_text("[]\n", encoding="utf-8")
+            with self.assertRaisesRegex(AbletonExecutionError, "JSON object"):
                 execute_ableton_handoff(project, runner=fake)
             self.assertEqual(fake.calls, [])
 
