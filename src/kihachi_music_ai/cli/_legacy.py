@@ -39,6 +39,11 @@ from ..ableton import (
     parse_send_binding,
     plan_project_arrangement,
 )
+from ..ableton_handoff import (
+    AbletonHandoffError,
+    build_ableton_handoff,
+    describe_ableton_handoff,
+)
 from ..chunked import load_chunk_plan, render_chunk_plan
 from ..decision import (
     current_decision,
@@ -545,6 +550,27 @@ def main(argv: Sequence[str] | None = None) -> int:
             for line in describe_revisions(log):
                 print(line)
             print(f"- log: {args.project / 'revision_log.json'}")
+            return 0
+
+        if args.command == "ableton-handoff":
+            try:
+                manifest = build_ableton_handoff(
+                    args.project,
+                    overwrite=args.overwrite,
+                    first_track_index=args.first_track_index,
+                    session_slot=args.session_slot,
+                    automation=[parse_automation_binding(text) for text in args.automate],
+                    split_drums=args.split_drums,
+                    sends=[parse_send_binding(text) for text in args.send],
+                )
+            except AbletonHandoffError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 2
+            for line in describe_ableton_handoff(manifest):
+                print(line)
+            print("- Live connection: not required")
+            print("- adoption unchanged: yes")
+            print("- preference memory appended: no")
             return 0
 
         if args.command == "adopt":

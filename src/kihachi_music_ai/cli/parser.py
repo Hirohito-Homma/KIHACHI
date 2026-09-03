@@ -398,6 +398,58 @@ def build_parser() -> argparse.ArgumentParser:
         help="optional descriptive tag (repeatable); evidence only, never scoring",
     )
 
+    ableton_handoff = subparsers.add_parser(
+        "ableton-handoff",
+        help=(
+            "build a durable Ableton handoff from the explicitly human-adopted take "
+            "(adopts nothing; talks to Live about nothing)"
+        ),
+    )
+    ableton_handoff.add_argument(
+        "project",
+        type=Path,
+        help="source project that owns revision_log.json with an adopted round",
+    )
+    ableton_handoff.add_argument(
+        "--first-track-index",
+        type=int,
+        default=0,
+        help="Live index the first created track lands on; check it with get_live_state",
+    )
+    ableton_handoff.add_argument(
+        "--session-slot",
+        type=int,
+        default=0,
+        help="empty Session slot the clips are built in before being copied",
+    )
+    ableton_handoff.add_argument(
+        "--automate",
+        action="append",
+        default=[],
+        metavar="BINDING",
+        help=(
+            "bind a per-section SongSpec field to a Live device parameter as "
+            "part:field:device_index:parameter_index[:low:high] (repeatable)"
+        ),
+    )
+    ableton_handoff.add_argument(
+        "--split-drums",
+        action="store_true",
+        help="lay the composed drum part out as kick / drums / percussion tracks",
+    )
+    ableton_handoff.add_argument(
+        "--send",
+        action="append",
+        default=[],
+        metavar="BINDING",
+        help="route a part to a return as part:send_index[:low:high] (repeatable)",
+    )
+    ableton_handoff.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="replace ableton_handoff.json / arrangement_plan.json when provenance differs",
+    )
+
     report = subparsers.add_parser(
         "report",
         help="write a page for comparing takes by ear (renders nothing, adopts nothing)",
