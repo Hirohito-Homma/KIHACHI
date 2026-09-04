@@ -173,7 +173,35 @@
         "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
         "packages awaiting authorize: 2"
       ]
+    },
+    {
+      "index": 6,
+      "at": "2026-09-04T20:05:40.492214+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift: 0 authorized; wrote HOLD community drafts under community/hold/; no posts published",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
     }
   ],
-  "current_shift": 5
+  "current_shift": 6
 }
