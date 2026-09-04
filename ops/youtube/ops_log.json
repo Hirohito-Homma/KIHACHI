@@ -58,7 +58,36 @@
         "leave finished projects for the packager",
         "queued briefs: mutation-signal-premiere"
       ]
+    },
+    {
+      "index": 2,
+      "at": "2026-09-04T04:05:59.175128+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift: ACE-Step down; marked premiere produced_local; added process-short local-slice + package",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 1,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
     }
   ],
-  "current_shift": 1
+  "current_shift": 2
 }

@@ -122,6 +122,18 @@ class YouTubeOpsTests(unittest.TestCase):
             self.assertFalse(auth.record["upload_performed"])
             self.assertTrue((ops / "authorized" / package.package["slug"] / "authorize.json").is_file())
 
+    def test_title_override_keeps_two_takes_as_distinct_packages(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            ops = root / "ops"
+            first = _write_project(root, "take-a")
+            second = _write_project(root, "take-b")
+            a = build_release_package(first, ops, title="Mutation Signal Premiere")
+            b = build_release_package(second, ops, title="Mutation Signal Process Short")
+            self.assertEqual(a.package["slug"], "mutation-signal-premiere")
+            self.assertEqual(b.package["slug"], "mutation-signal-process-short")
+            self.assertNotEqual(a.package_dir, b.package_dir)
+
     def test_checklist_requires_evidence_for_done(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             ops = Path(temp) / "ops"

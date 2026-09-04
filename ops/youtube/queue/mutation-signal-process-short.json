@@ -1,0 +1,11 @@
+{
+  "ops_version": "0.1",
+  "title": "Mutation Signal Process Short",
+  "brief": "Mutation Funk process short。110 BPM、D#m。スラップベースとVocoderの短いフック。ミニマル、8小節で掴む。",
+  "pillar": "mutation / revision process shorts",
+  "status": "produced_local",
+  "created_at": "2026-09-04T04:05:58.344577+00:00",
+  "project": "projects/mutation-signal-process-short",
+  "blocked_on": "ace_step_audio_render",
+  "updated_at": "2026-09-04T04:05:58.433548+00:00"
+}

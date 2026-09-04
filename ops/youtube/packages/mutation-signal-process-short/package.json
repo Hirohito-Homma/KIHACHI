@@ -1,0 +1,25 @@
+{
+  "ops_version": "0.1",
+  "slug": "mutation-signal-process-short",
+  "title": "Mutation Signal Process Short",
+  "project": "projects/mutation-signal-process-short",
+  "created_at": "2026-09-04T04:06:59.901145+00:00",
+  "audio_relative": null,
+  "review": {
+    "alignment_score": null,
+    "grade": null,
+    "blocking": 0
+  },
+  "ready_for_authorize": false,
+  "blockers": [
+    "no render audio found under audio/"
+  ],
+  "files": {
+    "title": "youtube_title.txt",
+    "description": "youtube_description.md",
+    "tags": "youtube_tags.txt",
+    "chapters": "youtube_chapters.txt",
+    "thumbnail_brief": "thumbnail_brief.md",
+    "manifest": "package.json"
+  }
+}
