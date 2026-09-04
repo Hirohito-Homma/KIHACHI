@@ -18,6 +18,7 @@ from typing import Sequence
 from . import song
 from .connection import ace_client, print_lora_status
 from .parser import build_parser
+from .youtube_ops_cli import youtube_ops as run_youtube_ops
 from ..analyzer import analyze_project
 from ..adapters.ace_step import (
     AceStepError,
@@ -430,6 +431,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return song.local_slice(args)
         if args.command == "audio-slice":
             return song.audio_slice(args)
+        if args.command == "youtube-ops":
+            return run_youtube_ops(args)
 
         if args.command == "analyze":
             manifest = analyze_project(

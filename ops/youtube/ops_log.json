@@ -1,0 +1,64 @@
+{
+  "ops_version": "0.1",
+  "entries": [
+    {
+      "index": 0,
+      "at": "2026-09-04T00:34:09.449574+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "Stand up YouTube monetization ops team",
+      "snapshot": {
+        "queue_items": 0,
+        "packages": 0,
+        "authorized": 0,
+        "checklist_done": 0,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 0"
+      ]
+    },
+    {
+      "index": 1,
+      "at": "2026-09-04T00:34:19.166794+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "local-slice for Mutation Signal Premiere; package built (awaiting audio render + human authorize)",
+      "snapshot": {
+        "queue_items": 1,
+        "packages": 1,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere"
+      ]
+    }
+  ],
+  "current_shift": 1
+}

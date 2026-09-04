@@ -974,6 +974,118 @@ def build_parser() -> argparse.ArgumentParser:
     ):
         lifecycle = lora_commands.add_parser(command, help=help_text)
         add_ace_connection_arguments(lifecycle)
+
+    youtube_ops = subparsers.add_parser(
+        "youtube-ops",
+        help=(
+            "YouTube monetization ops team: 24h shift roster, release packages, "
+            "and a human publish gate (never uploads)"
+        ),
+    )
+    youtube_commands = youtube_ops.add_subparsers(dest="youtube_ops_command", required=True)
+    youtube_commands.add_parser("roster", help="print the standing team and UTC shift map")
+    yt_status = youtube_commands.add_parser(
+        "status", help="show live shift, queue depth, and checklist progress"
+    )
+    yt_status.add_argument(
+        "--ops-dir",
+        type=Path,
+        default=None,
+        help="ops workspace root (default: ops/youtube)",
+    )
+    yt_shift = youtube_commands.add_parser(
+        "shift", help="log the current (or chosen) role's shift entry"
+    )
+    yt_shift.add_argument(
+        "--ops-dir",
+        type=Path,
+        default=None,
+        help="ops workspace root (default: ops/youtube)",
+    )
+    yt_shift.add_argument(
+        "--role",
+        choices=("strategy", "producer", "packager", "gate", "analyst", "community"),
+        help="override the role that owns the current UTC block",
+    )
+    yt_shift.add_argument("--note", default="", help="optional shift note")
+    yt_enqueue = youtube_commands.add_parser(
+        "enqueue", help="queue a production brief for the producer shift"
+    )
+    yt_enqueue.add_argument("brief", help="natural-language music brief")
+    yt_enqueue.add_argument("--title", help="short queue title")
+    yt_enqueue.add_argument("--pillar", help="content pillar label")
+    yt_enqueue.add_argument(
+        "--ops-dir",
+        type=Path,
+        default=None,
+        help="ops workspace root (default: ops/youtube)",
+    )
+    yt_package = youtube_commands.add_parser(
+        "package", help="build a YouTube release package from a KIHACHI project"
+    )
+    yt_package.add_argument("project", type=Path, help="finished project directory")
+    yt_package.add_argument(
+        "--ops-dir",
+        type=Path,
+        default=None,
+        help="ops workspace root (default: ops/youtube)",
+    )
+    yt_package.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="replace an existing package with the same slug",
+    )
+    yt_checklist = youtube_commands.add_parser(
+        "checklist", help="print the monetization readiness checklist"
+    )
+    yt_checklist.add_argument(
+        "--ops-dir",
+        type=Path,
+        default=None,
+        help="ops workspace root (default: ops/youtube)",
+    )
+    yt_checklist_set = youtube_commands.add_parser(
+        "checklist-set", help="update one monetization checklist item"
+    )
+    yt_checklist_set.add_argument("item_id", help="checklist item id")
+    yt_checklist_set.add_argument(
+        "--status",
+        required=True,
+        choices=("pending", "done", "blocked"),
+        help="new status",
+    )
+    yt_checklist_set.add_argument(
+        "--evidence",
+        default="",
+        help="evidence text required when marking done",
+    )
+    yt_checklist_set.add_argument(
+        "--ops-dir",
+        type=Path,
+        default=None,
+        help="ops workspace root (default: ops/youtube)",
+    )
+    yt_authorize = youtube_commands.add_parser(
+        "authorize",
+        help="human publish gate: mark a ready package authorized (does not upload)",
+    )
+    yt_authorize.add_argument("package_slug", help="package directory name under packages/")
+    yt_authorize.add_argument(
+        "--reason",
+        required=True,
+        help="why this package may be published",
+    )
+    yt_authorize.add_argument(
+        "--by",
+        default="human",
+        help="who authorized (default: human)",
+    )
+    yt_authorize.add_argument(
+        "--ops-dir",
+        type=Path,
+        default=None,
+        help="ops workspace root (default: ops/youtube)",
+    )
     return parser
 
 

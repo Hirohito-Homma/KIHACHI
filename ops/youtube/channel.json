@@ -1,0 +1,12 @@
+{
+  "ops_version": "0.1",
+  "channel_name": "KIHACHI",
+  "positioning": "Original electronic / dance music produced with the KIHACHI Music Brain pipeline.",
+  "upload_cadence": "human-gated; packages queue until authorized",
+  "default_language": "ja",
+  "content_pillars": [
+    "full track premieres",
+    "mutation / revision process shorts",
+    "genre hybrid explainers"
+  ]
+}
