@@ -115,7 +115,36 @@
         "run youtube-ops package on finished projects",
         "existing packages: mutation-signal-premiere, mutation-signal-process-short"
       ]
+    },
+    {
+      "index": 4,
+      "at": "2026-09-04T12:08:57.044479+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift: gate held closed; 0/2 packages ready (no audio); wrote gate_status.md; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
     }
   ],
-  "current_shift": 3
+  "current_shift": 4
 }
