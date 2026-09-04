@@ -1,0 +1,72 @@
+{
+  "version": "0.1",
+  "source_prompt": "Mutation Funk、DUB、Tech House。110 BPM、D#m。ファンキーなスラップベース。Vocoder。",
+  "prompt": "Title: Mutation Signal\nCreate a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.\nMood: dark, subtly coloured.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.\nHarmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25, no vocal); minimal groove (8 bars, energy 0.44); mutation build (8 bars, energy 0.66, wide dub echoes); psychedelic drop (8 bars, energy 0.88, wide dub echoes, vocal-led). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, wide dub echoes, heavy saturation, club-ready dynamics, clear separation between kick and bass.",
+  "seed": 8,
+  "song": {
+    "title": "Mutation Signal",
+    "bpm": 110.0,
+    "key": "D# minor",
+    "tonic": "D#",
+    "mode": "minor",
+    "time_signature": "4/4",
+    "total_bars": 32,
+    "duration_sec": 69.818
+  },
+  "genres": [
+    {
+      "name": "mutation_funk",
+      "weight": 0.4
+    },
+    {
+      "name": "dub",
+      "weight": 0.3
+    },
+    {
+      "name": "tech_house",
+      "weight": 0.3
+    }
+  ],
+  "harmony": {
+    "progression": [
+      "D#m",
+      "B",
+      "F#",
+      "C#"
+    ],
+    "harmonic_rhythm_bars": 1
+  },
+  "sections": [
+    {
+      "name": "minimal_intro",
+      "start_bar": 1,
+      "length_bars": 8,
+      "energy": 0.25
+    },
+    {
+      "name": "minimal_groove",
+      "start_bar": 9,
+      "length_bars": 8,
+      "energy": 0.44
+    },
+    {
+      "name": "mutation_build",
+      "start_bar": 17,
+      "length_bars": 8,
+      "energy": 0.66
+    },
+    {
+      "name": "psychedelic_drop",
+      "start_bar": 25,
+      "length_bars": 8,
+      "energy": 0.88
+    }
+  ],
+  "parts": [
+    "bass",
+    "drums",
+    "chords",
+    "vocoder"
+  ],
+  "song_spec_sha256": "12f72770b3df80cf6b36cca63eb8202f7e5720892ecb8d4790a1cb4765fe14a5"
+}

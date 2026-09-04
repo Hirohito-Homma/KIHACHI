@@ -1,0 +1,54 @@
+{
+  "ops_version": "0.1",
+  "items": [
+    {
+      "id": "channel_created",
+      "label": "YouTube channel exists and is owned by the operator",
+      "status": "pending",
+      "evidence": "",
+      "updated_at": null
+    },
+    {
+      "id": "ypp_watch_hours",
+      "label": "Public watch hours meet current YPP threshold (or Shorts alternative)",
+      "status": "pending",
+      "evidence": "",
+      "updated_at": null
+    },
+    {
+      "id": "ypp_subscribers",
+      "label": "Subscriber count meets current YPP threshold",
+      "status": "pending",
+      "evidence": "",
+      "updated_at": null
+    },
+    {
+      "id": "original_content",
+      "label": "Uploads are original / licensed; reused content policy reviewed",
+      "status": "pending",
+      "evidence": "",
+      "updated_at": null
+    },
+    {
+      "id": "community_guidelines",
+      "label": "No active Community Guidelines strikes blocking monetization",
+      "status": "pending",
+      "evidence": "",
+      "updated_at": null
+    },
+    {
+      "id": "ad_friendly",
+      "label": "Titles, thumbnails, and audio are advertiser-friendly",
+      "status": "pending",
+      "evidence": "",
+      "updated_at": null
+    },
+    {
+      "id": "human_publish_gate",
+      "label": "Publish requires an explicit human authorize record",
+      "status": "done",
+      "evidence": "authorize_package is the publish gate; uploads stay outside KIHACHI",
+      "updated_at": "2026-09-04T00:34:10.179452+00:00"
+    }
+  ]
+}
