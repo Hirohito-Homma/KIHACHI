@@ -230,7 +230,36 @@
         "enqueue briefs with youtube-ops enqueue when themes are clear",
         "queue depth now: 2"
       ]
+    },
+    {
+      "index": 8,
+      "at": "2026-09-05T04:05:45.489895+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift: ACE-Step still down; skipped duplicate local-slice; both projects remain produced_local awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
     }
   ],
-  "current_shift": 7
+  "current_shift": 8
 }
