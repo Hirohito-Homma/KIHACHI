@@ -317,11 +317,14 @@ def build_release_package(
     ops_dir: Path | None = None,
     *,
     overwrite: bool = False,
+    title: str | None = None,
 ) -> PackageManifest:
     """Build a YouTube release package from a finished KIHACHI project.
 
     Reads whatever local artifacts exist; missing audio or review does not invent
-    readiness. Publish authorization is a separate step.
+    readiness. Publish authorization is a separate step. ``title`` overrides the
+    SongSpec/project-derived name so two takes of the same track can ship as
+    distinct packages.
     """
 
     root = ensure_ops_workspace(ops_dir)
@@ -336,8 +339,9 @@ def build_release_package(
     prompt = _read_text(project_dir / "prompt.txt")
     audio = _find_audio(project_dir)
 
-    title = _package_title(spec, project_dir)
-    slug = _slug(title)
+    resolved_title = title.strip() if title and title.strip() else None
+    package_title = resolved_title or _package_title(spec, project_dir)
+    slug = _slug(package_title)
     package_dir = root / PACKAGES_DIR_NAME / slug
     if package_dir.exists() and not overwrite:
         raise FileExistsError(
@@ -365,19 +369,21 @@ def build_release_package(
         blockers.append("generation_review.json missing")
 
     description = _build_description(
-        title=title,
+        title=package_title,
         spec=spec if isinstance(spec, dict) else {},
         lyrics=lyrics,
         prompt=prompt,
     )
     tags = _build_tags(spec if isinstance(spec, dict) else {})
     chapters = _build_chapters(spec if isinstance(spec, dict) else {})
-    thumbnail_brief = _build_thumbnail_brief(title, spec if isinstance(spec, dict) else {})
+    thumbnail_brief = _build_thumbnail_brief(
+        package_title, spec if isinstance(spec, dict) else {}
+    )
 
     package = {
         "ops_version": OPS_VERSION,
         "slug": slug,
-        "title": title,
+        "title": package_title,
         "project": str(project_dir),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "audio_relative": str(audio.relative_to(project_dir)) if audio else None,
@@ -394,7 +400,7 @@ def build_release_package(
         },
     }
 
-    (package_dir / "youtube_title.txt").write_text(title + "\n", encoding="utf-8")
+    (package_dir / "youtube_title.txt").write_text(package_title + "\n", encoding="utf-8")
     (package_dir / "youtube_description.md").write_text(description, encoding="utf-8")
     (package_dir / "youtube_tags.txt").write_text("\n".join(tags) + "\n", encoding="utf-8")
     (package_dir / "youtube_chapters.txt").write_text(chapters, encoding="utf-8")

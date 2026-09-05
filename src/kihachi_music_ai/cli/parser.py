@@ -1035,6 +1035,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="replace an existing package with the same slug",
     )
+    yt_package.add_argument(
+        "--title",
+        help="override the YouTube title / package slug derived from the project",
+    )
     yt_checklist = youtube_commands.add_parser(
         "checklist", help="print the monetization readiness checklist"
     )

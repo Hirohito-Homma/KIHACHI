@@ -1,0 +1,64 @@
+{
+  "version": "0.1",
+  "source_prompt": "Mutation Funk process short。110 BPM、D#m。スラップベースとVocoderの短いフック。ミニマル、8小節で掴む。",
+  "prompt": "Title: Mutation Signal\nCreate a mutation funk 100% hybrid at 110 BPM in D# minor.\nMood: shadowed, deeply psychedelic.\nGroove: heavily syncopated, off-beat led, swung 0.54, machine-tight.\nBass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.\nDrums: four on floor, driving four-on-the-floor kick, relentless 16th hats.\nHarmony: D#m - B - F# - C#, one chord per bar; synth chord, short offbeat stabs, dry.\nVocal: vocoded dark robotic phrases.\nArrangement: minimal intro (8 bars, energy 0.25, minimal, no vocal); minimal groove (8 bars, energy 0.44, minimal); mutation build (8 bars, energy 0.66, wide dub echoes); psychedelic drop (8 bars, energy 0.88, wide dub echoes, vocal-led). Overall: lift steadily to a peak of 0.88 at psychedelic drop, never losing the dance groove.\nProduction: deep sub control, tight dry space, restrained distortion, club-ready dynamics, clear separation between kick and bass.",
+  "seed": 11,
+  "song": {
+    "title": "Mutation Signal",
+    "bpm": 110.0,
+    "key": "D# minor",
+    "tonic": "D#",
+    "mode": "minor",
+    "time_signature": "4/4",
+    "total_bars": 32,
+    "duration_sec": 69.818
+  },
+  "genres": [
+    {
+      "name": "mutation_funk",
+      "weight": 1.0
+    }
+  ],
+  "harmony": {
+    "progression": [
+      "D#m",
+      "B",
+      "F#",
+      "C#"
+    ],
+    "harmonic_rhythm_bars": 1
+  },
+  "sections": [
+    {
+      "name": "minimal_intro",
+      "start_bar": 1,
+      "length_bars": 8,
+      "energy": 0.25
+    },
+    {
+      "name": "minimal_groove",
+      "start_bar": 9,
+      "length_bars": 8,
+      "energy": 0.44
+    },
+    {
+      "name": "mutation_build",
+      "start_bar": 17,
+      "length_bars": 8,
+      "energy": 0.66
+    },
+    {
+      "name": "psychedelic_drop",
+      "start_bar": 25,
+      "length_bars": 8,
+      "energy": 0.88
+    }
+  ],
+  "parts": [
+    "bass",
+    "drums",
+    "chords",
+    "vocoder"
+  ],
+  "song_spec_sha256": "ae3eb1239b268851c33b07f68d063fd5ce67f57290d4960937c180247c87cf5c"
+}

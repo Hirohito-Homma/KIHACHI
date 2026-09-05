@@ -59,6 +59,7 @@ def youtube_ops(args: argparse.Namespace) -> int:
             args.project,
             args.ops_dir,
             overwrite=args.overwrite,
+            title=args.title,
         )
         package = manifest.package
         print(f"Built release package: {manifest.package_dir}")
