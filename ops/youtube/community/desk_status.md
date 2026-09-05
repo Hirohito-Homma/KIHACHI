@@ -1,11 +1,14 @@
-# Community Desk status — 2026-09-04T20:05:40.122189+00:00
+# Community Desk status — 2026-09-05T20:05:32.182997+00:00
 
 ## Authorized drops
-**None.** No community posts are cleared to publish.
+**None** (day 2). Nothing cleared to publish.
+
+## HOLD drafts retained
+- `community/hold/mutation-signal-premiere.md`
+- `community/hold/mutation-signal-process-short.md`
 
 ## Action this shift
-- Prepared **HOLD** drafts for packages still awaiting audio + human authorize
-- Did not post anywhere; drafts stay under `community/hold/`
+Reconfirmed HOLD. No promotions to `community/ready/`. No external posts.
 
-## Next
-After gate `authorize`, promote the matching hold draft to `community/ready/` and have a human paste into YouTube Community / comments.
+## Blocker
+Same as pipeline: ACE-Step audio → human authorize → then promote HOLD drafts.
