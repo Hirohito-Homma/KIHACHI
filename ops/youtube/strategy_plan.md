@@ -1,27 +1,19 @@
-# Strategy plan — 2026-09-05T00:05:47.500230+00:00
+# Strategy plan (day 3) — 2026-09-06T00:05:44.959787+00:00
 
-## Decision this shift
-**Do not enqueue new briefs.** Queue depth is 2 and both are blocked on ACE-Step audio.
-Adding more SongSpecs would only widen WIP without moving monetization.
+## Decision
+**Still no new enqueue.** Two packages remain WIP without audio for ~48h.
+Growing the queue would only increase stale inventory.
 
-## Priorities (ordered)
-1. **Unblock audio** — restore ACE-Step so producer can `audio-slice` both queued projects
-2. **Re-package + human authorize** — premiere first, then process short
-3. **Community promote** — move HOLD drafts to ready after authorize
-4. **Operator evidence** — channel ownership / Studio metrics for checklist items 1–6
-5. **Next brief (parked)** — third pillar *genre hybrid explainers* once #1–2 clear:
-   - working title: `Mutation Signal Explainer`
-   - angle: 90–120s JA/EN explain of Mutation Funk × Dub × Tech House blend
-   - do **not** enqueue until audio backlog is zero
+## Priorities
+1. Restore ACE-Step / attach WAVs for both queued projects
+2. Packager overwrite → human authorize (premiere first)
+3. Promote community HOLD → ready after authorize
+4. Operator supplies Studio evidence for checklist 1–6
+5. Parked brief: `Mutation Signal Explainer` (genre hybrid) — enqueue only when audio backlog = 0
 
-## Pillar coverage
-| Pillar | In flight |
-|--------|-----------|
-| full track premieres | mutation-signal-premiere |
-| mutation / revision process shorts | mutation-signal-process-short |
-| genre hybrid explainers | parked (see #5) |
+## Ops hygiene
+- Timer `youtube-ops-24h-shift` expires **2026-09-11**; renew before then if 24h coverage must continue
+- Avoid package churn-only shifts once metadata is stable; wait for audio
 
-## Explicit non-goals this cycle
-- YouTube upload / YPP application from agents
-- Checklist marks without operator evidence
-- Growing the queue while ACE-Step is down
+## Non-goals
+Agent uploads, YPP filing, checklist greens without evidence.
