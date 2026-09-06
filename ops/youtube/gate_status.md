@@ -1,13 +1,13 @@
-# Publish Gate status — 2026-09-05T12:05:40.807661+00:00
+# Publish Gate status (day 3) — 2026-09-06T12:05:34.908302+00:00
 
 ## Decision
-**No authorize. No upload.** Gate remains closed (day 2).
+**No authorize. No upload.** Gate remains closed.
 
 ## Audit
-| Slug | Ready | Blockers |
-|------|-------|----------|
-| mutation-signal-premiere | no | no render audio under audio/ |
-| mutation-signal-process-short | no | no render audio under audio/ |
+| Package | Ready | Blocker |
+|---------|-------|---------|
+| mutation-signal-premiere | no | no audio/ |
+| mutation-signal-process-short | no | no audio/ |
 
-## Unblock
-ACE-Step audio → packager overwrite → human listen → `youtube-ops authorize`.
+## Note
+~72h without ACE-Step. Gate will not greenlight metadata-only packages.
