@@ -28,5 +28,5 @@ Thanks for listening — this drop was designed as SongSpec → MIDI → review 
 - Promote only after `ops/youtube/authorized/mutation-signal-process-short/authorize.json` exists
 
 ## Desk check
-- Reconfirmed HOLD at 2026-09-05T20:05:32.182997+00:00
-- Still not authorized — do not post
+- Day-3 reconfirm HOLD at 2026-09-06T20:05:57.717013+00:00
+- Not authorized — do not post

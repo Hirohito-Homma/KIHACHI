@@ -1,14 +1,9 @@
-# Community Desk status — 2026-09-05T20:05:32.182997+00:00
+# Community Desk status (day 3) — 2026-09-06T20:05:57.717013+00:00
 
-## Authorized drops
-**None** (day 2). Nothing cleared to publish.
+Authorized drops: **0**. HOLD drafts retained; nothing posted.
 
-## HOLD drafts retained
-- `community/hold/mutation-signal-premiere.md`
-- `community/hold/mutation-signal-process-short.md`
+HOLD:
+- mutation-signal-premiere.md
+- mutation-signal-process-short.md
 
-## Action this shift
-Reconfirmed HOLD. No promotions to `community/ready/`. No external posts.
-
-## Blocker
-Same as pipeline: ACE-Step audio → human authorize → then promote HOLD drafts.
+Next: promote only after `authorized/<slug>/authorize.json` exists.
