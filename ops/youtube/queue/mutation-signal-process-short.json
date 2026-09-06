@@ -10,6 +10,6 @@
   "updated_at": "2026-09-05T08:05:35.467399+00:00",
   "package_slug": "mutation-signal-process-short",
   "packager_note": "Day-2 packager refresh; still no ACE-Step audio; do not authorize.",
-  "producer_checked_at": "2026-09-05T04:05:45.121970+00:00",
-  "producer_note": "Producer shift re-confirmed: local-slice artifacts present; ACE-Step still unreachable (probed 8001/7860/8000/8188); no audio-slice."
+  "producer_checked_at": "2026-09-06T04:05:40.757081+00:00",
+  "producer_note": "Day-3 producer: ACE-Step still down; local-slice intact; no audio-slice."
 }
