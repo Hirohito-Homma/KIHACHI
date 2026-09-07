@@ -1,19 +1,17 @@
-# Strategy plan (day 3) — 2026-09-06T00:05:44.959787+00:00
+# Strategy plan (day 4) — 2026-09-07T00:05:40.212268+00:00
 
 ## Decision
-**Still no new enqueue.** Two packages remain WIP without audio for ~48h.
-Growing the queue would only increase stale inventory.
+**No new enqueue.** ~96h without ACE-Step; WIP stays at 2.
 
 ## Priorities
-1. Restore ACE-Step / attach WAVs for both queued projects
-2. Packager overwrite → human authorize (premiere first)
-3. Promote community HOLD → ready after authorize
-4. Operator supplies Studio evidence for checklist 1–6
-5. Parked brief: `Mutation Signal Explainer` (genre hybrid) — enqueue only when audio backlog = 0
+1. Human: restore ACE-Step or place WAVs under `projects/*/audio/`
+2. audio-slice → package --overwrite → human authorize (premiere first)
+3. Promote community HOLD drafts
+4. Operator Studio evidence for checklist 1–6
+5. Parked: Mutation Signal Explainer — only after audio backlog clears
 
-## Ops hygiene
-- Timer `youtube-ops-24h-shift` expires **2026-09-11**; renew before then if 24h coverage must continue
-- Avoid package churn-only shifts once metadata is stable; wait for audio
+## Coverage
+24h timer expires **2026-09-11** (~4 days). Renew if continuous ops must continue.
 
 ## Non-goals
-Agent uploads, YPP filing, checklist greens without evidence.
+Agent upload / YPP filing / checklist greens without evidence / queue growth while blocked.
