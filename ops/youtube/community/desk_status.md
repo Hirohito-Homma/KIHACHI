@@ -1,9 +1,8 @@
-# Community Desk status (day 3) — 2026-09-06T20:05:57.717013+00:00
+# Community Desk status (day 4) — 2026-09-07T20:05:55.164271+00:00
 
-Authorized drops: **0**. HOLD drafts retained; nothing posted.
+Authorized: **0**. HOLD retained; nothing posted.
 
-HOLD:
-- mutation-signal-premiere.md
-- mutation-signal-process-short.md
+- community/hold/mutation-signal-premiere.md
+- community/hold/mutation-signal-process-short.md
 
-Next: promote only after `authorized/<slug>/authorize.json` exists.
+Promote only after authorize receipt exists.
