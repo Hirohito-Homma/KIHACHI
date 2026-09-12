@@ -1,0 +1,1 @@
+Revision pass: keep 110 BPM, D# minor, 4/4, 32 bars. Preserve the current SongSpec alignment and refine sound quality only.

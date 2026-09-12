@@ -1,4 +1,4 @@
-# Mutation Signal
+# Mutation Signal Process Short
 
 Original track prepared with KIHACHI Music AI.
 
@@ -13,18 +13,18 @@ See youtube_chapters.txt
 
 [inst]
 [verse]
-Bend Echo
-Move all night
+Mutate sideways
+Mutate the spiral
 [verse]
-Switch underground
-Move the machine
-Twist downtown
-Move the shadow
+Warp sideways
+Switch the spiral
+Twist Mutate
+Warp Bend
 [chorus]
-Echo the engine
-Drive sideways
-Dub the space
-Push Pull
+Code Prism
+Flip the spiral
+Switch the funk
+Prism Spiral
 
 ## Production note
 
@@ -32,14 +32,14 @@ Prompt compiled from SongSpec (excerpt):
 
 ```
 Title: Mutation Signal
-Create a mutation funk 40%, dub 30%, tech house 30% hybrid at 110 BPM in D# minor.
-Mood: dark, subtly coloured.
+Create a mutation funk 100% hybrid at 110 BPM in D# minor.
+Mood: shadowed, deeply psychedelic.
 Groove: heavily syncopated, off-beat led, swung 0.54, machine-tight.
 Bass: dominant and up-front slap electric bass, restlessly syncopated phrasing, occasional ghost notes, occasional octave pops, mutation intensity 0.78.
-Drums: syncopated tech house, driving four-on-the-floor kick, relentless 16th hats, spacious dub gaps.
-Harmony: D#m - B - F# - C#, one chord per bar; dub chord stab, short offbeat stabs, tape-delay tails.
+Drums: four on floor, driving four-on-the-floor kick, relentless 16th hats.
+Harmony: D#m - B - F# - C#, one chord per bar; synth chord, short offbeat stabs, dry.
 Vocal: vocoded dark robotic phrases.
-A
+Arrangement: minimal intro (8 bars, energy 0.25, minimal, no 
 ```
 
 ---

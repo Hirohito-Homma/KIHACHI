@@ -58,7 +58,1498 @@
         "leave finished projects for the packager",
         "queued briefs: mutation-signal-premiere"
       ]
+    },
+    {
+      "index": 2,
+      "at": "2026-09-04T04:05:59.175128+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift: ACE-Step down; marked premiere produced_local; added process-short local-slice + package",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 1,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 3,
+      "at": "2026-09-04T08:06:14.250338+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift: refreshed both packages; still blocked on ACE-Step audio; wrote packager_handoff.md",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 4,
+      "at": "2026-09-04T12:08:57.044479+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift: gate held closed; 0/2 packages ready (no audio); wrote gate_status.md; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 5,
+      "at": "2026-09-04T16:05:40.355201+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift: audited checklist 1/7; no evidence for remaining 6 items; wrote analyst_report.md; bottleneck=ACE-Step audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
+    },
+    {
+      "index": 6,
+      "at": "2026-09-04T20:05:40.492214+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift: 0 authorized; wrote HOLD community drafts under community/hold/; no posts published",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
+    },
+    {
+      "index": 7,
+      "at": "2026-09-05T00:05:47.858214+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "scheduled 24h shift: no new enqueue; priorities=ACE-Step audio then authorize; parked explainer brief; wrote strategy_plan.md",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 2"
+      ]
+    },
+    {
+      "index": 8,
+      "at": "2026-09-05T04:05:45.489895+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift: ACE-Step still down; skipped duplicate local-slice; both projects remain produced_local awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 9,
+      "at": "2026-09-05T08:05:35.826361+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift: refreshed both packages; still blocked on ACE-Step audio; updated packager_handoff.md",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 10,
+      "at": "2026-09-05T12:05:41.173518+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift: gate held closed day-2; 0/2 ready (no audio); no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 11,
+      "at": "2026-09-05T16:05:32.574272+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift day-2: checklist still 1/7; no evidence for checklist-set; bottleneck unchanged=ACE-Step",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
+    },
+    {
+      "index": 12,
+      "at": "2026-09-05T20:05:32.554939+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift day-2: 0 authorized; HOLD drafts retained; no posts",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
+    },
+    {
+      "index": 13,
+      "at": "2026-09-06T00:05:45.322601+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "scheduled 24h shift day-3: hold enqueue; priorities unchanged; note timer expiry 2026-09-11",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 2"
+      ]
+    },
+    {
+      "index": 14,
+      "at": "2026-09-06T04:05:41.138453+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift day-3: ACE-Step still down; skipped duplicate local-slice",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 15,
+      "at": "2026-09-06T08:05:34.317448+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift day-3: skipped churn overwrite; packages stable; still awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 16,
+      "at": "2026-09-06T12:05:35.277022+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift day-3: gate held closed; 0/2 ready; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 17,
+      "at": "2026-09-06T16:05:44.598317+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift day-3: checklist 1/7 unchanged; no checklist-set; ~72h ACE-Step stall noted",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
+    },
+    {
+      "index": 18,
+      "at": "2026-09-06T20:05:58.084272+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift day-3: 0 authorized; HOLD retained; no posts",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
+    },
+    {
+      "index": 19,
+      "at": "2026-09-07T00:05:40.590682+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "scheduled 24h shift day-4: hold enqueue; ~96h ACE-Step stall; timer expires 2026-09-11",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 2"
+      ]
+    },
+    {
+      "index": 20,
+      "at": "2026-09-07T04:05:50.229670+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift day-4: ACE-Step still down; skipped duplicate local-slice",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 21,
+      "at": "2026-09-07T08:05:52.147852+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift day-4: skipped churn overwrite; awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 22,
+      "at": "2026-09-07T12:05:49.720907+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift day-4: gate held closed; 0/2 ready; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 23,
+      "at": "2026-09-07T16:05:46.151668+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift day-4: checklist 1/7; no checklist-set; ~96h ACE-Step stall",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
+    },
+    {
+      "index": 24,
+      "at": "2026-09-07T20:05:55.542040+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift day-4: 0 authorized; HOLD retained; no posts",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
+    },
+    {
+      "index": 25,
+      "at": "2026-09-08T00:05:45.580792+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "scheduled 24h shift day-5: hold enqueue; renew 24h timer; ACE-Step still blocking",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 2"
+      ]
+    },
+    {
+      "index": 26,
+      "at": "2026-09-08T04:05:42.113984+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift day-5: ACE-Step still down; skipped duplicate local-slice",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 27,
+      "at": "2026-09-08T08:05:52.949929+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift day-5: skipped churn overwrite; awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 28,
+      "at": "2026-09-08T12:05:47.794639+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift day-5: gate held closed; 0/2 ready; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 29,
+      "at": "2026-09-08T16:05:54.565327+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift day-5: checklist 1/7; no checklist-set; ~5d ACE-Step stall",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
+    },
+    {
+      "index": 30,
+      "at": "2026-09-08T20:05:42.141756+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift day-5: 0 authorized; HOLD retained; no posts",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
+    },
+    {
+      "index": 31,
+      "at": "2026-09-09T00:05:58.531800+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "scheduled 24h shift day-6: hold enqueue; ACE-Step still blocking; timer ok until 2026-09-15",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 2"
+      ]
+    },
+    {
+      "index": 32,
+      "at": "2026-09-09T04:05:45.363614+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift day-6: ACE-Step still down; skipped duplicate local-slice",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 33,
+      "at": "2026-09-09T08:05:48.794766+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift day-6: skipped churn overwrite; awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 34,
+      "at": "2026-09-09T12:05:45.996399+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift day-6: gate held closed; 0/2 ready; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 35,
+      "at": "2026-09-09T16:13:04.099548+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift day-6: checklist 1/7; no checklist-set; ~6d ACE-Step stall",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
+    },
+    {
+      "index": 36,
+      "at": "2026-09-09T20:05:55.433491+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift day-6: 0 authorized; HOLD retained; no posts",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
+    },
+    {
+      "index": 37,
+      "at": "2026-09-10T00:05:41.543578+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "scheduled 24h shift day-7: hold enqueue; ~1w ACE-Step stall; timer ok until 2026-09-15",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 2"
+      ]
+    },
+    {
+      "index": 38,
+      "at": "2026-09-10T04:12:59.156346+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift day-7: ACE-Step still down; skipped duplicate local-slice",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 39,
+      "at": "2026-09-10T08:24:04.934750+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift day-7: skipped churn overwrite; awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 40,
+      "at": "2026-09-10T12:21:27.968529+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift day-7: gate held closed; 0/2 ready; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 41,
+      "at": "2026-09-10T16:14:30.386205+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift day-7: checklist 1/7; no checklist-set; ~1w ACE-Step stall",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
+    },
+    {
+      "index": 42,
+      "at": "2026-09-10T20:10:18.793306+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift day-7: 0 authorized; HOLD retained; no posts",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
+    },
+    {
+      "index": 43,
+      "at": "2026-09-11T00:15:14.169189+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "scheduled 24h shift day-8: hold enqueue; ~8d ACE-Step stall; renew timer before 2026-09-15",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 2"
+      ]
+    },
+    {
+      "index": 44,
+      "at": "2026-09-11T04:18:33.875656+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift day-8: ACE-Step still down; skipped duplicate local-slice",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 45,
+      "at": "2026-09-11T08:18:20.808663+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift day-8: skipped churn overwrite; awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 46,
+      "at": "2026-09-11T12:14:20.284767+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift day-8: gate held closed; 0/2 ready; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 47,
+      "at": "2026-09-11T16:18:18.567121+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift day-8: checklist 1/7; no checklist-set; ~8d ACE-Step stall; timer renew due by 2026-09-15",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
+    },
+    {
+      "index": 48,
+      "at": "2026-09-11T20:14:34.140313+00:00",
+      "shift": {
+        "index": 5,
+        "label": "20:00-24:00 UTC",
+        "utc_start_hour": 20,
+        "utc_end_hour": 24
+      },
+      "role": {
+        "id": "community",
+        "name": "Community Desk",
+        "mission": "Draft community posts and reply templates for authorized drops."
+      },
+      "note": "scheduled 24h shift day-8: 0 authorized; HOLD retained; no posts",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "draft community-tab copy for authorized packages",
+        "authorized drops: (none)"
+      ]
+    },
+    {
+      "index": 49,
+      "at": "2026-09-12T00:05:58.401630+00:00",
+      "shift": {
+        "index": 0,
+        "label": "00:00-04:00 UTC",
+        "utc_start_hour": 0,
+        "utc_end_hour": 4
+      },
+      "role": {
+        "id": "strategy",
+        "name": "Strategy Lead",
+        "mission": "Pick the next brief themes and queue production priorities."
+      },
+      "note": "scheduled 24h shift day-9: hold enqueue; renewed 24h timer; ACE-Step still blocking",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "review content pillars in channel.json",
+        "enqueue briefs with youtube-ops enqueue when themes are clear",
+        "queue depth now: 2"
+      ]
+    },
+    {
+      "index": 50,
+      "at": "2026-09-12T04:05:56.835224+00:00",
+      "shift": {
+        "index": 1,
+        "label": "04:00-08:00 UTC",
+        "utc_start_hour": 4,
+        "utc_end_hour": 8
+      },
+      "role": {
+        "id": "producer",
+        "name": "Content Producer",
+        "mission": "Drive KIHACHI compose / local-slice for queued briefs."
+      },
+      "note": "scheduled 24h shift day-9: ACE-Step still down; skipped duplicate local-slice",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "consume queued briefs via kihachi local-slice / audio-slice",
+        "leave finished projects for the packager",
+        "queued briefs: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 51,
+      "at": "2026-09-12T08:05:46.469967+00:00",
+      "shift": {
+        "index": 2,
+        "label": "08:00-12:00 UTC",
+        "utc_start_hour": 8,
+        "utc_end_hour": 12
+      },
+      "role": {
+        "id": "packager",
+        "name": "Package Editor",
+        "mission": "Build YouTube release packages from finished projects."
+      },
+      "note": "scheduled 24h shift day-9: skipped churn overwrite; awaiting audio",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "run youtube-ops package on finished projects",
+        "existing packages: mutation-signal-premiere, mutation-signal-process-short"
+      ]
+    },
+    {
+      "index": 52,
+      "at": "2026-09-12T12:05:51.575825+00:00",
+      "shift": {
+        "index": 3,
+        "label": "12:00-16:00 UTC",
+        "utc_start_hour": 12,
+        "utc_end_hour": 16
+      },
+      "role": {
+        "id": "gate",
+        "name": "Publish Gate",
+        "mission": "Record human authorization; never auto-upload."
+      },
+      "note": "scheduled 24h shift day-9: gate held closed; 0/2 ready; no authorize/upload",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "human listens, then youtube-ops authorize <slug> --reason ...",
+        "authorized so far: (none)",
+        "this role never uploads"
+      ]
+    },
+    {
+      "index": 53,
+      "at": "2026-09-12T16:06:16.813438+00:00",
+      "shift": {
+        "index": 4,
+        "label": "16:00-20:00 UTC",
+        "utc_start_hour": 16,
+        "utc_end_hour": 20
+      },
+      "role": {
+        "id": "analyst",
+        "name": "Analytics Watch",
+        "mission": "Audit queue depth, package readiness, and checklist gaps."
+      },
+      "note": "scheduled 24h shift day-9: checklist 1/7; no checklist-set; ~9d ACE-Step stall",
+      "snapshot": {
+        "queue_items": 2,
+        "packages": 2,
+        "authorized": 0,
+        "checklist_done": 1,
+        "checklist_total": 7,
+        "monetization_ready": false
+      },
+      "actions": [
+        "update checklist evidence with youtube-ops checklist-set",
+        "open checklist items: channel_created, ypp_watch_hours, ypp_subscribers, original_content, community_guidelines, ad_friendly",
+        "packages awaiting authorize: 2"
+      ]
     }
   ],
-  "current_shift": 1
+  "current_shift": 53
 }
