@@ -1,4 +1,4 @@
-# Publish Gate status (day 8) — 2026-09-11T12:14:19.904598+00:00
+# Publish Gate status (day 9) — 2026-09-12T12:05:51.207237+00:00
 
 ## Decision
 **No authorize. No upload.**
@@ -9,4 +9,4 @@
 | mutation-signal-premiere | no | no audio/ |
 | mutation-signal-process-short | no | no audio/ |
 
-~8 days without ACE-Step. Metadata-only packages stay closed.
+~9 days without ACE-Step. Metadata-only packages stay closed.
