@@ -1,6 +1,6 @@
-# Packager handoff (day 8) — 2026-09-11T08:18:20.437299+00:00
+# Packager handoff (day 9) — 2026-09-12T08:05:46.099119+00:00
 
-**No overwrite.** Packages stable; ACE-Step still down (~8 days).
+**No overwrite.** Packages stable; ACE-Step still down (~9 days).
 
 | Slug | Ready |
 |------|-------|
