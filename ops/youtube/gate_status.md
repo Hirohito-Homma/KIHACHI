@@ -1,12 +1,14 @@
-# Publish Gate status (day 9) — 2026-09-12T12:05:51.207237+00:00
+# Gate status (day 11) — 2026-09-13T12:05:56.782952+00:00
 
-## Decision
-**No authorize. No upload.**
+**Gate held closed.** No `authorize`. No upload / YouTube API.
 
-## Audit
-| Package | Ready | Blocker |
-|---------|-------|---------|
-| mutation-signal-premiere | no | no audio/ |
-| mutation-signal-process-short | no | no audio/ |
+| Slug | Ready | Blockers |
+|------|-------|----------|
+| `mutation-signal-premiere` | no | no render audio found under audio/ |
+| `mutation-signal-process-short` | no | no render audio found under audio/ |
 
-~9 days without ACE-Step. Metadata-only packages stay closed.
+## Summary
+- Ready for human authorize: **0/2**
+- Authorized packages: **0**
+- ACE-Step: down (no `projects/*/audio/`)
+- Next: wait for audio renders → packager `--overwrite` → human listens → `youtube-ops authorize <slug> --reason …`
