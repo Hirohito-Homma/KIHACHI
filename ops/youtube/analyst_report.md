@@ -1,4 +1,4 @@
-# Analyst report (day 11) — 2026-09-13T16:05:38.673041+00:00
+# Analyst report (day 12) — 2026-09-14T16:05:48.836798+00:00
 
 ## Snapshot
 queue 2 · packages 2 · authorize-ready **0/2** · authorized 0 · checklist **1/7** · ACE-Step **down**
@@ -17,7 +17,7 @@ queue 2 · packages 2 · authorize-ready **0/2** · authorized 0 · checklist **
 **checklist-set this shift:** none (no operator evidence).
 
 ## Bottleneck
-Same ~11 days: no `projects/*/audio/` WAVs; ACE-Step unreachable on host. Packager/gate correctly idle.
+Same ~12 days: no `projects/*/audio/` WAVs; ACE-Step unreachable on host. Packager/gate correctly idle.
 
 ## Hygiene
 Frozen queue (2) · no authorize · timer through 2026-09-19 · no upload/API from ops.
