@@ -1,7 +1,7 @@
-# Strategy plan (day 13) — 2026-09-15T00:06:37.419162+00:00
+# Strategy plan (day 14) — 2026-09-16T00:20:14.659333+00:00
 
 ## Decision
-**No new enqueue.** ~13 days without ACE-Step; WIP stays at 2 (`packaged_awaiting_audio`).
+**No new enqueue.** ~14 days without ACE-Step; WIP stays at 2 (`packaged_awaiting_audio`).
 
 ## Priorities
 1. Human: ACE-Step up **or** WAVs under `projects/*/audio/`
