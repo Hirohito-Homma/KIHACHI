@@ -1,4 +1,4 @@
-# Gate status (day 13) — 2026-09-15T12:22:58.552744+00:00
+# Gate status (day 14) — 2026-09-16T12:20:22.553112+00:00
 
 **Gate held closed.** No `authorize`. No upload / YouTube API.
 
