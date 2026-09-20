@@ -1,6 +1,6 @@
-# Packager handoff (day 17) — 2026-09-19T08:18:51.924934+00:00
+# Packager handoff (day 18) — 2026-09-20T08:06:02.989271+00:00
 
-**No overwrite.** Packages stable; ACE-Step still down (~17 days). No `projects/*/audio/` WAVs.
+**No overwrite.** Packages stable; ACE-Step still down (~18 days). No `projects/*/audio/` WAVs.
 
 | Slug | Ready for authorize |
 |------|---------------------|
