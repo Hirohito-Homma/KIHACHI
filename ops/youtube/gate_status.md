@@ -1,11 +1,11 @@
-# Gate status (day 21) — 2026-09-23T12:06:04.545707+00:00
+# Gate status (day 22) — 2026-09-24T12:17:20.856569+00:00
 
 **Gate held closed.** No `authorize`. No upload / YouTube API.
 
 | Slug | Ready | Blockers |
 |------|-------|----------|
-| `mutation-signal-premiere` | no | no render audio found under audio/ |
-| `mutation-signal-process-short` | no | no render audio found under audio/ |
+| `mutation-signal-premiere` | no | `no render audio found under audio/` |
+| `mutation-signal-process-short` | no | `no render audio found under audio/` |
 
 ## Summary
 - Ready for human authorize: **0/2**
