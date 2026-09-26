@@ -1,8 +1,16 @@
 {
   "ops_version": "0.1",
   "title": "Mutation Signal Premiere",
-  "brief": "Mutation Funk、DUB、Tech House。110 BPM、D#m。ファンキーなスラップベース。Vocoder。",
+  "brief": "Mutation Funk\u3001DUB\u3001Tech House\u3002110 BPM\u3001D#m\u3002\u30d5\u30a1\u30f3\u30ad\u30fc\u306a\u30b9\u30e9\u30c3\u30d7\u30d9\u30fc\u30b9\u3002Vocoder\u3002",
   "pillar": "full track premieres",
-  "status": "queued",
-  "created_at": "2026-09-04T00:34:09.814896+00:00"
+  "status": "packaged_awaiting_audio",
+  "created_at": "2026-09-04T00:34:09.814896+00:00",
+  "project": "projects/mutation-signal-premiere",
+  "blocked_on": "ace_step_audio_render",
+  "updated_at": "2026-09-05T08:05:35.467399+00:00",
+  "note": "local-slice complete; ACE-Step unreachable on producer shift 2026-09-04T04:05Z",
+  "package_slug": "mutation-signal-premiere",
+  "packager_note": "Day-2 packager refresh; still no ACE-Step audio; do not authorize.",
+  "producer_checked_at": "2026-09-26T04:05:30.830363+00:00",
+  "producer_note": "Day-24: ACE-Step still down; skip re-slice; await audio."
 }
