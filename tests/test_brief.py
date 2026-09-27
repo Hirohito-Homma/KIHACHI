@@ -52,23 +52,16 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(coverage["unread"], [])
         self.assertEqual(coverage["read_fraction"], 1.0)
 
-    def test_a_clause_read_only_in_part_says_which(self) -> None:
-        """Clause granularity alone would hide this.
-
-        `ダブの32小節` contains a genre, so the clause counts as read -- while
-        nothing anywhere reads a bar count, and `_total_bars` falls through to
-        its default 32. Reporting how much of the clause was touched is what
-        surfaces it, and following that thread is how the key bug below was
-        found.
-        """
-
-        brief = "ダブの32小節。110BPM、D#マイナー。"
+    def test_an_explicit_bar_count_is_read_as_duration(self) -> None:
+        brief = "ダブの24小節。110BPM、D#マイナー。"
 
         coverage = read_coverage(brief)
 
-        self.assertIn("ダブの32小節", coverage["partly_read"])
-        self.assertNotIn("ダブの32小節", coverage["unread"])
-        self.assertEqual(MusicBrain(seed=8).analyze(brief).song.total_bars, 32)
+        clause = next(item for item in coverage["clauses"] if item["text"] == "ダブの24小節")
+        self.assertIn("duration", clause["read_as"])
+        self.assertNotIn("ダブの24小節", coverage["partly_read"])
+        self.assertNotIn("ダブの24小節", coverage["unread"])
+        self.assertEqual(MusicBrain(seed=8).analyze(brief).song.total_bars, 24)
 
     def test_a_japanese_minor_key_is_not_composed_in_major(self) -> None:
         """Three shipped projects asked for D#マイナー and carry D# major.

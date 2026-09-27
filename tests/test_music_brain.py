@@ -44,6 +44,29 @@ class MusicBrainTests(unittest.TestCase):
         self.assertEqual(spec.song.total_bars % 8, 0)
         self.assertGreater(spec.song.total_bars, 100)
 
+    def test_explicit_bar_count_is_read_in_japanese_and_english(self) -> None:
+        cases = (("24小節", 24), ("16 bars", 16), ("40 measures", 40))
+        for request, expected in cases:
+            with self.subTest(request=request):
+                spec = MusicBrain().analyze(f"Tech House。120 BPM。{request}。")
+                self.assertEqual(spec.song.total_bars, expected)
+
+    def test_explicit_bars_override_a_minutes_request(self) -> None:
+        spec = MusicBrain().analyze("Tech House。120 BPM。5分程度、24小節。")
+
+        self.assertEqual(spec.song.total_bars, 24)
+
+    def test_bar_count_must_be_a_positive_whole_number(self) -> None:
+        for request in ("0小節", "-8 bars", "12.5小節"):
+            with self.subTest(request=request):
+                with self.assertRaisesRegex(ValueError, "positive whole number"):
+                    MusicBrain().analyze(f"Tech House。120 BPM。{request}。")
+
+    def test_a_bar_position_is_not_read_as_the_song_length(self) -> None:
+        spec = MusicBrain().analyze("Tech House。120 BPM。24小節目で転調。")
+
+        self.assertEqual(spec.song.total_bars, 32)
+
     def test_empty_prompt_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             MusicBrain().analyze("  ")
@@ -350,7 +373,7 @@ class StatedDarknessTests(unittest.TestCase):
 
         Techno already sits at 0.85/0.92 and `build_pattern` is already at
         `groove.kick_steps[1]`, so 「かなり手数の多いテクノ」 raises the spec to
-        0.95 and composes the same 381 drum notes. Downwards it works from the
+        0.95 and composes the same 95 drum notes over eight bars. Downwards it works from the
         same starting point, and upwards it works from a genre with room.
         """
 
@@ -360,11 +383,11 @@ class StatedDarknessTests(unittest.TestCase):
             spec = MusicBrain(seed=8).analyze(prompt)
             return len(COMPOSERS["drums"](spec))
 
-        self.assertEqual(drums("テクノ。8小節。"), 381)
-        self.assertEqual(drums("かなり手数の多いテクノ。8小節。"), 381)
-        self.assertEqual(drums("スカスカなテクノ。8小節。"), 320)
-        self.assertEqual(drums("ダブ。8小節。"), 240)
-        self.assertEqual(drums("手数の多いダブ。8小節。"), 272)
+        self.assertEqual(drums("テクノ。8小節。"), 95)
+        self.assertEqual(drums("かなり手数の多いテクノ。8小節。"), 95)
+        self.assertEqual(drums("スカスカなテクノ。8小節。"), 80)
+        self.assertEqual(drums("ダブ。8小節。"), 60)
+        self.assertEqual(drums("手数の多いダブ。8小節。"), 68)
 
     def test_harmonic_rhythm_steps_a_ladder_instead_of_blending(self) -> None:
         """The first stated field that is an integer, so degrees work differently.
@@ -519,4 +542,3 @@ class StatedDarknessTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

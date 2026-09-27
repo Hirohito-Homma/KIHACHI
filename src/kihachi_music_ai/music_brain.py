@@ -36,6 +36,10 @@ from .theory import DEFAULT_PROGRESSION, beats_per_bar, parse_key, progression_f
 
 _BPM_RE = re.compile(r"(\d{2,3}(?:\.\d+)?)\s*BPM", re.IGNORECASE)
 _MINUTES_RE = re.compile(r"(\d+(?:\.\d+)?)\s*分")
+_BARS_RE = re.compile(
+    r"(?<![\d.])([+-]?\d+(?:\.\d+)?)\s*(?:小節(?!目)|bars?\b|measures?\b)",
+    re.IGNORECASE,
+)
 _TIME_SIGNATURE_RE = re.compile(r"(?<!\d)([2-9]|1[0-2])\s*/\s*(2|4|8)(?!\d)")
 _BEATS_RE = re.compile(r"([2-9])\s*拍子")
 #: Words that name a meter outright. Only the unambiguous ones: "shuffle" and
@@ -660,6 +664,12 @@ class MusicBrain:
 
     @staticmethod
     def _total_bars(prompt: str, bpm: float, bar_beats: float = 4.0) -> int:
+        bars_match = _BARS_RE.search(prompt)
+        if bars_match is not None:
+            requested = float(bars_match.group(1))
+            if requested <= 0 or not requested.is_integer():
+                raise ValueError("bar count must be a positive whole number")
+            return int(requested)
         match = _MINUTES_RE.search(prompt)
         if match is None:
             return 32

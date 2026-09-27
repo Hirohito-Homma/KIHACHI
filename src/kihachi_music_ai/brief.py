@@ -54,12 +54,17 @@ BRIEF_COVERAGE_VERSION = "0.1"
 #: the failure that gets noticed.
 _BPM_RE = re.compile(r"(\d{2,3}(?:\.\d+)?)\s*BPM", re.IGNORECASE)
 _MINUTES_RE = re.compile(r"(\d+(?:\.\d+)?)\s*分")
+_BARS_RE = re.compile(
+    r"(?<![\d.])([+-]?\d+(?:\.\d+)?)\s*(?:小節(?!目)|bars?\b|measures?\b)",
+    re.IGNORECASE,
+)
 _TIME_SIGNATURE_RE = re.compile(r"(?<!\d)([2-9]|1[0-2])\s*/\s*(2|4|8)(?!\d)")
 _BEATS_RE = re.compile(r"([2-9])\s*拍子")
 
 _READERS = (
     ("bpm", _BPM_RE.finditer),
     ("duration", _MINUTES_RE.finditer),
+    ("duration", _BARS_RE.finditer),
     ("time_signature", _TIME_SIGNATURE_RE.finditer),
     ("time_signature", _BEATS_RE.finditer),
     # Not `_KEY_RE.finditer`: the key reader is the pattern *and* the rule that
