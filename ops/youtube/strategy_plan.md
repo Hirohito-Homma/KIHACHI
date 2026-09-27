@@ -1,7 +1,7 @@
-# Strategy plan (day 24) — 2026-09-26T00:05:31.446840+00:00
+# Strategy plan (day 25) — 2026-09-27T00:19:33.488794+00:00
 
 ## Decision
-**No new enqueue.** ~24 days without ACE-Step; WIP stays at 2 (`packaged_awaiting_audio`).
+**No new enqueue.** ~25 days without ACE-Step; WIP stays at 2 (`packaged_awaiting_audio`).
 
 ## Priorities
 1. Human: ACE-Step up **or** WAVs under `projects/*/audio/`
@@ -11,7 +11,7 @@
 5. Parked: Mutation Signal Explainer — only after audio backlog = 0
 
 ## Coverage
-24h timer active through **2026-09-29**. Next renew ~Sep 28–29.
+24h timer active through **2026-09-29**. Next renew ~Sep 28–29 (community shift).
 
 ## Non-goals
 Agent upload / YPP filing / checklist greens without evidence / queue growth while blocked.
