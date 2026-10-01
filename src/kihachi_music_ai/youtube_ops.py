@@ -353,6 +353,10 @@ def build_release_package(
         audio = Path(audio).expanduser()
         if not audio.is_file():
             raise FileNotFoundError(f"audio not found: {audio}")
+        if audio.suffix.lower() != ".wav":
+            # The length goes into every listing, and only WAV can be read
+            # with the standard library; masters are WAV anyway.
+            raise ValueError(f"--audio must be a .wav master: {audio}")
     else:
         audio = _find_audio(project_dir)
 
@@ -379,6 +383,8 @@ def build_release_package(
     blockers: list[str] = []
     if audio is None:
         blockers.append("no render audio found under audio/ (or pass --audio)")
+    elif audio.suffix.lower() == ".wav" and _audio_duration(audio) is None:
+        blockers.append(f"audio could not be read as WAV: {audio.name}")
     if blocking:
         blockers.append(f"{blocking} blocking material defect(s)")
     if review is None:
@@ -448,6 +454,9 @@ def build_release_package(
     (package_dir / "youtube_tags.txt").write_text("\n".join(tags) + "\n", encoding="utf-8")
     (package_dir / "youtube_chapters.txt").write_text(chapters, encoding="utf-8")
     (package_dir / "thumbnail_brief.md").write_text(thumbnail_brief, encoding="utf-8")
+    for name in STORE_COPY_FILES.values():
+        if name not in store_texts:
+            (package_dir / name).unlink(missing_ok=True)
     for name, text in store_texts.items():
         (package_dir / name).write_text(text, encoding="utf-8")
     _atomic_write_json(package_dir / "package.json", package)

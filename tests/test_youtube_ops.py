@@ -164,6 +164,30 @@ class YouTubeOpsTests(unittest.TestCase):
             self.assertAlmostEqual(package.package["audio_seconds"], 0.05)
             self.assertFalse((project / "audio").exists())
 
+    def test_external_audio_must_be_a_readable_wav(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = _write_project(root, "p", with_audio=False)
+            mp3 = root / "master.mp3"
+            mp3.write_bytes(b"ID3")
+            with self.assertRaises(ValueError):
+                build_release_package(project, root / "ops", audio=mp3)
+            broken = root / "master.wav"
+            broken.write_text("not audio", encoding="utf-8")
+            package = build_release_package(project, root / "ops", audio=broken)
+            self.assertFalse(package.package["ready_for_authorize"])
+            self.assertTrue(any("could not be read" in b for b in package.package["blockers"]))
+
+    def test_overwrite_drops_store_copy_no_longer_requested(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = _write_project(root, "p")
+            first = build_release_package(project, root / "ops", copy_for=["stock"])
+            self.assertTrue((first.package_dir / "stock_listing.md").is_file())
+            second = build_release_package(project, root / "ops", overwrite=True)
+            self.assertFalse((second.package_dir / "stock_listing.md").exists())
+            self.assertEqual(second.package["store_copy"], {})
+
     def test_missing_external_audio_is_an_error(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
