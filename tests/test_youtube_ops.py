@@ -28,7 +28,7 @@ def _write_project(root: Path, name: str, *, with_audio: bool = True, blocking: 
     (project / "song_spec.json").write_text(
         json.dumps(
             {
-                "meta": {"title": "Mutation Signal"},
+                "meta": {"title": "Mutation Signal", "mood": "dark"},
                 "song": {"bpm": 110, "key": "D#m"},
                 "genres": [{"name": "Mutation Funk"}, {"name": "Dub"}],
                 "arrangement": {
@@ -149,6 +149,104 @@ class YouTubeOpsTests(unittest.TestCase):
             self.assertEqual(main(["youtube-ops", "checklist", "--ops-dir", str(ops)]), 0)
             checklist = load_checklist(ops)
             self.assertEqual(checklist["total_count"], 7)
+
+    def test_external_audio_is_recorded_by_path_not_copied(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = _write_project(root, "source")
+            master = root / "drive" / "shadow.wav"
+            master.parent.mkdir()
+            (source / "audio" / "ace-step-01.wav").rename(master)
+            project = _write_project(root, "new-song", with_audio=False)
+            package = build_release_package(project, root / "ops", audio=master)
+            self.assertTrue(package.package["ready_for_authorize"])
+            self.assertEqual(package.package["audio_relative"], str(master.resolve()))
+            self.assertAlmostEqual(package.package["audio_seconds"], 0.05)
+            self.assertFalse((project / "audio").exists())
+
+    def test_missing_external_audio_is_an_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = _write_project(root, "p", with_audio=False)
+            with self.assertRaises(FileNotFoundError):
+                build_release_package(project, root / "ops", audio=root / "nope.wav")
+
+    def test_ollama_copy_goes_into_the_description(self) -> None:
+        sent: list[tuple[str, str]] = []
+
+        def fake(prompt: str, *, model: str) -> str:
+            sent.append((prompt, model))
+            return "夜の街を走る低音。\n\nLow end for night drives."
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = _write_project(root, "p")
+            package = build_release_package(
+                project, root / "ops", describe_with="gemma4", generate=fake
+            )
+            text = (package.package_dir / "youtube_description.md").read_text(encoding="utf-8")
+            self.assertIn("Low end for night drives.", text)
+            self.assertIn("Tempo: 110 BPM", text)
+            self.assertEqual(package.package["description_source"]["source"], "ollama")
+            self.assertEqual(sent[0][1], "gemma4")
+            self.assertIn("Mutation Funk", sent[0][0])
+            self.assertIn("Do not invent facts", sent[0][0])
+            self.assertIn("- mood: dark", sent[0][0])
+
+    def test_store_copy_for_streaming_and_stock(self) -> None:
+        prompts: list[str] = []
+
+        def fake(prompt: str, *, model: str) -> str:
+            prompts.append(prompt)
+            return f"draft {len(prompts)}"
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = _write_project(root, "p")
+            package = build_release_package(
+                project,
+                root / "ops",
+                describe_with="gemma4",
+                copy_for=["streaming", "stock"],
+                generate=fake,
+            )
+            self.assertEqual(len(prompts), 3)
+            self.assertIn("playlist editors", prompts[1])
+            self.assertIn("BGM stock site", prompts[2])
+            store = package.package["store_copy"]
+            self.assertEqual(store["streaming"]["file"], "streaming_pitch.md")
+            stock = (package.package_dir / "stock_listing.md").read_text(encoding="utf-8")
+            self.assertIn("- Tempo: 110 BPM", stock)
+            self.assertIn("draft 3", stock)
+
+    def test_store_copy_without_model_keeps_facts_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = _write_project(root, "p")
+            package = build_release_package(project, root / "ops", copy_for=["stock"])
+            stock = (package.package_dir / "stock_listing.md").read_text(encoding="utf-8")
+            self.assertIn("- Genre: Mutation Funk, Dub", stock)
+            self.assertEqual(package.package["store_copy"]["stock"]["source"], "template")
+            with self.assertRaises(ValueError):
+                build_release_package(project, root / "ops", copy_for=["tiktok"], overwrite=True)
+
+    def test_ollama_down_falls_back_to_template(self) -> None:
+        from kihachi_music_ai.adapters.ollama_text import OllamaUnavailable
+
+        def down(prompt: str, *, model: str) -> str:
+            raise OllamaUnavailable("connection refused")
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = _write_project(root, "p")
+            package = build_release_package(
+                project, root / "ops", describe_with="gemma4", generate=down
+            )
+            source = package.package["description_source"]
+            self.assertEqual(source["source"], "template")
+            self.assertIn("connection refused", source["fallback_reason"])
+            text = (package.package_dir / "youtube_description.md").read_text(encoding="utf-8")
+            self.assertIn("Original track prepared with KIHACHI Music AI.", text)
 
 
 if __name__ == "__main__":
