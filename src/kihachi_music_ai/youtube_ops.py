@@ -17,10 +17,11 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import wave
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 OPS_VERSION = "0.1"
 DEFAULT_OPS_DIR = Path("ops/youtube")
@@ -317,13 +318,27 @@ def build_release_package(
     ops_dir: Path | None = None,
     *,
     overwrite: bool = False,
+    audio: Path | None = None,
+    describe_with: str | None = None,
+    copy_for: Sequence[str] = (),
+    generate: Callable[..., str] | None = None,
 ) -> PackageManifest:
     """Build a YouTube release package from a finished KIHACHI project.
 
     Reads whatever local artifacts exist; missing audio or review does not invent
     readiness. Publish authorization is a separate step.
+
+    `audio` points at a master that lives outside the project (a synced Drive
+    folder, say); it is recorded by absolute path and never copied.
+    `describe_with` names a local Ollama model that drafts the prose part of
+    the description; if it cannot be reached the template is used and the
+    package says so. `copy_for` adds copy for other channels ("streaming",
+    "stock"): the facts always, plus a drafted paragraph when a model is given.
     """
 
+    for target in copy_for:
+        if target not in STORE_COPY_FILES:
+            raise ValueError(f"unknown copy target: {target} (use streaming or stock)")
     root = ensure_ops_workspace(ops_dir)
     project_dir = Path(project_dir)
     if not project_dir.is_dir():
@@ -334,7 +349,16 @@ def build_release_package(
     defects = _load_json(project_dir / "material_defects.json")
     lyrics = _read_text(project_dir / "lyrics.txt")
     prompt = _read_text(project_dir / "prompt.txt")
-    audio = _find_audio(project_dir)
+    if audio is not None:
+        audio = Path(audio).expanduser()
+        if not audio.is_file():
+            raise FileNotFoundError(f"audio not found: {audio}")
+        if audio.suffix.lower() != ".wav":
+            # The length goes into every listing, and only WAV can be read
+            # with the standard library; masters are WAV anyway.
+            raise ValueError(f"--audio must be a .wav master: {audio}")
+    else:
+        audio = _find_audio(project_dir)
 
     title = _package_title(spec, project_dir)
     slug = _slug(title)
@@ -358,17 +382,45 @@ def build_release_package(
 
     blockers: list[str] = []
     if audio is None:
-        blockers.append("no render audio found under audio/")
+        blockers.append("no render audio found under audio/ (or pass --audio)")
+    elif audio.suffix.lower() == ".wav" and _audio_duration(audio) is None:
+        blockers.append(f"audio could not be read as WAV: {audio.name}")
     if blocking:
         blockers.append(f"{blocking} blocking material defect(s)")
     if review is None:
         blockers.append("generation_review.json missing")
 
+    spec_dict = spec if isinstance(spec, dict) else {}
+    duration = _audio_duration(audio) if audio else None
+    def draft(target: str) -> tuple[str | None, dict[str, Any]]:
+        if not describe_with:
+            return None, {"source": "template"}
+        return _draft_copy(
+            title=title,
+            spec=spec_dict,
+            lyrics=lyrics,
+            duration=duration,
+            model=describe_with,
+            generate=generate,
+            target=target,
+        )
+
+    copy, copy_source = draft("youtube")
+    store_copy: dict[str, dict[str, Any]] = {}
+    store_texts: dict[str, str] = {}
+    for target in dict.fromkeys(copy_for):
+        text, source = draft(target)
+        name = STORE_COPY_FILES[target]
+        store_texts[name] = _build_store_copy(
+            target, title=title, spec=spec_dict, duration=duration, copy=text
+        )
+        store_copy[target] = {"file": name, **source}
     description = _build_description(
         title=title,
-        spec=spec if isinstance(spec, dict) else {},
+        spec=spec_dict,
         lyrics=lyrics,
         prompt=prompt,
+        copy=copy,
     )
     tags = _build_tags(spec if isinstance(spec, dict) else {})
     chapters = _build_chapters(spec if isinstance(spec, dict) else {})
@@ -380,7 +432,10 @@ def build_release_package(
         "title": title,
         "project": str(project_dir),
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "audio_relative": str(audio.relative_to(project_dir)) if audio else None,
+        "audio_relative": _audio_record(audio, project_dir),
+        "audio_seconds": round(duration, 3) if duration else None,
+        "description_source": copy_source,
+        "store_copy": store_copy,
         "review": {"alignment_score": aligned, "grade": grade, "blocking": blocking},
         "ready_for_authorize": not blockers,
         "blockers": blockers,
@@ -399,6 +454,11 @@ def build_release_package(
     (package_dir / "youtube_tags.txt").write_text("\n".join(tags) + "\n", encoding="utf-8")
     (package_dir / "youtube_chapters.txt").write_text(chapters, encoding="utf-8")
     (package_dir / "thumbnail_brief.md").write_text(thumbnail_brief, encoding="utf-8")
+    for name in STORE_COPY_FILES.values():
+        if name not in store_texts:
+            (package_dir / name).unlink(missing_ok=True)
+    for name, text in store_texts.items():
+        (package_dir / name).write_text(text, encoding="utf-8")
     _atomic_write_json(package_dir / "package.json", package)
     return PackageManifest(root, package_dir, package)
 
@@ -635,6 +695,7 @@ def _build_description(
     spec: dict[str, Any],
     lyrics: str | None,
     prompt: str | None,
+    copy: str | None = None,
 ) -> str:
     genres = _genre_labels(spec)
     bpm = None
@@ -646,9 +707,10 @@ def _build_description(
     lines = [
         f"# {title}",
         "",
-        "Original track prepared with KIHACHI Music AI.",
-        "",
     ]
+    if copy:
+        lines.extend([copy.strip(), ""])
+    lines.extend(["Original track prepared with KIHACHI Music AI.", ""])
     if genres:
         lines.append(f"Genre blend: {', '.join(genres)}")
     if bpm is not None:
@@ -751,6 +813,95 @@ def _timestamp(seconds: float) -> str:
     if hours:
         return f"{hours}:{minutes:02d}:{secs:02d}"
     return f"{minutes}:{secs:02d}"
+
+
+def _draft_copy(
+    *,
+    title: str,
+    spec: dict[str, Any],
+    lyrics: str | None,
+    duration: float | None,
+    model: str,
+    generate: Callable[..., str] | None,
+    target: str = "youtube",
+) -> tuple[str | None, dict[str, Any]]:
+    from .adapters import ollama_text
+
+    song = spec.get("song") if isinstance(spec.get("song"), dict) else {}
+    meta = spec.get("meta") if isinstance(spec.get("meta"), dict) else {}
+    facts = {
+        "title": title,
+        "genres": ", ".join(_genre_labels(spec)),
+        "bpm": song.get("bpm") or song.get("tempo"),
+        "key": song.get("key"),
+        "duration": _timestamp(duration) if duration else None,
+        "lyrics": lyrics,
+        "mood": meta.get("mood"),
+        "use": meta.get("use"),
+    }
+    prompt = ollama_text.build_prompt(facts, target)
+    call = generate or ollama_text.generate
+    try:
+        text = call(prompt, model=model)
+    except ollama_text.OllamaUnavailable as exc:
+        return None, {"source": "template", "requested_model": model, "fallback_reason": str(exc)}
+    return text, {"source": "ollama", "model": model, "prompt": prompt}
+
+
+STORE_COPY_FILES = {"streaming": "streaming_pitch.md", "stock": "stock_listing.md"}
+
+_STORE_HEADINGS = {
+    "streaming": "Streaming pitch (distributor / playlist editors)",
+    "stock": "BGM stock listing (Audiostock / BOOTH)",
+}
+
+
+def _build_store_copy(
+    target: str,
+    *,
+    title: str,
+    spec: dict[str, Any],
+    duration: float | None,
+    copy: str | None,
+) -> str:
+    song = spec.get("song") if isinstance(spec.get("song"), dict) else {}
+    meta = spec.get("meta") if isinstance(spec.get("meta"), dict) else {}
+    lines = [f"# {title} — {_STORE_HEADINGS[target]}", ""]
+    facts = [
+        ("Genre", ", ".join(_genre_labels(spec))),
+        ("Tempo", f"{song['bpm']} BPM" if song.get("bpm") else None),
+        ("Key", song.get("key")),
+        ("Length", _timestamp(duration) if duration else None),
+        ("Mood", meta.get("mood")),
+        ("Use", meta.get("use")),
+    ]
+    lines.extend(f"- {label}: {value}" for label, value in facts if value)
+    lines.append("")
+    if copy:
+        lines.extend([copy.strip(), ""])
+    else:
+        lines.extend(["(no drafted copy; pass --describe-with MODEL)", ""])
+    return "\n".join(lines)
+
+
+def _audio_record(audio: Path | None, project_dir: Path) -> str | None:
+    if audio is None:
+        return None
+    try:
+        return str(audio.resolve().relative_to(project_dir.resolve()))
+    except ValueError:
+        return str(audio.resolve())
+
+
+def _audio_duration(audio: Path) -> float | None:
+    if audio.suffix.lower() != ".wav":
+        return None
+    try:
+        with wave.open(str(audio), "rb") as source:
+            rate = source.getframerate()
+            return source.getnframes() / rate if rate else None
+    except (wave.Error, EOFError, OSError):
+        return None
 
 
 def _find_audio(project_dir: Path) -> Path | None:

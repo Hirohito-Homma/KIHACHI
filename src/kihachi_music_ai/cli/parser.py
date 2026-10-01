@@ -1035,6 +1035,24 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="replace an existing package with the same slug",
     )
+    yt_package.add_argument(
+        "--audio",
+        type=Path,
+        default=None,
+        help="master audio outside the project (recorded by path, not copied)",
+    )
+    yt_package.add_argument(
+        "--describe-with",
+        metavar="MODEL",
+        default=None,
+        help="draft the description with a local Ollama model (e.g. gemma4)",
+    )
+    yt_package.add_argument(
+        "--copy-for",
+        metavar="TARGETS",
+        default=None,
+        help="also write copy for other channels: streaming,stock",
+    )
     yt_checklist = youtube_commands.add_parser(
         "checklist", help="print the monetization readiness checklist"
     )

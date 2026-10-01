@@ -59,10 +59,21 @@ def youtube_ops(args: argparse.Namespace) -> int:
             args.project,
             args.ops_dir,
             overwrite=args.overwrite,
+            audio=args.audio,
+            describe_with=args.describe_with,
+            copy_for=[t for t in (args.copy_for or "").split(",") if t],
         )
         package = manifest.package
         print(f"Built release package: {manifest.package_dir}")
         print(f"- title: {package['title']}")
+        print(f"- audio: {package['audio_relative']}")
+        source = package["description_source"]
+        if source["source"] == "ollama":
+            print(f"- description: drafted by ollama ({source['model']}); edit before publishing")
+        elif "fallback_reason" in source:
+            print(f"- description: template (ollama unavailable: {source['fallback_reason']})")
+        for target, entry in package["store_copy"].items():
+            print(f"- {target} copy: {entry['file']} ({entry['source']})")
         print(f"- ready for authorize: {package['ready_for_authorize']}")
         for blocker in package["blockers"]:
             print(f"- blocker: {blocker}")
