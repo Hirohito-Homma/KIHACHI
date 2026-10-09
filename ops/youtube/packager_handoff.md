@@ -1,19 +1,13 @@
-# Packager handoff (day 36) — 2026-10-08T08:05:59.809289+00:00
+# Packager handoff (day 37) — 2026-10-09T08:05:26.647399+00:00
 
-**No overwrite.** Packages stable; ACE-Step still down (~36 days). No `projects/*/audio/` WAVs.
+**Hold packages — no `--overwrite`.**
 
-| Slug | Ready for authorize |
-|------|---------------------|
-| mutation-signal-premiere | no — `no render audio found under audio/` |
-| mutation-signal-process-short | no — `no render audio found under audio/` |
+| Slug | Ready | Blockers |
+|------|-------|----------|
+| `mutation-signal-premiere` | no | `no render audio found under audio/` |
+| `mutation-signal-process-short` | no | `no render audio found under audio/` |
 
-## Next (when WAVs land)
-
-```bash
-python3 -m kihachi_music_ai youtube-ops package projects/mutation-signal-premiere \
-  --title 'Mutation Signal Premiere' --overwrite
-python3 -m kihachi_music_ai youtube-ops package projects/mutation-signal-process-short \
-  --title 'Mutation Signal Process Short' --overwrite
-```
-
-Then hand to **gate** (human `authorize` only). No upload from ops.
+## Notes
+- Existing package metadata retained; re-package only after WAVs land under `projects/*/audio/`.
+- Next: producer `audio-slice` → `youtube-ops package … --overwrite` → gate.
+- No upload / authorize from this role.
