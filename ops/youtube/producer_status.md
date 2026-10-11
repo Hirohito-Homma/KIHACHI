@@ -1,4 +1,4 @@
-# Producer status (day 38) — 2026-10-10T04:21:09.059457+00:00
+# Producer status (day 39) — 2026-10-11T04:06:01.033989+00:00
 
 ACE-Step down (ports 8000/8001/7860/8080 unreachable). No `projects/*/audio/`.
 
