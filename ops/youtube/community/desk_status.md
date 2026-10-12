@@ -1,4 +1,4 @@
-# Community Desk status (day 39) — 2026-10-11T20:05:37.588204+00:00
+# Community Desk status (day 40) — 2026-10-12T20:05:32.457296+00:00
 
 Authorized: **0**. HOLD retained; nothing posted to YouTube Community.
 
@@ -8,4 +8,4 @@ Authorized: **0**. HOLD retained; nothing posted to YouTube Community.
 Promote drafts only after an authorize receipt exists under `ops/youtube/authorized/`.
 No Community Tab posts from this agent.
 
-Timer: active through **2026-10-14** (renewed day-35). Next renew ~Oct 13–14.
+Timer: active through **2026-10-14** (renewed day-35). **Renew next community shift (~Oct 13).**
