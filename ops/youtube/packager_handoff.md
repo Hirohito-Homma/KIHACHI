@@ -1,4 +1,4 @@
-# Packager handoff (day 44) — 2026-10-16T08:08:23.572840+00:00
+# Packager handoff (day 45) — 2026-10-17T08:05:42.636640+00:00
 
 **Hold packages — no `--overwrite`.**
 
