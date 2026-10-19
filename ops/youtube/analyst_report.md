@@ -1,4 +1,4 @@
-# Analyst report (day 46) — 2026-10-18T16:05:37.953440+00:00
+# Analyst report (day 47) — 2026-10-19T16:05:46.606383+00:00
 
 ## Snapshot
 queue 2 · packages 2 · authorize-ready **0/2** · authorized 0 · checklist **1/7** · ACE-Step **down**
@@ -17,11 +17,11 @@ queue 2 · packages 2 · authorize-ready **0/2** · authorized 0 · checklist **
 **checklist-set this shift:** none (no operator evidence).
 
 ## Bottleneck
-Same ~46 days: no `projects/*/audio/` WAVs; ACE-Step unreachable on host. Packager/gate correctly idle.
+Same ~47 days: no `projects/*/audio/` WAVs; ACE-Step unreachable on host. Packager/gate correctly idle.
 
 ## Hygiene
 Frozen queue (2) · no authorize · timer through **2026-10-20** · no upload/API from ops.
-Next timer renew ~Oct 19–20 (community).
+**Timer renew tonight community (~20:00 UTC).**
 
 ## Ask of operator
 1. Bring ACE-Step up **or** drop WAVs under `projects/*/audio/`
